@@ -1,0 +1,103 @@
+@if (Visible)
+{
+    <div class="help-overlay" @onclick="Close">
+        <div class="help-modal" @onclick:stopPropagation>
+            <button class="help-close" @onclick="Close">✕</button>
+
+            <h2 class="help-title">¿Cómo se juega?</h2>
+
+            <!-- OBJETIVO -->
+            <section class="help-section">
+                <h3>El objetivo</h3>
+                <p>Consigue la mejor mano posible con tus 5 cartas. Cuando todos los jugadores hayan
+                terminado su turno, las manos se revelan y <strong>gana quien más puntos tenga</strong>.
+                En caso de empate, ambos jugadores comparten la posición.</p>
+            </section>
+
+            <!-- CARTAS -->
+            <section class="help-section">
+                <h3>Las cartas</h3>
+                <p>Cada carta tiene <strong>3 características</strong>: letra, figura y color.
+                Hay 5 valores posibles para cada una, lo que da una baraja de <strong>125 cartas únicas</strong>.</p>
+                <div class="help-params">
+                    <div class="help-param">
+                        <span class="help-param-name">Letra</span>
+                        <span class="help-param-vals">T · R · I · K · E</span>
+                    </div>
+                    <div class="help-param">
+                        <span class="help-param-name">Figura</span>
+                        <span class="help-param-vals">● ■ ★ ▲ ♥</span>
+                    </div>
+                    <div class="help-param">
+                        <span class="help-param-name">Color</span>
+                        <span class="help-param-vals">
+                            <span style="color:#e53935">■</span> Rojo &nbsp;
+                            <span style="color:#43A047">■</span> Verde &nbsp;
+                            <span style="color:#1E88E5">■</span> Azul &nbsp;
+                            <span style="color:#212121;background:#eee;border-radius:2px;padding:0 2px">■</span> Negro &nbsp;
+                            <span style="color:#9C27B0">■</span> Magenta
+                        </span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MECÁNICA -->
+            <section class="help-section">
+                <h3>Tu turno</h3>
+                <ol class="help-steps">
+                    <li>Al empezar recibes <strong>5 cartas</strong>.</li>
+                    <li>Cuando sea tu turno, selecciona las cartas que no te interesen y pulsa <em>Descartar</em>. Recibirás al momento el mismo número de cartas nuevas.</li>
+                    <li>Si estás contento con tu mano, pulsa <em>Descartar</em> sin seleccionar nada para pasar.</li>
+                    <li>Una vez que todos hayan pasado, las manos se revelan y el juego calcula la puntuación automáticamente.</li>
+                </ol>
+            </section>
+
+            <!-- JUGADAS -->
+            <section class="help-section">
+                <h3>Las jugadas</h3>
+                <p>Una jugada es un grupo de <strong>2 o más cartas que comparten alguna característica</strong>
+                (letra, figura o color). Cuantas más cartas y más características compartan, más puntos vale.</p>
+                <p>Puedes sumar varias jugadas a la vez siempre que no usen las mismas cartas —
+                el juego elige automáticamente la combinación más ventajosa para ti.</p>
+                <p class="help-note">Simple = comparten 1 característica &nbsp;·&nbsp; Doble = comparten 2 características</p>
+
+                <div class="help-table-wrap">
+                    <table class="help-table help-hands-table">
+                        <thead>
+                            <tr><th>#</th><th>Jugada</th><th>Descripción</th><th>Pts</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>1</td><td>Retriker Doble</td><td>Las 5 cartas comparten 2 características</td><td class="pts">64</td></tr>
+                            <tr class="row-special"><td>2</td><td>Escalera Real ✦</td><td>Las 5 cartas son todas distintas en letra, figura y color</td><td class="pts">50</td></tr>
+                            <tr><td>3</td><td>Triker Doble</td><td>4 cartas comparten 2 características</td><td class="pts">36</td></tr>
+                            <tr><td>4</td><td>Trío Doble + Pareja Doble</td><td>Un grupo de 3 y un grupo de 2, ambos con 2 características iguales</td><td class="pts">20</td></tr>
+                            <tr><td>5</td><td>Retriker Simple</td><td>Las 5 cartas comparten 1 característica</td><td class="pts">32</td></tr>
+                            <tr><td>6</td><td>Triker Simple</td><td>4 cartas comparten 1 característica</td><td class="pts">18</td></tr>
+                            <tr><td>7</td><td>Trío Doble + Pareja Simple</td><td>Un grupo de 3 (2 caract.) y un grupo de 2 (1 caract.)</td><td class="pts">18</td></tr>
+                            <tr><td>8</td><td>Trío Doble</td><td>3 cartas comparten 2 características</td><td class="pts">16</td></tr>
+                            <tr><td>9</td><td>Trío Simple + Pareja Doble</td><td>Un grupo de 3 (1 caract.) y un grupo de 2 (2 caract.)</td><td class="pts">12</td></tr>
+                            <tr class="row-special"><td>10</td><td>Escalera Doble ✦</td><td>Las 5 cartas son todas distintas en exactamente 2 características</td><td class="pts">12</td></tr>
+                            <tr><td>11</td><td>Trío Simple + Pareja Simple</td><td>Un grupo de 3 y un grupo de 2, ambos con 1 característica igual</td><td class="pts">10</td></tr>
+                            <tr><td>12</td><td>Trío Simple</td><td>3 cartas comparten 1 característica</td><td class="pts">8</td></tr>
+                            <tr><td>13</td><td>Pareja Doble + Pareja Doble</td><td>Dos grupos de 2 cartas, cada uno con 2 características iguales</td><td class="pts">8</td></tr>
+                            <tr><td>14</td><td>Pareja Doble + Pareja Simple</td><td>Un grupo de 2 (2 caract.) y otro grupo de 2 (1 caract.)</td><td class="pts">6</td></tr>
+                            <tr><td>15</td><td>Pareja Doble</td><td>2 cartas comparten 2 características</td><td class="pts">4</td></tr>
+                            <tr><td>16</td><td>Pareja Simple + Pareja Simple</td><td>Dos grupos de 2 cartas, cada uno con 1 característica igual</td><td class="pts">4</td></tr>
+                            <tr class="row-special"><td>17</td><td>Escalera Simple ✦</td><td>Las 5 cartas son todas distintas en exactamente 1 característica</td><td class="pts">3</td></tr>
+                            <tr><td>18</td><td>Pareja Simple</td><td>2 cartas comparten 1 característica</td><td class="pts">2</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="help-note">✦ Las Escaleras solo puntúan si superan la puntuación de tus grupos.</p>
+            </section>
+
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private Task Close() => OnClose.InvokeAsync();
+}

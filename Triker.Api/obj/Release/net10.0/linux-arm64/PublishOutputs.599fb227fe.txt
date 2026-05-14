@@ -1,0 +1,12 @@
+C:\Desarrollo\Proyectos\Triker\publish\api\Triker.Api
+C:\Desarrollo\Proyectos\Triker\publish\api\appsettings.Development.json
+C:\Desarrollo\Proyectos\Triker\publish\api\appsettings.json
+C:\Desarrollo\Proyectos\Triker\publish\api\appsettings.Production.json
+C:\Desarrollo\Proyectos\Triker\publish\api\Triker.Api.dll
+C:\Desarrollo\Proyectos\Triker\publish\api\Triker.Api.deps.json
+C:\Desarrollo\Proyectos\Triker\publish\api\Triker.Api.runtimeconfig.json
+C:\Desarrollo\Proyectos\Triker\publish\api\Triker.Api.pdb
+C:\Desarrollo\Proyectos\Triker\publish\api\Microsoft.AspNetCore.OpenApi.dll
+C:\Desarrollo\Proyectos\Triker\publish\api\Microsoft.OpenApi.dll
+C:\Desarrollo\Proyectos\Triker\publish\api\Triker.Shared.dll
+C:\Desarrollo\Proyectos\Triker\publish\api\Triker.Shared.pdb

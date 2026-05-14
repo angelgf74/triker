@@ -1,0 +1,225 @@
+@page "/game/{GameId:guid}"
+@inject ApiService Api
+@inject HubService Hub
+@inject SessionService Session
+@inject NavigationManager Nav
+@inject IConfiguration Config
+@implements IAsyncDisposable
+
+<div class="game-room">
+    @if (_state == null)
+    {
+        <div class="loading">Conectando a la partida...</div>
+    }
+    else if (_state.Status == GameStatus.Finished && _results != null)
+    {
+        <ResultsView Results="_results" GameName="@_state.Name" RoundNumber="_state.RoundNumber"
+                     MyPlayerId="_myPlayerId"
+                     OnContinue="HandleContinue"
+                     Players="_state.Players" />
+    }
+    else
+    {
+        <HelpModal Visible="_helpVisible" OnClose="@(() => _helpVisible = false)" />
+        <div class="game-header">
+            <span class="game-title-small">@_state.Name</span>
+            <span class="round-badge">Ronda @_state.RoundNumber</span>
+            <DeckView DeckSize="_state.DeckSize" />
+            <button class="btn-help" @onclick="@(() => _helpVisible = true)" title="Ayuda">?</button>
+        </div>
+
+        @if (_state.Status == GameStatus.Waiting)
+        {
+            <div class="waiting-room">
+                <h2>Sala de espera</h2>
+                <div class="players-waiting">
+                    @foreach (var p in _state.Players)
+                    {
+                        <div class="waiting-player">
+                            <span class="player-dot">@(p.IsBot ? "○" : "●")</span>
+                            <span>@p.Name</span>
+                            @if (p.Id == _state.CreatorId)
+                            {
+                                <span class="player-tag">(Creador)</span>
+                            }
+                            @if (p.IsBot)
+                            {
+                                <span class="player-tag tag-bot">Bot</span>
+                            }
+                        </div>
+                    }
+                </div>
+                <p class="waiting-info">
+                    @_state.Players.Count / @MaxPlayers jugadores
+                    (mínimo 2, máximo @MaxPlayers)
+                </p>
+                @if (_myPlayerId == _state.CreatorId)
+                {
+                    <div class="waiting-actions">
+                        @if (_state.Players.Count < MaxPlayers)
+                        {
+                            <button class="btn-secondary" @onclick="AddBot">+ Añadir bot</button>
+                        }
+                        @if (_state.Players.Count >= 2)
+                        {
+                            <button class="btn-primary btn-start" @onclick="StartGame">
+                                ▶ Iniciar partida
+                            </button>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="waiting-msg">Esperando a que el creador inicie la partida...</p>
+                }
+            </div>
+        }
+        else
+        {
+                var me = _state.Players.FirstOrDefault(p => p.Id == _myPlayerId);
+
+            @if (me != null)
+            {
+                <div class="my-area">
+                    <div class="my-area-header">
+                        <span class="my-name">@me.Name (tú)</span>
+                        @if (me.Wins > 0 || me.Seconds > 0 || me.Thirds > 0)
+                        {
+                            <span class="player-medals">
+                                @if (me.Wins > 0)    { <span>🥇@me.Wins</span> }
+                                @if (me.Seconds > 0) { <span>🥈@me.Seconds</span> }
+                                @if (me.Thirds > 0)  { <span>🥉@me.Thirds</span> }
+                            </span>
+                        }
+                        @if (_state.Status == GameStatus.Playing)
+                        {
+                            @if (me.IsCurrentTurn)
+                            {
+                                <span class="turn-indicator my-turn">¡Tu turno!</span>
+                            }
+                            else
+                            {
+                                var current = _state.Players.ElementAtOrDefault(_state.CurrentTurnIndex);
+                                <span class="turn-indicator waiting-turn">Turno de @(current?.Name ?? "...")</span>
+                            }
+                        }
+                        else if (_state.Status == GameStatus.Revealing)
+                        {
+                            <span class="turn-indicator revealing">Revelando cartas...</span>
+                        }
+                    </div>
+
+                    <HandView Cards="me.Hand"
+                              CanDiscard="@(me.IsCurrentTurn && _state.Status == GameStatus.Playing && !_discarded)"
+                              OnDiscard="HandleDiscard" />
+                </div>
+            }
+
+            <OtherPlayersView Players="_state.Players" MyPlayerId="_myPlayerId" />
+        }
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <div class="error-msg">@_error</div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public Guid GameId { get; set; }
+
+    private GameStateDto? _state;
+    private List<HandResultDto>? _results;
+    private Guid _myPlayerId;
+    private bool _discarded = false;
+    private bool _helpVisible = false;
+    private string _error = "";
+
+    private int MaxPlayers => _state != null ? (int)Math.Floor((double)(_state.N * _state.N) / 2) : 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _myPlayerId = ParsePlayerIdFromUrl(Nav.Uri)
+            ?? await Session.GetOrCreatePlayerId();
+
+        Hub.OnChange += OnHubChange;
+        Hub.OnHandsRevealed += OnHandsRevealed;
+
+        var apiBase = GetApiBase();
+        await Hub.Connect(apiBase, GameId, _myPlayerId);
+
+        if (_state == null)
+        {
+            _state = await Api.GetGameState(GameId, _myPlayerId);
+            StateHasChanged();
+        }
+    }
+
+    private void OnHubChange()
+    {
+        _state = Hub.GameState;
+        if (_state?.Status == GameStatus.Playing)
+        {
+            var me = _state.Players.FirstOrDefault(p => p.Id == _myPlayerId);
+            if (me != null && me.TurnStatus == PlayerTurnStatus.Thinking)
+                _discarded = false;
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnHandsRevealed(List<HandResultDto> results)
+    {
+        _results = results;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task AddBot()
+    {
+        var ok = await Api.AddBot(GameId, _myPlayerId);
+        if (!ok) _error = "No se pudo añadir el bot";
+    }
+
+    private async Task StartGame()
+    {
+        var ok = await Api.StartGame(GameId, _myPlayerId);
+        if (!ok) _error = "No se pudo iniciar la partida";
+    }
+
+    private async Task HandleDiscard(List<Guid> cardIds)
+    {
+        _discarded = true;
+        var ok = await Api.Discard(GameId, _myPlayerId, new() { CardIds = cardIds });
+        if (!ok) { _error = "Error al descartar"; _discarded = false; }
+    }
+
+    private async Task HandleContinue(bool wantsToContinue)
+    {
+        _results = null;
+        _discarded = false;
+        await Api.Continue(GameId, _myPlayerId, new() { WantsToContinue = wantsToContinue });
+        if (!wantsToContinue) Nav.NavigateTo("");
+    }
+
+    private string GetApiBase()
+        => Config["ApiBaseUrl"] ?? "https://localhost:7077";
+
+    private static Guid? ParsePlayerIdFromUrl(string url)
+    {
+        var query = new Uri(url).Query.TrimStart('?');
+        foreach (var part in query.Split('&'))
+        {
+            var kv = part.Split('=', 2);
+            if (kv.Length == 2 && kv[0] == "playerId"
+                && Guid.TryParse(Uri.UnescapeDataString(kv[1]), out var id))
+                return id;
+        }
+        return null;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Hub.OnChange -= OnHubChange;
+        Hub.OnHandsRevealed -= OnHandsRevealed;
+        await Hub.DisposeAsync();
+    }
+}

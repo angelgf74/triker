@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TRIKER</title>
+    <base href="/triker/" />
+    <link rel="preload" id="webassembly" />
+    <link rel="stylesheet" href="css/app.css?c=[.{fingerprint}]" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="shortcut icon" href="favicon.svg" />
+    <link href="Triker.Web.styles.css?c=[.{fingerprint}]" rel="stylesheet" />
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="icon.svg" />
+    <meta name="theme-color" content="#f0c040" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Triker" />
+    <script type="importmap"></script>
+</head>
+
+<body>
+    <div id="app">
+        <div class="loading-screen">
+            <h1 class="loading-title">TRIKER</h1>
+            <div class="loading-cards">
+                <div class="loading-card color-red">T</div>
+                <div class="loading-card color-blue">R</div>
+                <div class="loading-card color-green">I</div>
+                <div class="loading-card color-magenta">K</div>
+                <div class="loading-card color-cyan">E</div>
+                <div class="loading-card color-black">R</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="blazor-error-ui">
+        Se ha producido un error.
+        <a href="." class="reload">Recargar</a>
+        <span class="dismiss">✕</span>
+    </div>
+    <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js');
+        }
+    </script>
+</body>
+
+</html>

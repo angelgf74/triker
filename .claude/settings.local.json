@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet --version)",
+      "Bash(dotnet --list-sdks)",
+      "Bash(dotnet new sln *)",
+      "Bash(dotnet new *)",
+      "Bash(dotnet sln *)",
+      "Bash(dotnet add *)",
+      "Bash(rm Triker.Shared/Class1.cs)",
+      "Bash(mkdir -p Triker.Shared/Models Triker.Shared/Dtos)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet run *)",
+      "PowerShell(Get-NetTCPConnection *)",
+      "PowerShell(netstat *)",
+      "PowerShell(Stop-Process *)",
+      "Bash(python *)",
+      "Bash(Get-ChildItem -Path 'C:\\\\Desarrollo\\\\Proyectos\\\\Triker\\\\Triker.Web' -Recurse -Include '*.razor','*.cs')",
+      "Bash(Select-String -Pattern '\\(Trío|Pareja|Combinación|combo|combination\\)')",
+      "Bash(Select-Object -First 20)",
+      "Bash(xargs grep -l \"combination\\\\|Combination\")"
+    ]
+  }
+}

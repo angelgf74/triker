@@ -1,0 +1,13 @@
+<div class="deck-view">
+    <div class="deck-stack">
+        @for (int i = 0; i < Math.Min(DeckSize, 5); i++)
+        {
+            <div class="deck-card-back" style="top: -@(i * 2)px; left: @(i * 2)px;"></div>
+        }
+    </div>
+    <span class="deck-count">@DeckSize cartas</span>
+</div>
+
+@code {
+    [Parameter] public int DeckSize { get; set; }
+}

@@ -1,0 +1,51 @@
+@using Triker.Shared.Dtos
+@using Triker.Shared.Models
+
+<div class="other-players">
+    @foreach (var player in Players
+        .SkipWhile(p => p.Id != MyPlayerId).Skip(1)
+        .Concat(Players.TakeWhile(p => p.Id != MyPlayerId)))
+    {
+        <div class="other-player @(player.IsCurrentTurn ? "active-turn" : "")">
+            <div class="other-player-header">
+                <span class="other-player-name">@player.Name</span>
+                @if (player.IsBot) { <span class="player-tag tag-bot">Bot</span> }
+                @if (player.IsCurrentTurn)
+                {
+                    <span class="turn-badge">turno</span>
+                }
+                @if (player.TurnStatus == PlayerTurnStatus.Ready)
+                {
+                    <span class="ready-badge">✓ listo</span>
+                }
+                @if (player.Wins > 0 || player.Seconds > 0 || player.Thirds > 0)
+                {
+                    <span class="player-medals">
+                        @if (player.Wins > 0)    { <span>🥇@player.Wins</span> }
+                        @if (player.Seconds > 0) { <span>🥈@player.Seconds</span> }
+                        @if (player.Thirds > 0)  { <span>🥉@player.Thirds</span> }
+                    </span>
+                }
+            </div>
+            <div class="other-player-cards">
+                @for (int i = 0; i < player.HandSize; i++)
+                {
+                    <CardView FaceDown="true" />
+                }
+            </div>
+            @if (player.TurnStatus == PlayerTurnStatus.Ready && player.DiscardCount > 0)
+            {
+                <div class="discard-info">Descartó @player.DiscardCount carta@(player.DiscardCount != 1 ? "s" : "")</div>
+            }
+            else if (player.TurnStatus == PlayerTurnStatus.Ready)
+            {
+                <div class="discard-info">Pasó sin descartar</div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public List<PlayerDto> Players { get; set; } = [];
+    [Parameter] public Guid MyPlayerId { get; set; }
+}

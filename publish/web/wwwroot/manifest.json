@@ -1,0 +1,26 @@
+{
+  "name": "Triker",
+  "short_name": "Triker",
+  "description": "El juego de cartas Triker — combina letras, figuras y colores",
+  "lang": "es",
+  "start_url": "/triker/",
+  "scope": "/triker/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1a1a2e",
+  "theme_color": "#f0c040",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TRIKER</title>
+    <base href="/triker/" />
+    <link href="_framework/dotnet.hp165zx85c.js" rel="preload" as="script" fetchpriority="high" crossorigin="anonymous" integrity="sha256-2xDfB1txrAfqOmVLBvjvc8T+LwnjzXfUrhXwWAWxlJw=" />
+    <link rel="stylesheet" href="css/app.css?c=[.{fingerprint}]" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="shortcut icon" href="favicon.svg" />
+    <link href="Triker.Web.styles.css?c=[.{fingerprint}]" rel="stylesheet" />
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="icon.svg" />
+    <meta name="theme-color" content="#f0c040" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Triker" />
+    <script type="importmap">{
+  "imports": {
+    "./_framework/blazor.webassembly.js": "./_framework/blazor.webassembly.zxhwjtv6sc.js",
+    "./_framework/dotnet.js": "./_framework/dotnet.hp165zx85c.js",
+    "./_framework/dotnet.native.js": "./_framework/dotnet.native.o027ce4ny1.js",
+    "./_framework/dotnet.runtime.js": "./_framework/dotnet.runtime.2zl32tp6ah.js"
+  },
+  "scopes": {},
+  "integrity": {
+    "./_framework/blazor.webassembly.js": "sha256-1xlHuu1iNOJiMMz2BCq95uekwHf6pdpTcgVNKVBboPs=",
+    "./_framework/blazor.webassembly.zxhwjtv6sc.js": "sha256-1xlHuu1iNOJiMMz2BCq95uekwHf6pdpTcgVNKVBboPs=",
+    "./_framework/dotnet.hp165zx85c.js": "sha256-2xDfB1txrAfqOmVLBvjvc8T+LwnjzXfUrhXwWAWxlJw=",
+    "./_framework/dotnet.js": "sha256-2xDfB1txrAfqOmVLBvjvc8T+LwnjzXfUrhXwWAWxlJw=",
+    "./_framework/dotnet.native.js": "sha256-CHZ4IHKeXTqbItC/5afxyS2NqRlbTH1EGE8bFsB9aN4=",
+    "./_framework/dotnet.native.o027ce4ny1.js": "sha256-CHZ4IHKeXTqbItC/5afxyS2NqRlbTH1EGE8bFsB9aN4=",
+    "./_framework/dotnet.runtime.2zl32tp6ah.js": "sha256-/ndm/PF1BeBT5mXzYAES79wNK5sIZIQKAGcUqPL9ZP8=",
+    "./_framework/dotnet.runtime.js": "sha256-/ndm/PF1BeBT5mXzYAES79wNK5sIZIQKAGcUqPL9ZP8="
+  }
+}</script>
+</head>
+
+<body>
+    <div id="app">
+        <div class="loading-screen">
+            <h1 class="loading-title">TRIKER</h1>
+            <div class="loading-cards">
+                <div class="loading-card color-red">T</div>
+                <div class="loading-card color-blue">R</div>
+                <div class="loading-card color-green">I</div>
+                <div class="loading-card color-magenta">K</div>
+                <div class="loading-card color-cyan">E</div>
+                <div class="loading-card color-black">R</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="blazor-error-ui">
+        Se ha producido un error.
+        <a href="." class="reload">Recargar</a>
+        <span class="dismiss">✕</span>
+    </div>
+    <script src="_framework/blazor.webassembly.zxhwjtv6sc.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js');
+        }
+    </script>
+</body>
+
+</html>

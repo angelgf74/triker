@@ -1,0 +1,19 @@
+using Triker.Shared.Models;
+
+namespace Triker.Shared.Dtos;
+
+public class PlayerDto
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = "";
+    public int HandSize { get; set; }
+    public int DiscardCount { get; set; }
+    public PlayerTurnStatus TurnStatus { get; set; }
+    public bool IsCurrentTurn { get; set; }
+    public bool WantsToContinue { get; set; }
+    public bool IsBot { get; set; }
+    public int Wins { get; set; }
+    public int Seconds { get; set; }
+    public int Thirds { get; set; }
+    public List<CardDto> Hand { get; set; } = [];
+}

@@ -1,0 +1,94 @@
+@using Triker.Shared.Dtos
+
+<div class="hand-view">
+    <div class="hand-cards">
+        @for (int i = 0; i < _orderedCards.Count; i++)
+        {
+            var idx = i;
+            var card = _orderedCards[idx];
+            <CardView Card="card"
+                      Selected="@_selected.Contains(card.Id)"
+                      Draggable="true"
+                      Dragging="@(_dragIndex == idx)"
+                      OnClick="@(() => ToggleSelect(card.Id))"
+                      OnDragStarted="@(() => _dragIndex = idx)"
+                      OnDropped="@(() => ReorderCard(idx))" />
+        }
+    </div>
+
+    @if (CanDiscard)
+    {
+        <div class="discard-controls">
+            <p class="discard-hint">
+                @if (_selected.Count == 0)
+                {
+                    <span>Selecciona las cartas a descartar (o ninguna para pasar)</span>
+                }
+                else
+                {
+                    <span>@_selected.Count carta@(_selected.Count != 1 ? "s" : "") seleccionada@(_selected.Count != 1 ? "s" : "") para descartar</span>
+                }
+            </p>
+            <button class="btn-discard" @onclick="ConfirmDiscard">
+                @(_selected.Count == 0 ? "Pasar (sin descartar)" : $"Descartar {_selected.Count}")
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public List<CardDto> Cards { get; set; } = [];
+    [Parameter] public bool CanDiscard { get; set; }
+    [Parameter] public EventCallback<List<Guid>> OnDiscard { get; set; }
+
+    private List<CardDto> _orderedCards = [];
+    private HashSet<Guid> _selected = [];
+    private int _dragIndex = -1;
+
+    protected override void OnParametersSet()
+    {
+        // Preserve order if only cards added/removed; rebuild if set changes completely
+        var newIds = Cards.Select(c => c.Id).ToHashSet();
+        var existingIds = _orderedCards.Select(c => c.Id).ToHashSet();
+
+        if (!newIds.SetEquals(existingIds))
+        {
+            // Remove gone cards, add new ones at end
+            _orderedCards = _orderedCards.Where(c => newIds.Contains(c.Id)).ToList();
+            foreach (var card in Cards.Where(c => !existingIds.Contains(c.Id)))
+                _orderedCards.Add(card);
+            _selected.IntersectWith(newIds);
+        }
+        else
+        {
+            // Update card data (in case same id, different state)
+            for (int i = 0; i < _orderedCards.Count; i++)
+            {
+                var updated = Cards.FirstOrDefault(c => c.Id == _orderedCards[i].Id);
+                if (updated != null) _orderedCards[i] = updated;
+            }
+        }
+    }
+
+    private void ToggleSelect(Guid id)
+    {
+        if (!CanDiscard) return;
+        if (!_selected.Add(id)) _selected.Remove(id);
+    }
+
+    private void ReorderCard(int dropIndex)
+    {
+        if (_dragIndex < 0 || _dragIndex == dropIndex || _dragIndex >= _orderedCards.Count) return;
+        var card = _orderedCards[_dragIndex];
+        _orderedCards.RemoveAt(_dragIndex);
+        int insertAt = dropIndex > _dragIndex ? dropIndex - 1 : dropIndex;
+        _orderedCards.Insert(Math.Clamp(insertAt, 0, _orderedCards.Count), card);
+        _dragIndex = -1;
+    }
+
+    private async Task ConfirmDiscard()
+    {
+        await OnDiscard.InvokeAsync(_selected.ToList());
+        _selected.Clear();
+    }
+}

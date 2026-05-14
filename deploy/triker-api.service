@@ -1,0 +1,16 @@
+[Unit]
+Description=Triker API
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/triker/api
+ExecStart=/usr/bin/dotnet /opt/triker/api/Triker.Api.dll
+Restart=always
+RestartSec=10
+KillSignal=SIGINT
+SyslogIdentifier=triker-api
+User=angel
+Environment=ASPNETCORE_ENVIRONMENT=Production
+
+[Install]
+WantedBy=multi-user.target

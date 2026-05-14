@@ -1,0 +1,84 @@
+@using Triker.Shared.Models
+@using Triker.Shared.Dtos
+
+<div class="card @ColorClass @(Selected ? "selected" : "") @(FaceDown ? "face-down" : "") @(Dragging ? "dragging" : "")"
+     @onclick="HandleClick"
+     draggable="@(Draggable ? "true" : "false")"
+     @ondragstart="OnDragStart"
+     @ondragover:preventDefault="true"
+     @ondrop="OnDrop"
+     title="@(FaceDown ? "Carta boca abajo" : $"{LetterLabel} {FigureLabel} {ColorLabel}")">
+    @if (!FaceDown)
+    {
+        <div class="card-corner top-left">
+            <span class="card-letter">@LetterLabel</span>
+        </div>
+        <div class="card-figure-center">
+            <span class="card-figure">@FigureSymbol</span>
+        </div>
+        <div class="card-corner bottom-right rotated">
+            <span class="card-letter">@LetterLabel</span>
+        </div>
+    }
+    else
+    {
+        <div class="card-back-pattern"></div>
+    }
+</div>
+
+@code {
+    [Parameter] public CardDto? Card { get; set; }
+    [Parameter] public bool Selected { get; set; }
+    [Parameter] public bool FaceDown { get; set; }
+    [Parameter] public bool Draggable { get; set; }
+    [Parameter] public bool Dragging { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+    [Parameter] public EventCallback OnDragStarted { get; set; }
+    [Parameter] public EventCallback OnDropped { get; set; }
+
+    private string LetterLabel => Card?.Letter.ToString() ?? "";
+    private string ColorLabel => Card?.Color switch
+    {
+        CardColor.Red => "Rojo",
+        CardColor.Green => "Verde",
+        CardColor.Blue => "Azul",
+        CardColor.Black => "Negro",
+        CardColor.Magenta => "Magenta",
+        CardColor.Cyan => "Cyan",
+        _ => ""
+    };
+    private string FigureLabel => Card?.Figure switch
+    {
+        Figure.Circle => "Círculo",
+        Figure.Square => "Cuadrado",
+        Figure.Star => "Estrella",
+        Figure.Triangle => "Triángulo",
+        Figure.Heart => "Corazón",
+        Figure.Clover => "Trébol",
+        _ => ""
+    };
+    private string FigureSymbol => Card?.Figure switch
+    {
+        Figure.Circle => "●",
+        Figure.Square => "■",
+        Figure.Star => "★",
+        Figure.Triangle => "▲",
+        Figure.Heart => "♥",
+        Figure.Clover => "♣",
+        _ => "?"
+    };
+    private string ColorClass => Card?.Color switch
+    {
+        CardColor.Red => "color-red",
+        CardColor.Green => "color-green",
+        CardColor.Blue => "color-blue",
+        CardColor.Black => "color-black",
+        CardColor.Magenta => "color-magenta",
+        CardColor.Cyan => "color-cyan",
+        _ => ""
+    };
+
+    private async Task HandleClick() => await OnClick.InvokeAsync();
+    private async Task OnDragStart() => await OnDragStarted.InvokeAsync();
+    private async Task OnDrop() => await OnDropped.InvokeAsync();
+}

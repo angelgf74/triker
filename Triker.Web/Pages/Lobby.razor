@@ -1,0 +1,154 @@
+@page "/"
+@inject ApiService Api
+@inject SessionService Session
+@inject NavigationManager Nav
+@implements IDisposable
+
+<HelpModal Visible="_helpVisible" OnClose="@(() => _helpVisible = false)" />
+
+<div class="lobby">
+    <div class="lobby-header">
+        <h1 class="game-title">TRIKER</h1>
+        <p class="game-subtitle">El juego de cartas</p>
+        <button class="btn-help" @onclick="@(() => _helpVisible = true)" title="Ayuda">?</button>
+    </div>
+
+    <div class="player-name-section">
+        <label>Tu nombre:</label>
+        <input class="name-input" @bind="_playerName" @bind:event="oninput"
+               placeholder="Introduce tu nombre..." maxlength="20" />
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="error-msg">@_error</div>
+    }
+
+    <div class="lobby-actions">
+        <button class="btn-primary" @onclick="ShowCreateForm" disabled="@(string.IsNullOrWhiteSpace(_playerName))">
+            + Nueva partida
+        </button>
+    </div>
+
+    @if (_showCreateForm)
+    {
+        <div class="create-form">
+            <input class="name-input" @bind="_gameName" placeholder="Nombre de la partida..." maxlength="30" />
+            <button class="btn-primary" @onclick="CreateGame">Crear</button>
+            <button class="btn-secondary" @onclick="() => _showCreateForm = false">Cancelar</button>
+        </div>
+    }
+
+    <div class="games-section">
+        <div class="section-header">
+            <h2>Partidas disponibles</h2>
+            <button class="btn-refresh" @onclick="LoadGames" title="Actualizar">↻</button>
+        </div>
+
+        @if (_loading)
+        {
+            <div class="loading">Cargando partidas...</div>
+        }
+        else if (_games.Count == 0)
+        {
+            <div class="empty-list">No hay partidas disponibles. ¡Crea una!</div>
+        }
+        else
+        {
+            <div class="games-list">
+                @foreach (var game in _games)
+                {
+                    <div class="game-card">
+                        <div class="game-info">
+                            <span class="game-name">@game.Name</span>
+                            <span class="game-creator">por @game.CreatorName</span>
+                        </div>
+                        <div class="game-meta">
+                            <span class="player-count">@game.PlayerCount / @game.MaxPlayers jugadores</span>
+                            <span class="game-status @game.Status.ToString().ToLower()">@StatusLabel(game.Status)</span>
+                        </div>
+                        @if (game.Status == Triker.Shared.Models.GameStatus.Waiting)
+                        {
+                            <button class="btn-join" @onclick="() => JoinGame(game.Id)"
+                                    disabled="@(string.IsNullOrWhiteSpace(_playerName))">
+                                Unirse
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string _playerName = "";
+    private string _gameName = "";
+    private string _error = "";
+    private bool _loading = true;
+    private bool _showCreateForm = false;
+    private bool _helpVisible = false;
+    private List<Triker.Shared.Dtos.GameSummaryDto> _games = [];
+    private System.Threading.Timer? _refreshTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _playerName = await Session.GetPlayerName() ?? "";
+        await LoadGames();
+        _refreshTimer = new System.Threading.Timer(async _ =>
+        {
+            await LoadGames();
+            await InvokeAsync(StateHasChanged);
+        }, null, 5000, 5000);
+    }
+
+    private async Task LoadGames()
+    {
+        _loading = true;
+        try { _games = await Api.ListGames() ?? []; }
+        catch { _games = []; }
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private void ShowCreateForm()
+    {
+        _gameName = $"Partida de {_playerName}";
+        _showCreateForm = true;
+    }
+
+    private async Task CreateGame()
+    {
+        if (string.IsNullOrWhiteSpace(_playerName) || string.IsNullOrWhiteSpace(_gameName)) return;
+        _error = "";
+        await Session.SetPlayerName(_playerName);
+        var result = await Api.CreateGame(new() { PlayerName = _playerName, GameName = _gameName });
+        if (result != null)
+            Nav.NavigateTo($"game/{result.GameState.Id}?playerId={result.PlayerId}");
+        else
+            _error = "No se pudo crear la partida";
+    }
+
+    private async Task JoinGame(Guid gameId)
+    {
+        if (string.IsNullOrWhiteSpace(_playerName)) return;
+        _error = "";
+        await Session.SetPlayerName(_playerName);
+        var result = await Api.JoinGame(gameId, new() { PlayerName = _playerName });
+        if (result != null)
+            Nav.NavigateTo($"game/{result.GameState.Id}?playerId={result.PlayerId}");
+        else
+            _error = "No se pudo unir a la partida";
+    }
+
+    private static string StatusLabel(Triker.Shared.Models.GameStatus s) => s switch
+    {
+        Triker.Shared.Models.GameStatus.Waiting => "Esperando",
+        Triker.Shared.Models.GameStatus.Playing => "En juego",
+        Triker.Shared.Models.GameStatus.Revealing => "Revelando",
+        Triker.Shared.Models.GameStatus.Finished => "Finalizada",
+        _ => ""
+    };
+
+    public void Dispose() => _refreshTimer?.Dispose();
+}

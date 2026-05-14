@@ -1,0 +1,127 @@
+@using Triker.Shared.Dtos
+
+<div class="results-view">
+    <div class="results-header">
+        <h2>Resultados — @GameName</h2>
+        <p class="round-label">Ronda @RoundNumber</p>
+    </div>
+
+    <div class="continue-section">
+        @if (!_decided)
+        {
+            <p class="continue-prompt">¿Quieres jugar otra partida?</p>
+            <div class="continue-buttons">
+                <button class="btn-primary" @onclick="() => Decide(true)">Jugar de nuevo</button>
+                <button class="btn-secondary" @onclick="() => Decide(false)">Abandonar mesa</button>
+            </div>
+        }
+        else
+        {
+            <p class="waiting-others">
+                Esperando a los demás jugadores…
+                (@Players.Count(p => p.WantsToContinue) / @Players.Count quieren continuar)
+            </p>
+        }
+    </div>
+
+    <div class="results-list">
+        @foreach (var result in Results.OrderBy(r => r.Rank))
+        {
+            // Map cardId → group index (only groups with 2+ cards)
+            var cardGroup = new Dictionary<Guid, int>();
+            for (int gi = 0; gi < result.Groups.Count; gi++)
+                if (result.Groups[gi].Cards.Count >= 2)
+                    foreach (var c in result.Groups[gi].Cards)
+                        cardGroup[c.Id] = gi;
+
+            // Sort: grouped cards first (by group index), ungrouped last
+            var sortedHand = result.Hand
+                .OrderBy(c => cardGroup.TryGetValue(c.Id, out var g) ? g : 999)
+                .ToList();
+
+            var realGroups = result.Groups.Where(g => g.Cards.Count >= 2).ToList();
+
+            <div class="result-entry @(result.PlayerId == MyPlayerId ? "my-result" : "") rank-@result.Rank">
+
+                <div class="result-player-header">
+                    <span class="rank-medal">@MedalLabel(result)</span>
+                    <span class="result-player-name">
+                        @result.PlayerName@(result.PlayerId == MyPlayerId ? " (tú)" : "")
+                    </span>
+                    @{ var pd = Players.FirstOrDefault(p => p.Id == result.PlayerId); }
+                    @if (pd != null && (pd.Wins > 0 || pd.Seconds > 0 || pd.Thirds > 0))
+                    {
+                        <span class="player-medals">
+                            @if (pd.Wins > 0)    { <span>🥇@pd.Wins</span> }
+                            @if (pd.Seconds > 0) { <span>🥈@pd.Seconds</span> }
+                            @if (pd.Thirds > 0)  { <span>🥉@pd.Thirds</span> }
+                        </span>
+                    }
+                </div>
+
+                <div class="result-cards-row">
+                    @foreach (var card in sortedHand)
+                    {
+                        var inGroup = cardGroup.TryGetValue(card.Id, out var gi);
+                        var color = inGroup ? GroupColors[gi % GroupColors.Length] : null;
+                        <div class="rc-slot @(inGroup ? "rc-grouped" : "")"
+                             style="@(color != null ? $"--gc:{color}" : "")">
+                            <CardView Card="card" FaceDown="false" />
+                        </div>
+                    }
+                </div>
+
+                <div class="result-badges">
+                    @if (realGroups.Count > 0)
+                    {
+                        @foreach (var (bg, color) in result.Groups
+                            .Select((g, i) => (g, GroupColors[i % GroupColors.Length]))
+                            .Where(x => x.g.Cards.Count >= 2)
+                            .OrderByDescending(x => x.g.Score))
+                        {
+                            <span class="grp-badge" style="--gc:@color">@bg.Name</span>
+                        }
+                    }
+                    else
+                    {
+                        <span class="grp-badge grp-escalera">@result.HandName</span>
+                    }
+                </div>
+
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private static readonly string[] GroupColors =
+        ["#3b82f6", "#f59e0b", "#a855f7", "#22c55e", "#ef4444", "#06b6d4", "#ec4899"];
+
+    [Parameter] public List<HandResultDto> Results { get; set; } = [];
+    [Parameter] public List<PlayerDto> Players { get; set; } = [];
+    [Parameter] public string GameName { get; set; } = "";
+    [Parameter] public int RoundNumber { get; set; }
+    [Parameter] public Guid MyPlayerId { get; set; }
+    [Parameter] public EventCallback<bool> OnContinue { get; set; }
+
+    private bool _decided = false;
+
+    private async Task Decide(bool wantsToContinue)
+    {
+        _decided = true;
+        await OnContinue.InvokeAsync(wantsToContinue);
+    }
+
+    private string MedalLabel(HandResultDto result)
+    {
+        // Número de jugadores con puntuación estrictamente mayor
+        int above = Results.Count(r => r.TotalScore > result.TotalScore);
+        return (above + 1) switch
+        {
+            1 => "🥇",
+            2 => "🥈",
+            3 => "🥉",
+            var n => $"{n}º"
+        };
+    }
+}
