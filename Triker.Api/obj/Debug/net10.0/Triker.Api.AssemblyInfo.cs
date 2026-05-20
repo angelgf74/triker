@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Triker.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e2c2abe7475f63da3fd9550f2efbcfb732a91592")]
 [assembly: System.Reflection.AssemblyProductAttribute("Triker.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Triker.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

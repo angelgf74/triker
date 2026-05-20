@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Triker.Web")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e2c2abe7475f63da3fd9550f2efbcfb732a91592")]
 [assembly: System.Reflection.AssemblyProductAttribute("Triker.Web")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Triker.Web")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

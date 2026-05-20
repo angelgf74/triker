@@ -5,7 +5,7 @@ var e=!1;const t=async()=>WebAssembly.validate(new Uint8Array([0,97,115,109,1,0,
   "mainAssemblyName": "Triker.Web",
   "applicationEnvironment": "Development",
   "resources": {
-    "hash": "sha256-fTmu1fGECnRqIntssS9JHGSJtbVGPQFrziC1LaXrPV8=",
+    "hash": "sha256-L2Uk/+SoRcUGFjXpCpWTyhHANSP1bBJKoLoywaiNiYc=",
     "jsModuleNative": [
       {
         "name": "dotnet.native.mx9wzm9o5h.js"
@@ -134,6 +134,12 @@ var e=!1;const t=async()=>WebAssembly.validate(new Uint8Array([0,97,115,109,1,0,
         "virtualPath": "Microsoft.AspNetCore.SignalR.Protocols.Json.wasm",
         "name": "Microsoft.AspNetCore.SignalR.Protocols.Json.jc1s9ud2io.wasm",
         "integrity": "sha256-LdlDRheoSnKMSxywOjt6jzpG7qqr3GZZNRFZyXGUHY0=",
+        "cache": "force-cache"
+      },
+      {
+        "virtualPath": "Microsoft.DotNet.HotReload.WebAssembly.Browser.wasm",
+        "name": "Microsoft.DotNet.HotReload.WebAssembly.Browser.v5huyml5sc.wasm",
+        "integrity": "sha256-nUOp/kC3zVe2D4ay6RHxrSXcFPp/ckiVhdpJ76khAVE=",
         "cache": "force-cache"
       },
       {
@@ -1284,29 +1290,39 @@ var e=!1;const t=async()=>WebAssembly.validate(new Uint8Array([0,97,115,109,1,0,
       },
       {
         "virtualPath": "Triker.Shared.wasm",
-        "name": "Triker.Shared.kngjsaqhsu.wasm",
-        "integrity": "sha256-8EAcvOL21bzTQtpYNRwDXMx0o4aBHMWL4DdZ2+/FCFw=",
+        "name": "Triker.Shared.vhrlxvpr88.wasm",
+        "integrity": "sha256-jZR3hy6uOx7hgqdzq+WjHLCP8WitGpRrtcDz/mYIvTs=",
         "cache": "force-cache"
       },
       {
         "virtualPath": "Triker.Web.wasm",
-        "name": "Triker.Web.ygr9x5ct53.wasm",
-        "integrity": "sha256-rhcjs4ritTbo9fIg9/1kR0CaLmRQE5/t2hZcdMcT/nA=",
+        "name": "Triker.Web.0ut2kqso6v.wasm",
+        "integrity": "sha256-iP8EaumYaLN2j22zfF9zHGY6+vik2NILEvpptlOekbw=",
         "cache": "force-cache"
       }
     ],
     "pdb": [
       {
         "virtualPath": "Triker.Shared.pdb",
-        "name": "Triker.Shared.im1288rvzm.pdb",
-        "integrity": "sha256-ugzvLQoySdAR/tfTF7rxZjcO9lNGgcxzYePlAIW3uYQ=",
+        "name": "Triker.Shared.umg24gkj6a.pdb",
+        "integrity": "sha256-toT8TLJdLipSE0QR/y5bjK3RCsyowX4+7ge60s3nw0Y=",
         "cache": "force-cache"
       },
       {
         "virtualPath": "Triker.Web.pdb",
-        "name": "Triker.Web.43ztpsxyol.pdb",
-        "integrity": "sha256-IHA+jJA+4SKPwE6ffVrClF0APSLxTfVDSUtyyj/ujS0=",
+        "name": "Triker.Web.968l1v9j0i.pdb",
+        "integrity": "sha256-XxY/2dfFqnCzFI3CuiN8i54UVETCBYEyTetJq4YV140=",
         "cache": "force-cache"
+      }
+    ],
+    "libraryInitializers": [
+      {
+        "name": "_content/Microsoft.DotNet.HotReload.WebAssembly.Browser/Microsoft.DotNet.HotReload.WebAssembly.Browser.99zm1jdh75.lib.module.js"
+      }
+    ],
+    "modulesAfterConfigLoaded": [
+      {
+        "name": "../_content/Microsoft.DotNet.HotReload.WebAssembly.Browser/Microsoft.DotNet.HotReload.WebAssembly.Browser.99zm1jdh75.lib.module.js"
       }
     ]
   },

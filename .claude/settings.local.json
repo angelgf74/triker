@@ -18,7 +18,12 @@
       "Bash(Get-ChildItem -Path 'C:\\\\Desarrollo\\\\Proyectos\\\\Triker\\\\Triker.Web' -Recurse -Include '*.razor','*.cs')",
       "Bash(Select-String -Pattern '\\(Trío|Pareja|Combinación|combo|combination\\)')",
       "Bash(Select-Object -First 20)",
-      "Bash(xargs grep -l \"combination\\\\|Combination\")"
+      "Bash(xargs grep -l \"combination\\\\|Combination\")",
+      "Bash(dir \"C:\\\\Desarrollo\\\\Proyectos\\\\Triker\\\\publish\\\\web\\\\wwwroot\\\\css\" /b)",
+      "Bash(dir \"C:\\\\Desarrollo\\\\Proyectos\\\\Triker\\\\publish\\\\web\\\\wwwroot\\\\*.css\" /b)",
+      "Bash(python3 -c ' *)",
+      "Bash(grep -Ev \"^\\(Triker\\\\.\\(Api|Web|Shared\\)/\\(bin|obj\\)/|publish/|\\\\.vs/|\\\\.claude/|.*\\\\.user$\\)\")",
+      "Bash(git add *)"
     ]
   }
 }

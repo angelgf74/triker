@@ -7,5 +7,5 @@
 -DGEN_PINVOKE=1
 -emit-llvm
 "-IC:\Desarrollo\Proyectos\Triker\Triker.Web\obj\Release\net10.0\wasm\for-publish"
-"-IC:\Program Files\dotnet\packs\Microsoft.NETCore.App.Runtime.Mono.browser-wasm\10.0.7\runtimes\browser-wasm\native\include\mono-2.0"
-"-IC:\Program Files\dotnet\packs\Microsoft.NETCore.App.Runtime.Mono.browser-wasm\10.0.7\runtimes\browser-wasm\native\include\wasm"
+"-IC:\Program Files\dotnet\packs\Microsoft.NETCore.App.Runtime.Mono.browser-wasm\10.0.8\runtimes\browser-wasm\native\include\mono-2.0"
+"-IC:\Program Files\dotnet\packs\Microsoft.NETCore.App.Runtime.Mono.browser-wasm\10.0.8\runtimes\browser-wasm\native\include\wasm"

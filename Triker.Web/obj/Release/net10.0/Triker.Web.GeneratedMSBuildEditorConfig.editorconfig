@@ -14,13 +14,14 @@ build_property.ProjectTypeGuids =
 build_property.InvariantGlobalization = false
 build_property.PlatformNeutralAssembly = 
 build_property.EnforceExtendedAnalyzerRules = 
+build_property.EntryPointFilePath = 
 build_property._SupportedPlatformList = browser
 build_property.RootNamespace = Triker.Web
 build_property.RootNamespace = Triker.Web
 build_property.ProjectDir = C:\Desarrollo\Proyectos\Triker\Triker.Web\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = false
-build_property.RazorLangVersion = 9.0
+build_property.RazorLangVersion = 10.0
 build_property.SupportLocalizedComponentNames = 
 build_property.GenerateRazorMetadataSourceChecksumAttributes = 
 build_property.MSBuildProjectDirectory = C:\Desarrollo\Proyectos\Triker\Triker.Web
@@ -54,6 +55,10 @@ build_metadata.AdditionalFiles.CssScope =
 
 [C:/Desarrollo/Proyectos/Triker/Triker.Web/Components/ResultsView.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xSZXN1bHRzVmlldy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Desarrollo/Proyectos/Triker/Triker.Web/Components/SugerenciasModal.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xTdWdlcmVuY2lhc01vZGFsLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Desarrollo/Proyectos/Triker/Triker.Web/Pages/GameRoom.razor]

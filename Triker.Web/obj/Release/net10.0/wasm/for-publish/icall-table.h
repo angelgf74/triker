@@ -189,14 +189,14 @@ static int corlib_icall_indexes [] = {
     /* 184 */ 10808,
     /* 185 */ 10812,
     /* 186 */ 10822,
-    /* 187 */ 10876,
-    /* 188 */ 10877,
-    /* 189 */ 10878,
-    /* 190 */ 10879,
-    /* 191 */ 11532,
-    /* 192 */ 11553,
-    /* 193 */ 11555,
-    /* 194 */ 11557
+    /* 187 */ 10877,
+    /* 188 */ 10878,
+    /* 189 */ 10879,
+    /* 190 */ 10880,
+    /* 191 */ 11533,
+    /* 192 */ 11554,
+    /* 193 */ 11556,
+    /* 194 */ 11558
 };
 
 void ves_icall_System_Array_InternalCreate (int, int, int, int, int); 
@@ -583,14 +583,14 @@ static void *corlib_icall_funcs [] = {
     /* 184:10808 */ ves_icall_System_Diagnostics_Debugger_IsAttached_internal,
     /* 185:10812 */ ves_icall_System_Diagnostics_StackFrame_GetFrameInfo,
     /* 186:10822 */ ves_icall_System_Diagnostics_StackTrace_GetTrace,
-    /* 187:10876 */ ves_icall_System_Diagnostics_Tracing_NativeRuntimeEventSource_LogContentionStart,
-    /* 188:10877 */ ves_icall_System_Diagnostics_Tracing_NativeRuntimeEventSource_LogContentionStop,
-    /* 189:10878 */ ves_icall_System_Diagnostics_Tracing_NativeRuntimeEventSource_LogWaitHandleWaitStart,
-    /* 190:10879 */ ves_icall_System_Diagnostics_Tracing_NativeRuntimeEventSource_LogWaitHandleWaitStop,
-    /* 191:11532 */ ves_icall_Mono_RuntimeClassHandle_GetTypeFromClass,
-    /* 192:11553 */ ves_icall_Mono_RuntimeGPtrArrayHandle_GPtrArrayFree,
-    /* 193:11555 */ ves_icall_Mono_SafeStringMarshal_StringToUtf8,
-    /* 194:11557 */ ves_icall_Mono_SafeStringMarshal_GFree
+    /* 187:10877 */ ves_icall_System_Diagnostics_Tracing_NativeRuntimeEventSource_LogContentionStart,
+    /* 188:10878 */ ves_icall_System_Diagnostics_Tracing_NativeRuntimeEventSource_LogContentionStop,
+    /* 189:10879 */ ves_icall_System_Diagnostics_Tracing_NativeRuntimeEventSource_LogWaitHandleWaitStart,
+    /* 190:10880 */ ves_icall_System_Diagnostics_Tracing_NativeRuntimeEventSource_LogWaitHandleWaitStop,
+    /* 191:11533 */ ves_icall_Mono_RuntimeClassHandle_GetTypeFromClass,
+    /* 192:11554 */ ves_icall_Mono_RuntimeGPtrArrayHandle_GPtrArrayFree,
+    /* 193:11556 */ ves_icall_Mono_SafeStringMarshal_StringToUtf8,
+    /* 194:11558 */ ves_icall_Mono_SafeStringMarshal_GFree
 };
 
 static uint8_t corlib_icall_flags [] = {
@@ -781,12 +781,12 @@ static uint8_t corlib_icall_flags [] = {
     /* 184:10808 */ 0,
     /* 185:10812 */ 0,
     /* 186:10822 */ 0,
-    /* 187:10876 */ 0,
-    /* 188:10877 */ 0,
-    /* 189:10878 */ 0,
-    /* 190:10879 */ 0,
-    /* 191:11532 */ 0,
-    /* 192:11553 */ 0,
-    /* 193:11555 */ 0,
-    /* 194:11557 */ 0
+    /* 187:10877 */ 0,
+    /* 188:10878 */ 0,
+    /* 189:10879 */ 0,
+    /* 190:10880 */ 0,
+    /* 191:11533 */ 0,
+    /* 192:11554 */ 0,
+    /* 193:11556 */ 0,
+    /* 194:11558 */ 0
 };

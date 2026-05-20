@@ -1,10 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "Ll+0UXAE0A4=",
+  "dgSpecHash": "41s1L7ByF+o=",
   "success": true,
   "projectFilePath": "C:\\Desarrollo\\Proyectos\\Triker\\Triker.Web\\Triker.Web.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\angel\\.nuget\\packages\\microsoft.aspnetcore.app.internal.assets\\10.0.7\\microsoft.aspnetcore.app.internal.assets.10.0.7.nupkg.sha512",
+    "C:\\Users\\angel\\.nuget\\packages\\microsoft.aspnetcore.app.internal.assets\\10.0.8\\microsoft.aspnetcore.app.internal.assets.10.0.8.nupkg.sha512",
     "C:\\Users\\angel\\.nuget\\packages\\microsoft.aspnetcore.authorization\\10.0.7\\microsoft.aspnetcore.authorization.10.0.7.nupkg.sha512",
     "C:\\Users\\angel\\.nuget\\packages\\microsoft.aspnetcore.components\\10.0.7\\microsoft.aspnetcore.components.10.0.7.nupkg.sha512",
     "C:\\Users\\angel\\.nuget\\packages\\microsoft.aspnetcore.components.analyzers\\10.0.7\\microsoft.aspnetcore.components.analyzers.10.0.7.nupkg.sha512",
@@ -41,8 +41,8 @@
     "C:\\Users\\angel\\.nuget\\packages\\microsoft.extensions.validation\\10.0.7\\microsoft.extensions.validation.10.0.7.nupkg.sha512",
     "C:\\Users\\angel\\.nuget\\packages\\microsoft.jsinterop\\10.0.7\\microsoft.jsinterop.10.0.7.nupkg.sha512",
     "C:\\Users\\angel\\.nuget\\packages\\microsoft.jsinterop.webassembly\\10.0.7\\microsoft.jsinterop.webassembly.10.0.7.nupkg.sha512",
-    "C:\\Users\\angel\\.nuget\\packages\\microsoft.net.illink.tasks\\10.0.7\\microsoft.net.illink.tasks.10.0.7.nupkg.sha512",
-    "C:\\Users\\angel\\.nuget\\packages\\microsoft.net.sdk.webassembly.pack\\10.0.7\\microsoft.net.sdk.webassembly.pack.10.0.7.nupkg.sha512"
+    "C:\\Users\\angel\\.nuget\\packages\\microsoft.net.illink.tasks\\10.0.8\\microsoft.net.illink.tasks.10.0.8.nupkg.sha512",
+    "C:\\Users\\angel\\.nuget\\packages\\microsoft.net.sdk.webassembly.pack\\10.0.8\\microsoft.net.sdk.webassembly.pack.10.0.8.nupkg.sha512"
   ],
   "logs": []
 }
