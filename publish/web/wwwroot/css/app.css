@@ -73,6 +73,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
     background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
     border-radius: 8px; color: #e0e0e0; padding: 0.5rem 1rem; font-size: 1rem;
     outline: none; transition: border-color 0.2s;
+    width: 100%; 
+    box-sizing: border-box;
 }
 .name-input:focus { border-color: #f0c040; }
 .name-input::placeholder { color: #666; }
@@ -84,17 +86,19 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .lobby-header { text-align: center; }
 .game-title {
-    font-size: 4rem; font-weight: 900; letter-spacing: 0.2em;
+    font-family: 'Nunito Sans', 'Segoe UI', system-ui, sans-serif;
+    font-size: clamp(2rem, 9vw, 4rem); font-weight: 900; letter-spacing: 0.2em;
     background: linear-gradient(135deg, #f0c040, #ff6b35);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
+.mirror-k { display: inline-block; transform: scaleX(-1); }
 .game-subtitle { color: #888; font-size: 1.1rem; margin-top: 0.3rem; }
 .player-name-section {
     display: flex; align-items: center; gap: 1rem;
     background: rgba(255,255,255,0.05); border-radius: 12px; padding: 1rem 1.5rem;
 }
 .player-name-section label { font-weight: 600; white-space: nowrap; }
-.player-name-section .name-input { flex: 1; }
+.player-name-section .name-input { flex: 1; min-width: 0; }
 .lobby-actions { display: flex; gap: 1rem; }
 .create-form {
     display: flex; gap: 0.8rem; align-items: center;
@@ -384,16 +388,16 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ===== HELP BUTTON ===== */
 .btn-help {
-    width: 2.6rem; height: 2.6rem; border-radius: 50%;
+    width: clamp(2rem, 7.5vw, 3.2rem); height: clamp(2rem, 7.5vw, 3.2rem); border-radius: 50%;
     border: 2px solid #f0c040; background: transparent;
-    color: #f0c040; font-weight: 900; font-size: 1.2rem;
+    color: #f0c040; font-weight: 900; font-size: clamp(0.75rem, 3vw, 1.2rem);
     cursor: pointer; line-height: 1; flex-shrink: 0;
     transition: background 0.15s, color 0.15s;
 }
 .btn-help:hover { background: #f0c040; color: #1a1a2e; }
 
-.lobby-header { position: relative; display: flex; flex-direction: column; align-items: center; }
-.lobby-header .btn-help { position: absolute; right: 0; top: 0; }
+.lobby-header { display: flex; flex-direction: column; align-items: center; }
+.lobby-title-row { display: flex; align-items: center; gap: 0.5rem; }
 
 .game-header { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
 .game-header .btn-help { margin-left: auto; }
@@ -455,6 +459,53 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .help-hands-table .pts { color: #f0c040; font-weight: 700; text-align: right; }
 .help-hands-table .row-special td { color: #888; font-style: italic; }
 .help-hands-table .row-special td:nth-child(2) { color: #aaa; }
+
+/* ===== SUGERENCIAS ===== */
+.btn-sug {
+    width: clamp(2rem, 7.5vw, 3.2rem); height: clamp(2rem, 7.5vw, 3.2rem); border-radius: 50%;
+    border: 2px solid #64B5F6; background: transparent;
+    color: #64B5F6; font-size: clamp(0.8rem, 3vw, 1.3rem);
+    cursor: pointer; line-height: 1; flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+}
+.btn-sug:hover { background: #64B5F6; color: #1a1a2e; }
+
+.sug-modal { max-width: 480px; }
+
+.sug-form { display: flex; flex-direction: column; gap: 1rem; }
+.sug-field { display: flex; flex-direction: column; gap: 0.4rem; }
+.sug-label { font-size: 0.9rem; font-weight: 600; color: #bbb; }
+
+.sug-select {
+    width: 100%;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px; color: #e0e0e0; padding: 0.5rem 1rem; font-size: 1rem;
+    outline: none; cursor: pointer; transition: border-color 0.2s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 1rem center;
+}
+.sug-select:focus { border-color: #64B5F6; }
+.sug-select option { background: #16213e; color: #e0e0e0; }
+
+.sug-form .name-input, .sug-select, .sug-form .sug-textarea { width: 100%; box-sizing: border-box; }
+
+.sug-textarea { resize: vertical; min-height: 100px; font-family: inherit; font-size: 0.95rem; }
+.sug-chars { font-size: 0.78rem; color: #666; text-align: right; }
+
+.sug-actions { display: flex; gap: 0.8rem; justify-content: flex-end; margin-top: 0.5rem; }
+
+.sug-success {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 1rem; padding: 1.5rem 0; text-align: center;
+}
+.sug-success-icon {
+    width: 3.5rem; height: 3.5rem; border-radius: 50%;
+    background: rgba(76,175,80,0.2); border: 2px solid #81C784;
+    color: #81C784; font-size: 1.8rem; font-weight: 900;
+    display: flex; align-items: center; justify-content: center;
+}
+.sug-success p { color: #ccc; font-size: 1rem; }
 
 /* ===== BLAZOR ERROR ===== */
 #blazor-error-ui {

@@ -57,6 +57,9 @@ async function onActivate() {
 
 // --- fetch ---------------------------------------------------------------
 
+// CSS and HTML use network-first so deployments are always visible.
+const NETWORK_FIRST = [/\.css$/, /\.html$/];
+
 function shouldHandle(event) {
     // Only GET requests on same origin (SignalR / API are cross-origin → not intercepted)
     return event.request.method === 'GET'
@@ -66,13 +69,30 @@ function shouldHandle(event) {
 async function onFetch(event) {
     const cache = await caches.open(cacheName);
 
-    // Navigation → serve index.html (enables offline deep-linking)
+    // Navigation (index.html) → network-first, cached fallback for offline
     if (event.request.mode === 'navigate') {
-        const indexHtml = await cache.match(BASE + 'index.html');
-        return indexHtml ?? fetch(event.request);
+        try {
+            const response = await fetch(event.request);
+            await cache.put(BASE + 'index.html', response.clone());
+            return response;
+        } catch {
+            return await cache.match(BASE + 'index.html') ?? Response.error();
+        }
     }
 
-    // Assets → cache-first, then network
-    const cached = await cache.match(event.request);
-    return cached ?? fetch(event.request);
+    const pathname = new URL(event.request.url).pathname;
+
+    // CSS → network-first so style changes are immediately visible
+    if (NETWORK_FIRST.some(p => p.test(pathname))) {
+        try {
+            const response = await fetch(event.request);
+            await cache.put(event.request, response.clone());
+            return response;
+        } catch {
+            return await cache.match(event.request) ?? Response.error();
+        }
+    }
+
+    // Immutable assets (DLLs, WASM, JS) → cache-first for performance
+    return await cache.match(event.request) ?? fetch(event.request);
 }
