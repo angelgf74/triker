@@ -1,4 +1,0 @@
-C:\Desarrollo\Proyectos\Triker\publish\web\wwwroot\index.html
-C:\Desarrollo\Proyectos\Triker\publish\web\Triker.Web.runtimeconfig.json
-C:\Desarrollo\Proyectos\Triker\publish\web\dotnet.js
-C:\Desarrollo\Proyectos\Triker\publish\web\web.config
