@@ -18,4 +18,14 @@
     <ProjectReference Include="..\Triker.Shared\Triker.Shared.csproj" />
   </ItemGroup>
 
+
+  <!--
+    PostPublish: copia archivos CSS con nombre fingerprinted y actualiza index.html.
+    Necesario para hosting estatico (nginx/IIS sin middleware ASP.NET Core) porque
+    OverrideHtmlAssetPlaceholders solo funciona en el modelo hosted (con middleware).
+  -->
+  <Target Name="FingerprintCssForStaticHosting" AfterTargets="Publish">
+    <Exec Command="powershell.exe -NonInteractive -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\PostPublish.ps1&quot; -PublishDir &quot;$(PublishDir.TrimEnd('\'))&quot;" />
+  </Target>
+
 </Project>
