@@ -1,0 +1,129 @@
+@inject HttpClient Http
+
+@if (Visible)
+{
+    <div class="help-overlay" @onclick="Close">
+        <div class="help-modal sug-modal" @onclick:stopPropagation>
+            <button class="help-close" @onclick="Close">✕</button>
+            <h2 class="help-title">Enviar sugerencia</h2>
+
+            @if (_enviado)
+            {
+                <div class="sug-success">
+                    <span class="sug-success-icon">✓</span>
+                    <p>¡Gracias por tu sugerencia! La revisaremos pronto.</p>
+                    <button class="btn-primary" @onclick="Close">Cerrar</button>
+                </div>
+            }
+            else
+            {
+                <section class="help-section">
+                    <p>¿Tienes ideas, encontraste un error o quieres mejorar algo? Escríbenos.</p>
+                </section>
+
+                <div class="sug-form">
+                    <div class="sug-field">
+                        <label class="sug-label">Tu email</label>
+                        <input class="name-input" type="email" @bind="_email" @bind:event="oninput"
+                               placeholder="tu@email.com" maxlength="200" />
+                    </div>
+
+                    <div class="sug-field">
+                        <label class="sug-label">Tipo</label>
+                        <select class="sug-select" @bind="_tipo">
+                            @foreach (var tipo in _tipos)
+                            {
+                                <option value="@tipo.Value">@tipo.Label</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="sug-field">
+                        <label class="sug-label">Tu sugerencia</label>
+                        <textarea class="name-input sug-textarea" @bind="_texto" @bind:event="oninput"
+                                  placeholder="Cuéntanos..." maxlength="2000" rows="5"></textarea>
+                        <span class="sug-chars">@_texto.Length / 2000</span>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(_error))
+                    {
+                        <div class="error-msg">@_error</div>
+                    }
+
+                    <div class="sug-actions">
+                        <button class="btn-secondary" @onclick="Close" disabled="@_enviando">Cancelar</button>
+                        <button class="btn-primary" @onclick="Enviar" disabled="@(!PuedeEnviar || _enviando)">
+                            @(_enviando ? "Enviando..." : "Enviar")
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private string _email = "";
+    private string _texto = "";
+    private int _tipo = 0;
+    private string _error = "";
+    private bool _enviando = false;
+    private bool _enviado = false;
+
+    private static readonly (int Value, string Label)[] _tipos =
+    [
+        (0, "Sugerencia"),
+        (1, "Error"),
+        (2, "Mejora"),
+        (3, "Otro"),
+    ];
+
+    private bool PuedeEnviar =>
+        !string.IsNullOrWhiteSpace(_email) &&
+        !string.IsNullOrWhiteSpace(_texto) &&
+        _texto.Length <= 2000;
+
+    private async Task Enviar()
+    {
+        _error = "";
+        _enviando = true;
+        try
+        {
+            var payload = new
+            {
+                Aplicacion = "Triker",
+                Email = _email.Trim(),
+                Texto = _texto.Trim(),
+                Tipo = _tipo,
+            };
+            var response = await Http.PostAsJsonAsync(
+                "https://angelgf.com.es/gestorsugerenciasapi/api/sugerencias", payload);
+
+            if (response.IsSuccessStatusCode)
+                _enviado = true;
+            else
+                _error = "No se pudo enviar la sugerencia. Inténtalo más tarde.";
+        }
+        catch
+        {
+            _error = "Error de conexión. Comprueba tu internet e inténtalo de nuevo.";
+        }
+        finally
+        {
+            _enviando = false;
+        }
+    }
+
+    private Task Close()
+    {
+        _email = "";
+        _texto = "";
+        _tipo = 0;
+        _error = "";
+        _enviado = false;
+        return OnClose.InvokeAsync();
+    }
+}

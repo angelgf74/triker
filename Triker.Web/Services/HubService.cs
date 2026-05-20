@@ -14,6 +14,7 @@ public class HubService : IAsyncDisposable
 
     public event Action? OnChange;
     public event Action<List<HandResultDto>>? OnHandsRevealed;
+    public event Action? OnAutoLeft;
 
     public bool IsConnected => _hub?.State == HubConnectionState.Connected;
 
@@ -54,6 +55,8 @@ public class HubService : IAsyncDisposable
             OnHandsRevealed?.Invoke(results);
             OnChange?.Invoke();
         });
+
+        _hub.On<bool>("AutoLeft", _ => OnAutoLeft?.Invoke());
 
         await _hub.StartAsync();
     }

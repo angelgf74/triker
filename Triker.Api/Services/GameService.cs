@@ -146,6 +146,30 @@ public class GameService(DeckService deckService, ScoringService scoringService,
         return game;
     }
 
+    public bool RemovePlayerFromFinishedGame(Guid gameId, Guid playerId)
+    {
+        if (!_games.TryGetValue(gameId, out var game)) return false;
+        if (game.Status != GameStatus.Finished) return false;
+
+        var player = game.Players.FirstOrDefault(p => p.Id == playerId);
+        if (player == null) return false;
+
+        game.Players.Remove(player);
+
+        // Close the game when no human players remain
+        if (!game.Players.Any(p => !p.IsBot))
+        {
+            _games.TryRemove(gameId, out _);
+            return true;
+        }
+
+        // Start a new round if all remaining players are ready to continue
+        if (game.Players.All(p => p.WantsToContinue))
+            StartNewRound(game);
+
+        return true;
+    }
+
     public bool ProcessBotTurn(Guid gameId)
     {
         if (!_games.TryGetValue(gameId, out var game)) return false;

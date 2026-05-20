@@ -14,6 +14,7 @@ builder.Services.AddSingleton<DeckService>();
 builder.Services.AddSingleton<ScoringService>();
 builder.Services.AddSingleton<BotService>();
 builder.Services.AddSingleton<GameService>();
+builder.Services.AddSingleton<InactivityService>();
 
 var allowedOrigins = builder.Configuration
     .GetSection("AllowedOrigins")

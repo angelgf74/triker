@@ -3,7 +3,9 @@
     <div class="help-overlay" @onclick="Close">
         <div class="help-modal" @onclick:stopPropagation>
             <button class="help-close" @onclick="Close">✕</button>
-
+            <h1 class="game-title" style="text-align: center;" tabindex="-1">
+                TRI<span class="mirror-k game-title">K</span>KER
+            </h1>
             <h2 class="help-title">¿Cómo se juega?</h2>
 
             <!-- OBJETIVO -->
@@ -34,7 +36,7 @@
                             <span style="color:#e53935">■</span> Rojo &nbsp;
                             <span style="color:#43A047">■</span> Verde &nbsp;
                             <span style="color:#1E88E5">■</span> Azul &nbsp;
-                            <span style="color:#212121;background:#eee;border-radius:2px;padding:0 2px">■</span> Negro &nbsp;
+                            <span style="color:#00ACC1">■</span> Cyan &nbsp;
                             <span style="color:#9C27B0">■</span> Magenta
                         </span>
                     </div>

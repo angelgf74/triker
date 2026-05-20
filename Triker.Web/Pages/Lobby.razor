@@ -5,12 +5,16 @@
 @implements IDisposable
 
 <HelpModal Visible="_helpVisible" OnClose="@(() => _helpVisible = false)" />
+<SugerenciasModal Visible="_sugVisible" OnClose="@(() => _sugVisible = false)" />
 
 <div class="lobby">
     <div class="lobby-header">
-        <h1 class="game-title">TRIKER</h1>
+        <div class="lobby-title-row">
+            <button class="btn-sug" @onclick="@(() => _sugVisible = true)" title="Enviar sugerencia">✉</button>
+            <h1 class="game-title">TRI<span class="mirror-k game-title">K</span>KER</h1>
+            <button class="btn-help" @onclick="@(() => _helpVisible = true)" title="Ayuda">?</button>
+        </div>
         <p class="game-subtitle">El juego de cartas</p>
-        <button class="btn-help" @onclick="@(() => _helpVisible = true)" title="Ayuda">?</button>
     </div>
 
     <div class="player-name-section">
@@ -88,6 +92,7 @@
     private bool _loading = true;
     private bool _showCreateForm = false;
     private bool _helpVisible = false;
+    private bool _sugVisible = false;
     private List<Triker.Shared.Dtos.GameSummaryDto> _games = [];
     private System.Threading.Timer? _refreshTimer;
 

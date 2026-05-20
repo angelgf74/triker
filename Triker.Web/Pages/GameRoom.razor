@@ -144,6 +144,7 @@
 
         Hub.OnChange += OnHubChange;
         Hub.OnHandsRevealed += OnHandsRevealed;
+        Hub.OnAutoLeft += OnAutoLeft;
 
         var apiBase = GetApiBase();
         await Hub.Connect(apiBase, GameId, _myPlayerId);
@@ -172,6 +173,9 @@
         _results = results;
         InvokeAsync(StateHasChanged);
     }
+
+    private void OnAutoLeft()
+        => InvokeAsync(() => Nav.NavigateTo(""));
 
     private async Task AddBot()
     {
@@ -220,6 +224,7 @@
     {
         Hub.OnChange -= OnHubChange;
         Hub.OnHandsRevealed -= OnHandsRevealed;
+        Hub.OnAutoLeft -= OnAutoLeft;
         await Hub.DisposeAsync();
     }
 }
