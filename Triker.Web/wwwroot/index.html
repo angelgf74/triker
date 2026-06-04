@@ -54,28 +54,6 @@
             navigator.serviceWorker.register('service-worker.js');
         }
     </script>
-<script>
-(function () {
-  const SITE_ID = '3b19382c-62f9-4e18-9d57-cff4c76585f8';
-  const API    = 'https://angelgf.com.es/webanalyticsapi/api/visits';
-  const KEY    = 'wa_visitor_id';
-  fetch(API, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      siteId:           SITE_ID,
-      visitorId:        localStorage.getItem(KEY),
-      page:             window.location.href,
-      referrer:         document.referrer || null,
-      userAgent:        navigator.userAgent,
-      language:         navigator.language,
-      screenResolution: `${screen.width}x${screen.height}`
-    })
-  })
-  .then(r => r.json())
-  .then(data => localStorage.setItem(KEY, data.visitorId))
-  .catch(() => {});
-})();
-</script>
+    <script src="https://angelgf.com.es/webanalyticsapi/tracker.js?site=3b19382c-62f9-4e18-9d57-cff4c76585f8"></script>
 </body>
 </html>

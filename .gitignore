@@ -1,6 +1,14 @@
 # ── Build outputs ────────────────────────────────────────────────────────────
 [Bb]in/
 [Oo]bj/
+publish/
+
+# ── Test results & coverage ───────────────────────────────────────────────────
+TestResults/
+coverage/
+*.trx
+*.coverage
+*.coveragexml
 
 # ── Visual Studio ─────────────────────────────────────────────────────────────
 .vs/
@@ -8,11 +16,31 @@
 *.suo
 *.userosscache
 
+# ── Rider ─────────────────────────────────────────────────────────────────────
+.idea/
+
 # ── NuGet ─────────────────────────────────────────────────────────────────────
 *.nupkg
 *.snupkg
 project.lock.json
 packages/
+
+# ── Secrets / environment ─────────────────────────────────────────────────────
+.env
+.env.*
+appsettings.Production.json
+appsettings.Staging.json
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Python (sim_probs.py) ─────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
 
 # ── Claude Code (local settings, not shared) ─────────────────────────────────
 .claude/
@@ -20,3 +48,4 @@ packages/
 # ── OS ────────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+desktop.ini
