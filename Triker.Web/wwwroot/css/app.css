@@ -91,7 +91,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
     background: linear-gradient(135deg, #f0c040, #ff6b35);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
-.mirror-k { display: inline-block; transform: scaleX(-1); }
+.mirror-k { display: inline-block; transform: scaleX(-1); margin-left: -0.24em; }
 .game-subtitle { color: #888; font-size: 1.1rem; margin-top: 0.3rem; }
 .player-name-section {
     display: flex; align-items: center; gap: 1rem;

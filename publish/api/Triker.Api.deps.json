@@ -1,12 +1,12 @@
 {
   "runtimeTarget": {
-    "name": ".NETCoreApp,Version=v10.0/linux-arm64",
+    "name": ".NETCoreApp,Version=v10.0/linux-x64",
     "signature": ""
   },
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v10.0": {},
-    ".NETCoreApp,Version=v10.0/linux-arm64": {
+    ".NETCoreApp,Version=v10.0/linux-x64": {
       "Triker.Api/1.0.0": {
         "dependencies": {
           "Microsoft.AspNetCore.OpenApi": "10.0.7",

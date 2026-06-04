@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/app.quae7vefm1.css" />
+    <link rel="stylesheet" href="css/app.raxy3n3bpg.css" />
     <link href="Triker.Web.2h2kz2v1n4.styles.css" rel="stylesheet" />
     <link rel="icon" type="image/svg+xml" href="favicon.ohl7gz2s07.svg" />
     <link rel="shortcut icon" href="favicon.ohl7gz2s07.svg" />
@@ -24,7 +24,7 @@
     <script type="importmap">{
   "imports": {
     "./_framework/blazor.webassembly.js": "./_framework/blazor.webassembly.zxhwjtv6sc.js",
-    "./_framework/dotnet.js": "./_framework/dotnet.fstf47kmfv.js",
+    "./_framework/dotnet.js": "./_framework/dotnet.gdwevlnj9w.js",
     "./_framework/dotnet.native.js": "./_framework/dotnet.native.j9yxww2air.js",
     "./_framework/dotnet.runtime.js": "./_framework/dotnet.runtime.r2kbxkuujc.js"
   },
@@ -32,8 +32,8 @@
   "integrity": {
     "./_framework/blazor.webassembly.js": "sha256-1xlHuu1iNOJiMMz2BCq95uekwHf6pdpTcgVNKVBboPs=",
     "./_framework/blazor.webassembly.zxhwjtv6sc.js": "sha256-1xlHuu1iNOJiMMz2BCq95uekwHf6pdpTcgVNKVBboPs=",
-    "./_framework/dotnet.fstf47kmfv.js": "sha256-jwQ+1Jiqd2sPunT8WFPrhUjCgtLqhM1dvJPn/h3U2wg=",
-    "./_framework/dotnet.js": "sha256-jwQ+1Jiqd2sPunT8WFPrhUjCgtLqhM1dvJPn/h3U2wg=",
+    "./_framework/dotnet.gdwevlnj9w.js": "sha256-ZL4W0UHaaH1vLVPXXULjbouGB6ZHgSrbjyY+VWaW3aM=",
+    "./_framework/dotnet.js": "sha256-ZL4W0UHaaH1vLVPXXULjbouGB6ZHgSrbjyY+VWaW3aM=",
     "./_framework/dotnet.native.j9yxww2air.js": "sha256-t2sLHIeFuKgbEH+wz5jXGlVRt+hMNlyCkCwLtVZUwws=",
     "./_framework/dotnet.native.js": "sha256-t2sLHIeFuKgbEH+wz5jXGlVRt+hMNlyCkCwLtVZUwws=",
     "./_framework/dotnet.runtime.js": "sha256-YyudibIWETMKrLb+nAZdJ+xDY7HY6BWf6s32UAdcvCU=",
@@ -53,8 +53,7 @@
                 <div class="loading-card color-red">T</div>
                 <div class="loading-card color-blue">R</div>
                 <div class="loading-card color-green">I</div>
-                <div class="loading-card color-magenta mirror-k">K</div>
-                <!--<div class="loading-card color-magenta"><span class="mirror-k">K</span></div>-->
+                <div class="loading-card color-magenta"><span class="mirror-k">K</span></div>
                 <div class="loading-card color-magenta">K</div>
                 <div class="loading-card color-cyan">E</div>
                 <div class="loading-card color-black">R</div>
@@ -73,6 +72,28 @@
             navigator.serviceWorker.register('service-worker.js');
         }
     </script>
+<script>
+(function () {
+  const SITE_ID = '3b19382c-62f9-4e18-9d57-cff4c76585f8';
+  const API    = 'https://angelgf.com.es/webanalyticsapi/api/visits';
+  const KEY    = 'wa_visitor_id';
+  fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      siteId:           SITE_ID,
+      visitorId:        localStorage.getItem(KEY),
+      page:             window.location.href,
+      referrer:         document.referrer || null,
+      userAgent:        navigator.userAgent,
+      language:         navigator.language,
+      screenResolution: `${screen.width}x${screen.height}`
+    })
+  })
+  .then(r => r.json())
+  .then(data => localStorage.setItem(KEY, data.visitorId))
+  .catch(() => {});
+})();
+</script>
 </body>
-
 </html>

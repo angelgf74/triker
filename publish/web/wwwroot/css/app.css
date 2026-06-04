@@ -91,7 +91,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
     background: linear-gradient(135deg, #f0c040, #ff6b35);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
-.mirror-k { display: inline-block; transform: scaleX(-1); }
+.mirror-k { display: inline-block; transform: scaleX(-1); margin-left: -0.24em; }
 .game-subtitle { color: #888; font-size: 1.1rem; margin-top: 0.3rem; }
 .player-name-section {
     display: flex; align-items: center; gap: 1rem;
@@ -390,7 +390,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-help {
     width: clamp(2rem, 7.5vw, 3.2rem); height: clamp(2rem, 7.5vw, 3.2rem); border-radius: 50%;
     border: 2px solid #f0c040; background: transparent;
-    color: #f0c040; font-weight: 900; font-size: clamp(0.75rem, 3vw, 1.2rem);
+    color: #f0c040; font-weight: 900; font-size: clamp(1.1rem, 4.5vw, 1.8rem);
     cursor: pointer; line-height: 1; flex-shrink: 0;
     transition: background 0.15s, color 0.15s;
 }
@@ -464,7 +464,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-sug {
     width: clamp(2rem, 7.5vw, 3.2rem); height: clamp(2rem, 7.5vw, 3.2rem); border-radius: 50%;
     border: 2px solid #64B5F6; background: transparent;
-    color: #64B5F6; font-size: clamp(0.8rem, 3vw, 1.3rem);
+    color: #64B5F6; font-size: clamp(1.1rem, 4.5vw, 1.8rem);
     cursor: pointer; line-height: 1; flex-shrink: 0;
     transition: background 0.15s, color 0.15s;
 }

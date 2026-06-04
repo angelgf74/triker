@@ -14,10 +14,9 @@ dotnet publish "$(dirname "$0")/../Triker.Web/Triker.Web.csproj" \
 
 echo "==> Copiando archivos estáticos al servidor..."
 ssh "${REMOTE_USER}@${REMOTE_HOST}" "rm -rf ~/deploy/web && mkdir -p ~/deploy/web"
-scp -r "$PUBLISH_DIR/wwwroot/"* \
-    "${REMOTE_USER}@${REMOTE_HOST}:~/deploy/web/"
+scp -r "$PUBLISH_DIR/wwwroot/." "${REMOTE_USER}@${REMOTE_HOST}:~/deploy/web/"
 ssh "${REMOTE_USER}@${REMOTE_HOST}" \
-    "sudo mkdir -p ${REMOTE_DIR} && sudo cp -r ~/deploy/web/. ${REMOTE_DIR}/"
+    "sudo mkdir -p ${REMOTE_DIR} && sudo rsync -a --delete ~/deploy/web/ ${REMOTE_DIR}/"
 
 echo "==> Instalando snippet de nginx..."
 scp "$(dirname "$0")/nginx-triker.conf" \
