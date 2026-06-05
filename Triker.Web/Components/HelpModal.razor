@@ -12,8 +12,8 @@
             <section class="help-section">
                 <h3>El objetivo</h3>
                 <p>Consigue la mejor mano posible con tus 5 cartas. Cuando todos los jugadores hayan
-                terminado su turno, las manos se revelan y <strong>gana quien más puntos tenga</strong>.
-                En caso de empate, ambos jugadores comparten la posición.</p>
+                terminado su turno, las manos se revelan y <strong>gana quien tenga la jugada más alta
+                según la jerarquía</strong>. Solo hay empate si dos jugadores tienen exactamente la misma jugada.</p>
             </section>
 
             <!-- CARTAS -->
@@ -58,39 +58,40 @@
             <section class="help-section">
                 <h3>Las jugadas</h3>
                 <p>Una jugada es un grupo de <strong>2 o más cartas que comparten alguna característica</strong>
-                (letra, figura o color). Cuantas más cartas y más características compartan, más puntos vale.</p>
-                <p>Puedes sumar varias jugadas a la vez siempre que no usen las mismas cartas —
-                el juego elige automáticamente la combinación más ventajosa para ti.</p>
+                (letra, figura o color). Las jugadas siguen la jerarquía de la tabla — el orden es fijo
+                y determina el ganador sin empates entre jugadas distintas.</p>
+                <p>Puedes combinar varias jugadas a la vez siempre que no usen las mismas cartas —
+                el juego elige automáticamente la combinación de mayor rango.</p>
                 <p class="help-note">Simple = comparten 1 característica &nbsp;·&nbsp; Doble = comparten 2 características</p>
 
                 <div class="help-table-wrap">
                     <table class="help-table help-hands-table">
                         <thead>
-                            <tr><th>#</th><th>Jugada</th><th>Descripción</th><th>Pts</th></tr>
+                            <tr><th>#</th><th>Jugada</th><th>Descripción</th></tr>
                         </thead>
                         <tbody>
-                            <tr><td>1</td><td>Retriker Doble</td><td>Las 5 cartas comparten 2 características</td><td class="pts">64</td></tr>
-                            <tr class="row-special"><td>2</td><td>Escalera Real ✦</td><td>Las 5 cartas son todas distintas en letra, figura y color</td><td class="pts">50</td></tr>
-                            <tr><td>3</td><td>Triker Doble</td><td>4 cartas comparten 2 características</td><td class="pts">36</td></tr>
-                            <tr><td>4</td><td>Trío Doble + Pareja Doble</td><td>Un grupo de 3 y un grupo de 2, ambos con 2 características iguales</td><td class="pts">20</td></tr>
-                            <tr><td>5</td><td>Retriker Simple</td><td>Las 5 cartas comparten 1 característica</td><td class="pts">32</td></tr>
-                            <tr><td>6</td><td>Triker Simple</td><td>4 cartas comparten 1 característica</td><td class="pts">18</td></tr>
-                            <tr><td>7</td><td>Trío Doble + Pareja Simple</td><td>Un grupo de 3 (2 caract.) y un grupo de 2 (1 caract.)</td><td class="pts">18</td></tr>
-                            <tr><td>8</td><td>Trío Doble</td><td>3 cartas comparten 2 características</td><td class="pts">16</td></tr>
-                            <tr><td>9</td><td>Trío Simple + Pareja Doble</td><td>Un grupo de 3 (1 caract.) y un grupo de 2 (2 caract.)</td><td class="pts">12</td></tr>
-                            <tr class="row-special"><td>10</td><td>Escalera Doble ✦</td><td>Las 5 cartas son todas distintas en exactamente 2 características</td><td class="pts">12</td></tr>
-                            <tr><td>11</td><td>Trío Simple + Pareja Simple</td><td>Un grupo de 3 y un grupo de 2, ambos con 1 característica igual</td><td class="pts">10</td></tr>
-                            <tr><td>12</td><td>Trío Simple</td><td>3 cartas comparten 1 característica</td><td class="pts">8</td></tr>
-                            <tr><td>13</td><td>Pareja Doble + Pareja Doble</td><td>Dos grupos de 2 cartas, cada uno con 2 características iguales</td><td class="pts">8</td></tr>
-                            <tr><td>14</td><td>Pareja Doble + Pareja Simple</td><td>Un grupo de 2 (2 caract.) y otro grupo de 2 (1 caract.)</td><td class="pts">6</td></tr>
-                            <tr><td>15</td><td>Pareja Doble</td><td>2 cartas comparten 2 características</td><td class="pts">4</td></tr>
-                            <tr><td>16</td><td>Pareja Simple + Pareja Simple</td><td>Dos grupos de 2 cartas, cada uno con 1 característica igual</td><td class="pts">4</td></tr>
-                            <tr class="row-special"><td>17</td><td>Escalera Simple ✦</td><td>Las 5 cartas son todas distintas en exactamente 1 característica</td><td class="pts">3</td></tr>
-                            <tr><td>18</td><td>Pareja Simple</td><td>2 cartas comparten 1 característica</td><td class="pts">2</td></tr>
+                            <tr><td>1</td><td>Retriker Doble</td><td>Las 5 cartas comparten 2 características</td></tr>
+                            <tr class="row-special"><td>2</td><td>Escalera Real ✦</td><td>Las 5 cartas son todas distintas en letra, figura y color</td></tr>
+                            <tr><td>3</td><td>Triker Doble</td><td>4 cartas comparten 2 características</td></tr>
+                            <tr><td>4</td><td>Retriker Simple</td><td>Las 5 cartas comparten 1 característica</td></tr>
+                            <tr><td>5</td><td>Trío Doble + Pareja Doble</td><td>Un grupo de 3 y un grupo de 2, ambos con 2 características iguales</td></tr>
+                            <tr><td>6</td><td>Trío Doble + Pareja Simple</td><td>Un grupo de 3 (2 caract.) y un grupo de 2 (1 caract.)</td></tr>
+                            <tr><td>7</td><td>Triker Simple</td><td>4 cartas comparten 1 característica</td></tr>
+                            <tr><td>8</td><td>Trío Doble</td><td>3 cartas comparten 2 características</td></tr>
+                            <tr class="row-special"><td>9</td><td>Escalera Doble ✦</td><td>Las 5 cartas son todas distintas en exactamente 2 características</td></tr>
+                            <tr><td>10</td><td>Trío Simple + Pareja Doble</td><td>Un grupo de 3 (1 caract.) y un grupo de 2 (2 caract.)</td></tr>
+                            <tr><td>11</td><td>Trío Simple + Pareja Simple</td><td>Un grupo de 3 y un grupo de 2, ambos con 1 característica igual</td></tr>
+                            <tr><td>12</td><td>Pareja Doble + Pareja Doble</td><td>Dos grupos de 2 cartas, cada uno con 2 características iguales</td></tr>
+                            <tr><td>13</td><td>Trío Simple</td><td>3 cartas comparten 1 característica</td></tr>
+                            <tr><td>14</td><td>Pareja Doble + Pareja Simple</td><td>Un grupo de 2 (2 caract.) y otro grupo de 2 (1 caract.)</td></tr>
+                            <tr><td>15</td><td>Pareja Doble</td><td>2 cartas comparten 2 características</td></tr>
+                            <tr><td>16</td><td>Pareja Simple + Pareja Simple</td><td>Dos grupos de 2 cartas, cada uno con 1 característica igual</td></tr>
+                            <tr class="row-special"><td>17</td><td>Escalera Simple ✦</td><td>Las 5 cartas son todas distintas en exactamente 1 característica</td></tr>
+                            <tr><td>18</td><td>Pareja Simple</td><td>2 cartas comparten 1 característica</td></tr>
                         </tbody>
                     </table>
                 </div>
-                <p class="help-note">✦ Las Escaleras solo puntúan si superan la puntuación de tus grupos.</p>
+                <p class="help-note">✦ Las Escaleras solo se aplican si superan la jugada de grupos de las mismas cartas.</p>
             </section>
 
         </div>

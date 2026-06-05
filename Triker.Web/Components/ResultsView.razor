@@ -72,15 +72,14 @@
                 </div>
 
                 <div class="result-badges">
-                    @if (realGroups.Count > 0)
+                    @if (realGroups.Count > 1)
                     {
-                        @foreach (var (bg, color) in result.Groups
-                            .Select((g, i) => (g, GroupColors[i % GroupColors.Length]))
-                            .Where(x => x.g.Cards.Count >= 2)
-                            .OrderByDescending(x => x.g.Score))
-                        {
-                            <span class="grp-badge" style="--gc:@color">@bg.Name</span>
-                        }
+                        <span class="grp-badge grp-hand-name">@result.HandName</span>
+                    }
+                    else if (realGroups.Count == 1)
+                    {
+                        var grp = realGroups[0];
+                        <span class="grp-badge" style="--gc:@GroupColors[0]">@grp.Name</span>
                     }
                     else
                     {
@@ -115,7 +114,7 @@
     private string MedalLabel(HandResultDto result)
     {
         // Número de jugadores con puntuación estrictamente mayor
-        int above = Results.Count(r => r.TotalScore > result.TotalScore);
+        int above = Results.Count(r => r.HandRank > result.HandRank);
         return (above + 1) switch
         {
             1 => "🥇",

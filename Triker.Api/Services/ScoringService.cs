@@ -14,11 +14,12 @@ public class ScoringService
         int escaleraLevel = CountEscaleraLevel(hand);
         int escaleraScore = escaleraLevel switch { 3 => 50, 2 => 12, 1 => 3, _ => 0 };
 
+        bool usedEscalera = escaleraScore > groupsScore;
         string handName;
         int totalScore;
         List<CardGroupDto> resultGroups;
 
-        if (escaleraScore > groupsScore)
+        if (usedEscalera)
         {
             handName = escaleraLevel switch { 3 => "Escalera Real", 2 => "Escalera Doble", _ => "Escalera Simple" };
             totalScore = escaleraScore;
@@ -39,7 +40,45 @@ public class ScoringService
             Hand = hand.Select(ToDto).ToList(),
             Groups = resultGroups,
             TotalScore = totalScore,
+            HandRank = ComputeHandRank(resultGroups, usedEscalera, escaleraLevel),
             HandName = handName
+        };
+    }
+
+    private static HandRank ComputeHandRank(List<CardGroupDto> groups, bool usedEscalera, int escaleraLevel)
+    {
+        if (usedEscalera) return escaleraLevel switch
+        {
+            3 => HandRank.EscaleraReal,
+            2 => HandRank.EscaleraDoble,
+            _ => HandRank.EscaleraSimple
+        };
+
+        if (groups.Count == 0) return HandRank.SinJugada;
+
+        var key = groups
+            .Select(g => (n: g.Cards.Count, a: g.MatchingParams))
+            .OrderByDescending(x => x.n).ThenByDescending(x => x.a)
+            .ToList();
+
+        return key switch
+        {
+            [(5, 2)] => HandRank.RetrikerDoble,
+            [(5, 1)] => HandRank.RetrikerSimple,
+            [(4, 2)] => HandRank.TrikerDoble,
+            [(4, 1)] => HandRank.TrikerSimple,
+            [(3, 2), (2, 2)] => HandRank.TrioDobleConParejaDoble,
+            [(3, 2), (2, 1)] => HandRank.TrioDobleConParejaSimple,
+            [(3, 1), (2, 2)] => HandRank.TrioSimpleConParejaDoble,
+            [(3, 1), (2, 1)] => HandRank.TrioSimpleConParejaSimple,
+            [(3, 2)] => HandRank.TrioDoble,
+            [(3, 1)] => HandRank.TrioSimple,
+            [(2, 2), (2, 2)] => HandRank.DobleParejaDoble,
+            [(2, 2), (2, 1)] => HandRank.ParejaDobleConParejaSimple,
+            [(2, 2)] => HandRank.ParejaDoble,
+            [(2, 1), (2, 1)] => HandRank.DobleParejaSimple,
+            [(2, 1)] => HandRank.ParejaSimple,
+            _ => HandRank.SinJugada
         };
     }
 

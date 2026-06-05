@@ -94,7 +94,7 @@ public class GameService(DeckService deckService, ScoringService scoringService,
 
         var results = game.Players
             .Select(p => scoringService.EvaluateHand(p.Id, p.Name, p.Hand))
-            .OrderByDescending(r => r.TotalScore)
+            .OrderByDescending(r => r.HandRank)
             .ToList();
 
         for (int i = 0; i < results.Count; i++)
@@ -105,7 +105,7 @@ public class GameService(DeckService deckService, ScoringService scoringService,
         {
             var player = game.Players.FirstOrDefault(p => p.Id == result.PlayerId);
             if (player == null) continue;
-            int pos = results.Count(r => r.TotalScore > result.TotalScore) + 1;
+            int pos = results.Count(r => r.HandRank > result.HandRank) + 1;
             if (pos == 1) player.Wins++;
             else if (pos == 2) player.Seconds++;
             else if (pos == 3) player.Thirds++;

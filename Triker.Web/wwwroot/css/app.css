@@ -349,6 +349,11 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
     border-style: dashed;
     font-style: italic;
 }
+.grp-badge.grp-hand-name {
+    --gc: #a78bfa;
+    font-size: 0.82rem;
+    letter-spacing: 0.02em;
+}
 
 /* Continue */
 .continue-section {

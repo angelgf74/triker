@@ -1,3 +1,5 @@
+using Triker.Shared.Models;
+
 namespace Triker.Shared.Dtos;
 
 public class CardGroupDto
@@ -15,6 +17,7 @@ public class HandResultDto
     public List<CardDto> Hand { get; set; } = [];
     public List<CardGroupDto> Groups { get; set; } = [];
     public int TotalScore { get; set; }
+    public HandRank HandRank { get; set; }
     public string HandName { get; set; } = "";
     public int Rank { get; set; }
 }
