@@ -36,7 +36,7 @@ button { cursor: pointer; border: none; border-radius: 8px; font-size: 0.9rem; f
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-primary {
     background: linear-gradient(135deg, #f0c040, #e8a020);
-    color: #1a1a2e; padding: 0.6rem 1.5rem;
+    color: #1a1a2e; padding: 0.6rem 1.5rem; border: 1px solid transparent;
 }
 .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(240,192,64,0.4); }
 .btn-secondary {
@@ -60,7 +60,6 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .btn-refresh:hover { color: #f0c040; transform: rotate(180deg); }
 .btn-start {
-    font-size: 1.1rem; padding: 0.8rem 2.5rem; margin-top: 1.5rem;
     animation: pulse 2s infinite;
 }
 @keyframes pulse {

@@ -32,6 +32,23 @@
         {
             <div class="waiting-room">
                 <h2>Sala de espera</h2>
+                @if (_myPlayerId == _state.CreatorId)
+                {
+                    <div class="waiting-actions">
+                        @if (_state.Players.Count < MaxPlayers)
+                        {
+                            <button class="btn-secondary" @onclick="AddBot">+ Añadir bot</button>
+                        }
+                        <button class="btn-primary btn-start" @onclick="StartGame"
+                                disabled="@(_state.Players.Count < 2)">
+                            ▶ Iniciar partida
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <p class="waiting-msg">Esperando a que el creador inicie la partida...</p>
+                }
                 <div class="players-waiting">
                     @foreach (var p in _state.Players)
                     {
@@ -53,25 +70,6 @@
                     @_state.Players.Count / @MaxPlayers jugadores
                     (mínimo 2, máximo @MaxPlayers)
                 </p>
-                @if (_myPlayerId == _state.CreatorId)
-                {
-                    <div class="waiting-actions">
-                        @if (_state.Players.Count < MaxPlayers)
-                        {
-                            <button class="btn-secondary" @onclick="AddBot">+ Añadir bot</button>
-                        }
-                        @if (_state.Players.Count >= 2)
-                        {
-                            <button class="btn-primary btn-start" @onclick="StartGame">
-                                ▶ Iniciar partida
-                            </button>
-                        }
-                    </div>
-                }
-                else
-                {
-                    <p class="waiting-msg">Esperando a que el creador inicie la partida...</p>
-                }
             </div>
         }
         else
