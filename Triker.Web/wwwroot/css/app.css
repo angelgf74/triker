@@ -173,7 +173,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .player-dot { color: #4CAF50; }
 .waiting-info { color: #888; font-size: 0.9rem; }
 .waiting-msg { color: #888; font-style: italic; }
-.waiting-actions { display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; }
+.waiting-actions { display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; align-items: center; }
+.waiting-actions button { padding: 0.6rem 1.5rem; font-size: 0.9rem; height: 3rem; }
 .player-tag { font-size: 0.72rem; color: #888; }
 .tag-bot { background: rgba(240,192,64,0.15); color: #f0c040; border-radius: 4px; padding: 1px 6px; }
 .player-medals { display: flex; gap: 0.4rem; align-items: center; margin-left: auto; }

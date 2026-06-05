@@ -40,9 +40,7 @@
                             <button class="btn-secondary" @onclick="AddBot">+ Añadir bot</button>
                         }
                         <button class="btn-primary btn-start" @onclick="StartGame"
-                                disabled="@(_state.Players.Count < 2)">
-                            ▶ Iniciar partida
-                        </button>
+                                disabled="@(_state.Players.Count < 2)">▶ Iniciar partida</button>
                     </div>
                 }
                 else
