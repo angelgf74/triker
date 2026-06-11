@@ -15,23 +15,21 @@ public class ScoringService
         int escaleraScore = escaleraLevel == 3 ? 50 : 0;
 
         bool usedEscalera = escaleraScore > groupsScore;
-        string handName;
         int totalScore;
         List<CardGroupDto> resultGroups;
 
         if (usedEscalera)
         {
-            handName = "Escalera Real";
             totalScore = escaleraScore;
             resultGroups = [];
         }
         else
         {
-            handName = bestGroups.Count == 0 ? "Sin jugada"
-                : string.Join(" y ", bestGroups.OrderByDescending(g => g.Score).Select(g => g.Name));
             totalScore = groupsScore;
             resultGroups = bestGroups;
         }
+
+        var rank = ComputeHandRank(resultGroups, usedEscalera, escaleraLevel);
 
         return new HandResultDto
         {
@@ -40,14 +38,14 @@ public class ScoringService
             Hand = hand.Select(ToDto).ToList(),
             Groups = resultGroups,
             TotalScore = totalScore,
-            HandRank = ComputeHandRank(resultGroups, usedEscalera, escaleraLevel),
-            HandName = handName
+            HandRank = rank,
+            HandName = GetHandName(rank)
         };
     }
 
     private static HandRank ComputeHandRank(List<CardGroupDto> groups, bool usedEscalera, int escaleraLevel)
     {
-        if (usedEscalera) return HandRank.EscaleraReal;
+        if (usedEscalera) return HandRank.Escalera;
 
         if (groups.Count == 0) return HandRank.SinJugada;
 
@@ -58,24 +56,45 @@ public class ScoringService
 
         return key switch
         {
-            [(5, 2)] => HandRank.RetrikerDoble,
-            [(5, 1)] => HandRank.RetrikerSimple,
-            [(4, 2)] => HandRank.TrikerDoble,
-            [(4, 1)] => HandRank.TrikerSimple,
-            [(3, 2), (2, 2)] => HandRank.TrioDobleConParejaDoble,
-            [(3, 2), (2, 1)] => HandRank.TrioDobleConParejaSimple,
-            [(3, 1), (2, 2)] => HandRank.TrioSimpleConParejaDoble,
-            [(3, 1), (2, 1)] => HandRank.TrioSimpleConParejaSimple,
-            [(3, 2)] => HandRank.TrioDoble,
-            [(3, 1)] => HandRank.TrioSimple,
-            [(2, 2), (2, 2)] => HandRank.DobleParejaDoble,
-            [(2, 2), (2, 1)] => HandRank.ParejaDobleConParejaSimple,
-            [(2, 2)] => HandRank.ParejaDoble,
-            [(2, 1), (2, 1)] => HandRank.DobleParejaSimple,
-            [(2, 1)] => HandRank.ParejaSimple,
+            [(5, 2)] => HandRank.RetrikerFuerte,
+            [(5, 1)] => HandRank.RetrikerDebil,
+            [(4, 2)] => HandRank.TrikerFuerte,
+            [(4, 1)] => HandRank.TrikerDebil,
+            [(3, 2), (2, 2)] => HandRank.FullFuerte,
+            [(3, 2), (2, 1)] => HandRank.Full,
+            [(3, 1), (2, 2)] => HandRank.FullMixto,
+            [(3, 1), (2, 1)] => HandRank.FullDebil,
+            [(3, 2)] => HandRank.TrioFuerte,
+            [(3, 1)] => HandRank.TrioDebil,
+            [(2, 2), (2, 2)] => HandRank.DobleParejaFuerte,
+            [(2, 2), (2, 1)] => HandRank.DobleParejaMedia,
+            [(2, 2)] => HandRank.ParejaFuerte,
+            [(2, 1), (2, 1)] => HandRank.DobleParejaDebil,
+            [(2, 1)] => HandRank.ParejaDebil,
             _ => HandRank.SinJugada
         };
     }
+
+    private static string GetHandName(HandRank rank) => rank switch
+    {
+        HandRank.ParejaDebil       => "Pareja Débil",
+        HandRank.TrioDebil         => "Trío Débil",
+        HandRank.DobleParejaDebil  => "Doble Pareja",
+        HandRank.TrikerDebil       => "Triker Débil",
+        HandRank.FullDebil         => "Full Débil",
+        HandRank.RetrikerDebil     => "Retriker Débil",
+        HandRank.ParejaFuerte      => "Pareja Fuerte",
+        HandRank.DobleParejaMedia  => "Doble Pareja Mixta",
+        HandRank.FullMixto         => "Full Mixto",
+        HandRank.TrioFuerte        => "Trío Fuerte",
+        HandRank.DobleParejaFuerte => "Doble Pareja Fuerte",
+        HandRank.Full              => "Full",
+        HandRank.FullFuerte        => "Full Fuerte",
+        HandRank.TrikerFuerte      => "Triker Fuerte",
+        HandRank.RetrikerFuerte    => "Retriker Fuerte",
+        HandRank.Escalera          => "Escalera",
+        _                          => "Sin jugada"
+    };
 
     private List<CardGroupDto> GetCandidateGroups(List<Card> hand)
     {
@@ -171,8 +190,8 @@ public class ScoringService
         };
         string suffix = a switch
         {
-            1 => "Simple",
-            2 => "Doble",
+            1 => "Débil",
+            2 => "Fuerte",
             _ => ""
         };
         return $"{size} {suffix}".Trim();
