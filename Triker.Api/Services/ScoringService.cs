@@ -101,13 +101,13 @@ public class ScoringService
         var seen = new HashSet<string>();
         var groups = new List<CardGroupDto>();
 
-        void Add(IEnumerable<Card> cards)
+        void Add(List<Card> list)
         {
-            var list = cards.ToList();
             if (list.Count < 2) return;
             var key = string.Join(",", list.Select(c => c.Id).OrderBy(id => id));
             if (!seen.Add(key)) return;
             int a = CountMatchingParams(list);
+            if (a == 0) return;
             int n = list.Count;
             groups.Add(new CardGroupDto
             {
@@ -118,53 +118,56 @@ public class ScoringService
             });
         }
 
-        foreach (var g in hand.GroupBy(c => c.Letter)) Add(g);
-        foreach (var g in hand.GroupBy(c => c.Figure)) Add(g);
-        foreach (var g in hand.GroupBy(c => c.Color))  Add(g);
+        // Enumerate all subsets of size ≥2 so that pairs/triples with a=2
+        // inside a larger a=1 group are also considered (e.g. two cards sharing
+        // both figure and color that belong to a 3-card same-figure group).
+        for (int size = 2; size <= hand.Count; size++)
+            foreach (var combo in Combinations(hand, size))
+                Add(combo);
 
         return groups;
     }
 
+    // With a 5-card hand, at most 2 non-overlapping groups are possible (2+3 or 2+2).
+    // An O(k²) search is therefore complete and avoids 2^k blowup.
     private List<CardGroupDto> FindBestGrouping(List<Card> hand, List<CardGroupDto> candidates)
     {
         if (candidates.Count == 0) return [];
 
-        var masks = candidates.Select(g =>
-        {
-            int mask = g.Cards.Aggregate(0, (acc, c) =>
-                acc | (1 << hand.FindIndex(h => h.Id == c.Id)));
-            return (Group: g, Mask: mask);
-        }).ToList();
+        var cardIdx = hand.Select((c, i) => (c.Id, i)).ToDictionary(x => x.Id, x => x.i);
+        var masked = candidates
+            .Select(g => (Group: g, Mask: g.Cards.Aggregate(0, (acc, c) => acc | (1 << cardIdx[c.Id]))))
+            .ToList();
 
-        int k = masks.Count;
         var best = new List<CardGroupDto>();
         HandRank bestRank = HandRank.SinJugada;
 
-        for (int subset = 1; subset < (1 << k); subset++)
+        foreach (var (group, _) in masked)
         {
-            int usedCards = 0;
-            bool valid = true;
-            var current = new List<CardGroupDto>();
+            var rank = ComputeHandRank([group], false, 0);
+            if (rank > bestRank) { bestRank = rank; best = [group]; }
+        }
 
-            for (int i = 0; i < k; i++)
-            {
-                if ((subset & (1 << i)) == 0) continue;
-                var (group, mask) = masks[i];
-                if ((usedCards & mask) != 0) { valid = false; break; }
-                usedCards |= mask;
-                current.Add(group);
-            }
-
-            if (!valid) continue;
+        for (int i = 0; i < masked.Count; i++)
+        for (int j = i + 1; j < masked.Count; j++)
+        {
+            if ((masked[i].Mask & masked[j].Mask) != 0) continue;
+            var current = new List<CardGroupDto> { masked[i].Group, masked[j].Group };
             var rank = ComputeHandRank(current, false, 0);
-            if (rank > bestRank)
-            {
-                bestRank = rank;
-                best = current;
-            }
+            if (rank > bestRank) { bestRank = rank; best = current; }
         }
 
         return best;
+    }
+
+    private static List<List<Card>> Combinations(List<Card> src, int k)
+    {
+        if (k == 0) return [[]];
+        var result = new List<List<Card>>();
+        for (int i = 0; i <= src.Count - k; i++)
+            foreach (var rest in Combinations(src.GetRange(i + 1, src.Count - i - 1), k - 1))
+                result.Add([src[i], .. rest]);
+        return result;
     }
 
     private static int CountMatchingParams(List<Card> cards)
