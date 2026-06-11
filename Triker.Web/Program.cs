@@ -20,5 +20,6 @@ builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(apiBase) 
 builder.Services.AddScoped<ApiService>();
 builder.Services.AddScoped<SessionService>();
 builder.Services.AddScoped<HubService>();
+builder.Services.AddScoped<AudioService>();
 
 await builder.Build().RunAsync();

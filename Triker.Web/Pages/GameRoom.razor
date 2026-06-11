@@ -4,6 +4,7 @@
 @inject SessionService Session
 @inject NavigationManager Nav
 @inject IConfiguration Config
+@inject AudioService Audio
 @implements IAsyncDisposable
 
 <div class="game-room">
@@ -42,6 +43,10 @@
                 <span class="target-badge">Meta @_state.TargetWins🥇</span>
             }
             <DeckView DeckSize="_state.DeckSize" />
+            <button class="btn-mute" @onclick="@(() => Audio.Enabled = !Audio.Enabled)"
+                    title="@(Audio.Enabled ? "Silenciar" : "Activar sonido")">
+                @(Audio.Enabled ? "🔊" : "🔇")
+            </button>
             <button class="btn-help" @onclick="@(() => _helpVisible = true)" title="Ayuda">?</button>
         </div>
 
@@ -194,6 +199,7 @@
     private List<HandResultDto>? _lastRoundResults;
     private int _lastRoundNumber;
     private bool _historyVisible = true;
+    private bool _wasMyTurn = false;
     private Guid _myPlayerId;
     private bool _discarded = false;
     private bool _helpVisible = false;
@@ -244,12 +250,17 @@
                     StartCountdown(_state.TurnDeadline.Value);
                 else
                     StopCountdown();
+
+                if (me.IsCurrentTurn && !_discarded && !_wasMyTurn)
+                    InvokeAsync(Audio.PlayYourTurn);
+                _wasMyTurn = me.IsCurrentTurn && !_discarded;
             }
         }
         else
         {
             StopCountdown();
             _discarded = false;
+            _wasMyTurn = false;
         }
         InvokeAsync(StateHasChanged);
     }
@@ -308,6 +319,19 @@
     {
         _lastRoundResults = null;
         _results = results;
+
+        var myResult = results.FirstOrDefault(r => r.PlayerId == _myPlayerId);
+        if (myResult != null)
+        {
+            bool iWon = results.Count(r => r.HandRank > myResult.HandRank) == 0;
+            if (_state?.GameOver == true && iWon)
+                InvokeAsync(Audio.PlayChampion);
+            else if (iWon)
+                InvokeAsync(Audio.PlayWinRound);
+            else
+                InvokeAsync(Audio.PlayLoseRound);
+        }
+
         InvokeAsync(StateHasChanged);
     }
 

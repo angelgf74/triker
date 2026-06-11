@@ -429,7 +429,13 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .lobby-title-row { display: flex; align-items: center; gap: 0.5rem; }
 
 .game-header { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
-.game-header .btn-help { margin-left: auto; }
+.game-header .btn-mute { margin-left: auto; }
+.btn-mute {
+    background: transparent; border: none; font-size: 1.2rem;
+    cursor: pointer; line-height: 1; padding: 0.2rem; opacity: 0.7;
+    transition: opacity 0.15s;
+}
+.btn-mute:hover { opacity: 1; }
 
 /* ===== HELP MODAL ===== */
 .help-overlay {
