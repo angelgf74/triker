@@ -19,6 +19,11 @@ public class GameHub(GameService gameService) : Hub
             if (game != null)
                 await Clients.Caller.SendAsync("GameState", gameService.ToDto(game, playerId));
         }
+        else
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, "lobby");
+            await Clients.Caller.SendAsync("GamesUpdated", gameService.ListGames());
+        }
         await base.OnConnectedAsync();
     }
 

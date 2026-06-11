@@ -2,7 +2,10 @@
 @inject ApiService Api
 @inject SessionService Session
 @inject NavigationManager Nav
-@implements IDisposable
+@inject IConfiguration Config
+@using Microsoft.AspNetCore.SignalR.Client
+@using System.Text.Json.Serialization
+@implements IAsyncDisposable
 
 <HelpModal Visible="_helpVisible" OnClose="@(() => _helpVisible = false)" />
 <SugerenciasModal Visible="_sugVisible" OnClose="@(() => _sugVisible = false)" />
@@ -94,17 +97,28 @@
     private bool _helpVisible = false;
     private bool _sugVisible = false;
     private List<Triker.Shared.Dtos.GameSummaryDto> _games = [];
-    private System.Threading.Timer? _refreshTimer;
+    private HubConnection? _hubConnection;
 
     protected override async Task OnInitializedAsync()
     {
         _playerName = await Session.GetPlayerName() ?? "";
         await LoadGames();
-        _refreshTimer = new System.Threading.Timer(async _ =>
+
+        var apiBase = (Config["ApiBaseUrl"] ?? "https://localhost:7077").TrimEnd('/');
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl($"{apiBase}/gamehub")
+            .WithAutomaticReconnect()
+            .AddJsonProtocol(o => o.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter()))
+            .Build();
+
+        _hubConnection.On<List<GameSummaryDto>>("GamesUpdated", games =>
         {
-            await LoadGames();
-            await InvokeAsync(StateHasChanged);
-        }, null, 5000, 5000);
+            _games = games;
+            _loading = false;
+            InvokeAsync(StateHasChanged);
+        });
+
+        await _hubConnection.StartAsync();
     }
 
     private async Task LoadGames()
@@ -155,5 +169,9 @@
         _ => ""
     };
 
-    public void Dispose() => _refreshTimer?.Dispose();
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection != null)
+            await _hubConnection.DisposeAsync();
+    }
 }

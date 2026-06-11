@@ -6,19 +6,20 @@ namespace Triker.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class GamesController(GameService gameService, InactivityService inactivity) : ControllerBase
+public class GamesController(GameService gameService, InactivityService inactivity, GameBroadcaster broadcaster) : ControllerBase
 {
     [HttpGet]
     public ActionResult<List<GameSummaryDto>> List()
         => gameService.ListGames();
 
     [HttpPost]
-    public ActionResult<JoinResponse> Create([FromBody] CreateGameRequest req)
+    public async Task<ActionResult<JoinResponse>> Create([FromBody] CreateGameRequest req)
     {
         if (string.IsNullOrWhiteSpace(req.PlayerName) || string.IsNullOrWhiteSpace(req.GameName))
             return BadRequest("Nombre requerido");
 
         var (game, player) = gameService.CreateGame(req.GameName, req.PlayerName);
+        await broadcaster.BroadcastLobbyUpdate();
         return new JoinResponse { PlayerId = player.Id, GameState = gameService.ToDto(game, player.Id) };
     }
 
@@ -33,6 +34,7 @@ public class GamesController(GameService gameService, InactivityService inactivi
 
         var (game, player) = result.Value;
         await inactivity.BroadcastState(gameId);
+        await broadcaster.BroadcastLobbyUpdate();
 
         return new JoinResponse { PlayerId = player.Id, GameState = gameService.ToDto(game, player.Id) };
     }
@@ -43,6 +45,7 @@ public class GamesController(GameService gameService, InactivityService inactivi
         var game = gameService.AddBot(gameId, playerId);
         if (game == null) return BadRequest("No se puede añadir un bot");
         await inactivity.BroadcastState(gameId);
+        await broadcaster.BroadcastLobbyUpdate();
         return Ok();
     }
 

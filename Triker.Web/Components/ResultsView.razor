@@ -90,6 +90,40 @@
             </div>
         }
     </div>
+
+    @if (RoundNumber > 1)
+    {
+        <div class="session-stats">
+            <h3 class="session-stats-title">Sesión — @RoundNumber rondas</h3>
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th>Jugador</th>
+                        <th>🥇</th>
+                        <th>🥈</th>
+                        <th>🥉</th>
+                        <th>% Vic.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Players
+                        .OrderByDescending(p => p.Wins)
+                        .ThenByDescending(p => p.Seconds)
+                        .ThenByDescending(p => p.Thirds))
+                    {
+                        var winPct = p.Wins * 100 / RoundNumber;
+                        <tr class="@(p.Id == MyPlayerId ? "stats-me" : "")">
+                            <td>@p.Name@(p.Id == MyPlayerId ? " (tú)" : "")</td>
+                            <td>@p.Wins</td>
+                            <td>@p.Seconds</td>
+                            <td>@p.Thirds</td>
+                            <td>@winPct%</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
 </div>
 
 @code {

@@ -532,3 +532,43 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
     position: fixed; width: 100%; z-index: 1000; color: white; font-size: 0.9rem;
 }
 #blazor-error-ui .dismiss { cursor: pointer; position: absolute; right: 0.75rem; top: 0.5rem; }
+
+/* ===== SESSION STATS ===== */
+.session-stats {
+    margin-top: 1.5rem;
+    padding: 1rem 1.2rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+}
+.session-stats-title {
+    margin: 0 0 0.8rem;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #888;
+    font-weight: 600;
+}
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+}
+.stats-table th {
+    text-align: center;
+    padding: 0.3rem 0.5rem;
+    color: #888;
+    font-weight: 600;
+    font-size: 0.8rem;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.stats-table th:first-child { text-align: left; }
+.stats-table td {
+    text-align: center;
+    padding: 0.35rem 0.5rem;
+    color: #ccc;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.stats-table td:first-child { text-align: left; color: #e0e0e0; }
+.stats-table tbody tr:last-child td { border-bottom: none; }
+.stats-me td { color: #64b5f6 !important; font-weight: 600; }

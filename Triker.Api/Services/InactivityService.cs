@@ -154,13 +154,18 @@ public class InactivityService(GameService gameService, GameBroadcaster broadcas
         }
 
         game = gameService.GetGame(gameId);
-        if (game == null) return;
+        if (game == null)
+        {
+            await broadcaster.BroadcastLobbyUpdate();
+            return;
+        }
 
         // Start turn timer before broadcasting so TurnDeadline is included in the state the client receives
         if (game.Status == GameStatus.Playing && game.CurrentTurnPlayer?.IsBot == false)
             StartTurnTimer(gameId, game.CurrentTurnPlayer.Id);
 
         await broadcaster.BroadcastPersonalized(game);
+        await broadcaster.BroadcastLobbyUpdate();
     }
 
     // Convenience broadcast without bot processing (used for Waiting-phase events)
