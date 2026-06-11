@@ -59,6 +59,9 @@ SCRIPT_END
     log "Copiando archivos al destino..."
     scp -r "$PUBLISH_WEB/wwwroot/." "$SSH_HOST:$REMOTE_APP/"
 
+    log "Parcheando base href para producción..."
+    ssh "$SSH_HOST" "sed -i 's|<base href=\"/triker/\" />|<base href=\"/\" />|' $REMOTE_APP/index.html"
+
     log "Restaurando appsettings de producción..."
     ssh "$SSH_HOST" bash <<SCRIPT_END
 set -euo pipefail
