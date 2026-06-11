@@ -93,7 +93,7 @@
 
             @if (me != null)
             {
-                <div class="my-area">
+                <div class="my-area @(me.IsCurrentTurn && _state.Status == GameStatus.Playing && !_discarded ? "active-turn" : "")">
                     <div class="my-area-header">
                         <span class="my-name">@me.Name (tú)</span>
                         @if (me.Wins > 0 || me.Seconds > 0 || me.Thirds > 0)
