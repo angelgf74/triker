@@ -216,6 +216,13 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .turn-indicator.my-turn { background: rgba(240,192,64,0.2); color: #f0c040; animation: pulse 1.5s infinite; }
 .turn-indicator.waiting-turn { background: rgba(255,255,255,0.08); color: #aaa; }
 .turn-indicator.revealing { background: rgba(33,150,243,0.2); color: #64B5F6; }
+.turn-countdown { display: flex; align-items: center; gap: 0.4rem; }
+.countdown-secs { font-size: 0.8rem; color: #aaa; min-width: 26px; text-align: right; font-variant-numeric: tabular-nums; }
+.countdown-bar { width: 72px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+.countdown-fill { height: 100%; border-radius: 2px; transition: width 0.25s linear, background 1s; }
+.countdown-ok      { background: #43A047; }
+.countdown-warn    { background: #f0c040; }
+.countdown-danger  { background: #e53935; }
 
 /* ===== HAND ===== */
 .hand-view { display: flex; flex-direction: column; gap: 1rem; }

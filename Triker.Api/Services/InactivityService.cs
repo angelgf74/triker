@@ -17,6 +17,8 @@ public class InactivityService(GameService gameService, GameBroadcaster broadcas
     public void StartTurnTimer(Guid gameId, Guid playerId)
     {
         CancelTurnTimer(gameId);
+        var game = gameService.GetGame(gameId);
+        if (game != null) game.TurnDeadline = DateTimeOffset.UtcNow + TurnTimeout;
         var cts = new CancellationTokenSource();
         _turnTimers[gameId] = cts;
         _ = Task.Run(async () =>
@@ -39,6 +41,8 @@ public class InactivityService(GameService gameService, GameBroadcaster broadcas
             cts.Cancel();
             cts.Dispose();
         }
+        var game = gameService.GetGame(gameId);
+        if (game != null) game.TurnDeadline = null;
     }
 
     public void StartFinishTimer(Guid gameId)

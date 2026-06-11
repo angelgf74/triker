@@ -31,6 +31,8 @@ public class GameState
     public int N { get; set; } = 5;
     public int RoundNumber { get; set; } = 1;
 
+    public DateTimeOffset? TurnDeadline { get; set; }
+
     public int MaxPlayers => (int)Math.Floor((double)(N * N) / 2);
     public PlayerState? CurrentTurnPlayer => Players.Count > 0 ? Players[CurrentTurnIndex % Players.Count] : null;
     public bool AllPlayersReady => Players.Count > 0 && Players.All(p => p.TurnStatus == PlayerTurnStatus.Ready);

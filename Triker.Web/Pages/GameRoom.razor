@@ -92,6 +92,16 @@
                             @if (me.IsCurrentTurn)
                             {
                                 <span class="turn-indicator my-turn">¡Tu turno!</span>
+                                @if (_turnSecondsLeft > 0)
+                                {
+                                    <div class="turn-countdown">
+                                        <span class="countdown-secs">@_turnSecondsLeft s</span>
+                                        <div class="countdown-bar">
+                                            <div class="countdown-fill @CountdownClass"
+                                                 style="width:@(_turnSecondsLeft / 60.0 * 100)%"></div>
+                                        </div>
+                                    </div>
+                                }
                             }
                             else
                             {
@@ -130,8 +140,11 @@
     private bool _discarded = false;
     private bool _helpVisible = false;
     private string _error = "";
+    private int _turnSecondsLeft;
+    private CancellationTokenSource? _countdownCts;
 
     private int MaxPlayers => _state != null ? (int)Math.Floor((double)(_state.N * _state.N) / 2) : 0;
+    private string CountdownClass => _turnSecondsLeft switch { <= 10 => "countdown-danger", <= 20 => "countdown-warn", _ => "countdown-ok" };
 
     protected override async Task OnInitializedAsync()
     {
@@ -160,8 +173,44 @@
             var me = _state.Players.FirstOrDefault(p => p.Id == _myPlayerId);
             if (me != null && me.TurnStatus == PlayerTurnStatus.Thinking)
                 _discarded = false;
+
+            if (me != null && me.IsCurrentTurn && _state.TurnDeadline.HasValue)
+                StartCountdown(_state.TurnDeadline.Value);
+            else
+                StopCountdown();
+        }
+        else
+        {
+            StopCountdown();
         }
         InvokeAsync(StateHasChanged);
+    }
+
+    private void StartCountdown(DateTimeOffset deadline)
+    {
+        _countdownCts?.Cancel();
+        _countdownCts = new CancellationTokenSource();
+        var token = _countdownCts.Token;
+        _ = RunCountdown(deadline, token);
+    }
+
+    private async Task RunCountdown(DateTimeOffset deadline, CancellationToken token)
+    {
+        while (!token.IsCancellationRequested)
+        {
+            _turnSecondsLeft = Math.Max(0, (int)(deadline - DateTimeOffset.UtcNow).TotalSeconds);
+            await InvokeAsync(StateHasChanged);
+            if (_turnSecondsLeft <= 0) break;
+            try { await Task.Delay(250, token); }
+            catch (OperationCanceledException) { break; }
+        }
+    }
+
+    private void StopCountdown()
+    {
+        _countdownCts?.Cancel();
+        _countdownCts = null;
+        _turnSecondsLeft = 0;
     }
 
     private void OnHandsRevealed(List<HandResultDto> results)
@@ -218,6 +267,7 @@
 
     public async ValueTask DisposeAsync()
     {
+        StopCountdown();
         Hub.OnChange -= OnHubChange;
         Hub.OnHandsRevealed -= OnHandsRevealed;
         Hub.OnAutoLeft -= OnAutoLeft;

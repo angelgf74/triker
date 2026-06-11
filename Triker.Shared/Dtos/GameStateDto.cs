@@ -14,4 +14,5 @@ public class GameStateDto
     public int N { get; set; }
     public int RoundNumber { get; set; }
     public Guid? MyPlayerId { get; set; }
+    public DateTimeOffset? TurnDeadline { get; set; }
 }

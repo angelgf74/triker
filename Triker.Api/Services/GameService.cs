@@ -199,6 +199,7 @@ public class GameService(DeckService deckService, ScoringService scoringService,
             N = game.N,
             RoundNumber = game.RoundNumber,
             MyPlayerId = forPlayerId,
+            TurnDeadline = game.TurnDeadline,
             Players = game.Players.Select(p => new PlayerDto
             {
                 Id = p.Id,
