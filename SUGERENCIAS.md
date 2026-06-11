@@ -40,7 +40,7 @@
 ### Presentación / Pulido
 - [ ] Animación de reparto — animar la llegada de cartas al inicio de cada ronda
 - [ ] Sonidos — efectos sutiles (clic al seleccionar, fanfarria al ganar)
-- [ ] Indicador de turno en lista de jugadores — resaltar visualmente quién tiene el turno activo
+- [x] Indicador de turno en lista de jugadores — resaltar visualmente quién tiene el turno activo
 
 ### Técnica
 - [ ] Persistencia entre reinicios — guardar partidas activas en SQLite/Redis para sobrevivir deploys
