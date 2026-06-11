@@ -1,5 +1,4 @@
 @using Triker.Shared.Dtos
-@inject Triker.Web.Services.AudioService Audio
 
 <div class="hand-view">
     <div class="hand-cards">
@@ -11,7 +10,7 @@
                       Selected="@_selected.Contains(card.Id)"
                       Draggable="true"
                       Dragging="@(_dragIndex == idx)"
-                      OnClick="@(() => ToggleSelect(card.Id))"
+                      OnClick="@(EventCallback.Factory.Create(this, () => ToggleSelect(card.Id)))"
                       OnDragStarted="@(() => _dragIndex = idx)"
                       OnDropped="@(() => ReorderCard(idx))" />
         }
@@ -71,11 +70,10 @@
         }
     }
 
-    private async Task ToggleSelect(Guid id)
+    private void ToggleSelect(Guid id)
     {
         if (!CanDiscard) return;
         if (!_selected.Add(id)) _selected.Remove(id);
-        await Audio.PlayCardClick();
     }
 
     private void ReorderCard(int dropIndex)
@@ -90,7 +88,6 @@
 
     private async Task ConfirmDiscard()
     {
-        await Audio.PlayDiscard();
         await OnDiscard.InvokeAsync(_selected.ToList());
         _selected.Clear();
     }
