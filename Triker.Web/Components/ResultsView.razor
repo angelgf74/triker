@@ -56,13 +56,13 @@
         @if (GameOver)
         {
             <p class="continue-prompt">La partida ha terminado.</p>
-            <button class="btn-primary" @onclick="() => Decide(false)">Ir al lobby</button>
+            <button class="btn-primary" @onclick="() => Decide(false)">Ir a sala de espera</button>
         }
         else if (!_decided)
         {
             <p class="continue-prompt">¿Quieres jugar otra partida?</p>
             <div class="continue-buttons">
-                <button class="btn-primary" @onclick="() => Decide(true)">Jugar de nuevo</button>
+                <button class="btn-primary" @onclick="() => Decide(true)">Próxima partida</button>
                 <button class="btn-secondary" @onclick="() => Decide(false)">Abandonar mesa</button>
             </div>
         }
