@@ -41,6 +41,16 @@
     {
         <div class="create-form">
             <input class="name-input" @bind="_gameName" placeholder="Nombre de la partida..." maxlength="30" />
+            <div class="create-form-row">
+                <label class="create-form-label">Meta</label>
+                <select class="create-form-select" @bind="_targetWins">
+                    <option value="0">Sin límite</option>
+                    <option value="3">3 victorias</option>
+                    <option value="5">5 victorias</option>
+                    <option value="7">7 victorias</option>
+                    <option value="10">10 victorias</option>
+                </select>
+            </div>
             <button class="btn-primary" @onclick="CreateGame">Crear</button>
             <button class="btn-secondary" @onclick="() => _showCreateForm = false">Cancelar</button>
         </div>
@@ -91,6 +101,7 @@
 @code {
     private string _playerName = "";
     private string _gameName = "";
+    private int _targetWins = 0;
     private string _error = "";
     private bool _loading = true;
     private bool _showCreateForm = false;
@@ -148,7 +159,7 @@
         if (string.IsNullOrWhiteSpace(_playerName) || string.IsNullOrWhiteSpace(_gameName)) return;
         _error = "";
         await Session.SetPlayerName(_playerName);
-        var result = await Api.CreateGame(new() { PlayerName = _playerName, GameName = _gameName });
+        var result = await Api.CreateGame(new() { PlayerName = _playerName, GameName = _gameName, TargetWins = _targetWins });
         if (result != null)
             Nav.NavigateTo($"game/{result.GameState.Id}?playerId={result.PlayerId}");
         else

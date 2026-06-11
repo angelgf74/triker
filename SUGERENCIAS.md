@@ -33,7 +33,7 @@
 - [ ] Modo espectador — unirse a una partida en curso para observar sin jugar
 
 ### Jugabilidad / Profundidad
-- [ ] Partida a X victorias — configurar "primero a N victorias" o "N rondas" como fin de sesión
+- [x] Partida a X victorias — configurar "primero a N victorias" o "N rondas" como fin de sesión
 - [x] Vista de descartes — mostrar cuántas cartas descartó cada jugador en su turno
 - [ ] Historial de ronda — poder revisar el resultado de la ronda anterior al empezar una nueva
 

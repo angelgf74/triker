@@ -4,6 +4,7 @@ public class CreateGameRequest
 {
     public string PlayerName { get; set; } = "";
     public string GameName { get; set; } = "";
+    public int TargetWins { get; set; } = 0;
 }
 
 public class JoinGameRequest

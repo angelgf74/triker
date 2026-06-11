@@ -15,4 +15,6 @@ public class GameStateDto
     public int RoundNumber { get; set; }
     public Guid? MyPlayerId { get; set; }
     public DateTimeOffset? TurnDeadline { get; set; }
+    public int TargetWins { get; set; }
+    public bool GameOver { get; set; }
 }

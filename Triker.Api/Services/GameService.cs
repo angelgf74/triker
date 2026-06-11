@@ -22,14 +22,15 @@ public class GameService(
             .Select(ToSummary)
             .ToList();
 
-    public (GameState game, PlayerState player) CreateGame(string gameName, string playerName)
+    public (GameState game, PlayerState player) CreateGame(string gameName, string playerName, int targetWins = 0)
     {
-        var game = new GameState { Name = gameName };
+        var game = new GameState { Name = gameName, TargetWins = Math.Max(0, targetWins) };
         var player = new PlayerState { Name = playerName };
         game.CreatorId = player.Id;
         game.Players.Add(player);
         _games[game.Id] = game;
-        logger.LogInformation("Game created: {GameId} '{GameName}' by '{Player}'", game.Id, gameName, playerName);
+        logger.LogInformation("Game created: {GameId} '{GameName}' by '{Player}' (target={Target})",
+            game.Id, gameName, playerName, game.TargetWins == 0 ? "∞" : game.TargetWins.ToString());
         return (game, player);
     }
 
@@ -128,6 +129,12 @@ public class GameService(
         game.Status = GameStatus.Finished;
         game.LastActivityAt = DateTimeOffset.UtcNow;
 
+        if (game.TargetWins > 0 && game.Players.Any(p => p.Wins >= game.TargetWins))
+        {
+            game.GameOver = true;
+            logger.LogInformation("Game {GameId} over — target {Target} wins reached", gameId, game.TargetWins);
+        }
+
         logger.LogInformation("Game {GameId} round {Round} finished. Winner: '{Winner}' ({Hand})",
             gameId, game.RoundNumber, results[0].PlayerName, results[0].HandName);
 
@@ -152,7 +159,7 @@ public class GameService(
         foreach (var bot in game.Players.Where(p => p.IsBot))
             bot.WantsToContinue = true;
 
-        if (game.Players.All(p => p.WantsToContinue))
+        if (!game.GameOver && game.Players.All(p => p.WantsToContinue))
             StartNewRound(game);
 
         return true;
@@ -189,7 +196,7 @@ public class GameService(
             return true;
         }
 
-        if (game.Players.All(p => p.WantsToContinue))
+        if (!game.GameOver && game.Players.All(p => p.WantsToContinue))
             StartNewRound(game);
 
         return true;
@@ -241,6 +248,8 @@ public class GameService(
             RoundNumber = game.RoundNumber,
             MyPlayerId = forPlayerId,
             TurnDeadline = game.TurnDeadline,
+            TargetWins = game.TargetWins,
+            GameOver = game.GameOver,
             Players = game.Players.Select(p => new PlayerDto
             {
                 Id = p.Id,

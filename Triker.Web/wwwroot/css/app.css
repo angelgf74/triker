@@ -664,3 +664,38 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
     border-radius: 10px; padding: 0.1rem 0.45rem;
     white-space: nowrap;
 }
+
+/* ===== PARTIDA A X VICTORIAS ===== */
+.champion-banner {
+    display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+    background: linear-gradient(135deg, rgba(255,200,0,0.15) 0%, rgba(255,140,0,0.10) 100%);
+    border: 1.5px solid rgba(255,200,0,0.35);
+    border-radius: 12px; padding: 1rem 1.5rem;
+    margin-bottom: 0.8rem; flex-wrap: wrap; text-align: center;
+}
+.champion-icon { font-size: 2.2rem; line-height: 1; }
+.champion-name { font-size: 1.5rem; font-weight: 800; color: #fcd34d; }
+.champion-sub  { font-size: 0.9rem; color: #a0a0a0; width: 100%; margin-top: -0.2rem; }
+
+.target-badge {
+    background: rgba(255,200,0,0.12); border: 1px solid rgba(255,200,0,0.3);
+    border-radius: 10px; padding: 0.15rem 0.55rem;
+    font-size: 0.82rem; font-weight: 700; color: #fcd34d;
+    white-space: nowrap;
+}
+
+.create-form-row {
+    display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.1rem;
+}
+.create-form-label {
+    font-size: 0.88rem; color: #aaa; white-space: nowrap; min-width: 2.5rem;
+}
+.create-form-select {
+    flex: 1; padding: 0.45rem 0.6rem;
+    background: rgba(255,255,255,0.07); color: #e8e8f0;
+    border: 1.5px solid rgba(255,255,255,0.15); border-radius: 8px;
+    font-size: 0.9rem; cursor: pointer;
+}
+.create-form-select:focus {
+    outline: none; border-color: rgba(255,255,255,0.35);
+}

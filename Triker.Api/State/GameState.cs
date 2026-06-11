@@ -36,6 +36,8 @@ public class GameState
 
     public DateTimeOffset? TurnDeadline { get; set; }
     public DateTimeOffset LastActivityAt { get; set; } = DateTimeOffset.UtcNow;
+    public int TargetWins { get; set; } = 0;
+    public bool GameOver { get; set; } = false;
 
     // Per-game lock for concurrent request protection.
     public object SyncLock { get; } = new();

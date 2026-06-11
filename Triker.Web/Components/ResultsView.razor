@@ -1,9 +1,19 @@
 @using Triker.Shared.Dtos
 
 <div class="results-view">
+    @if (GameOver)
+    {
+        var champ = Players.OrderByDescending(p => p.Wins).First();
+        <div class="champion-banner">
+            <span class="champion-icon">🏆</span>
+            <span class="champion-name">@champ.Name</span>
+            <span class="champion-sub">¡Campeón con @champ.Wins victorias en @RoundNumber rondas!</span>
+        </div>
+    }
+
     <div class="results-header">
         <h2>Resultados — @GameName</h2>
-        <p class="round-label">Ronda @RoundNumber</p>
+        <p class="round-label">Ronda @RoundNumber@(TargetWins > 0 && !GameOver ? $" · Meta: {TargetWins}🥇" : "")</p>
     </div>
 
     @if (RoundNumber > 1)
@@ -43,7 +53,12 @@
     }
 
     <div class="continue-section">
-        @if (!_decided)
+        @if (GameOver)
+        {
+            <p class="continue-prompt">La partida ha terminado.</p>
+            <button class="btn-primary" @onclick="() => Decide(false)">Ir al lobby</button>
+        }
+        else if (!_decided)
         {
             <p class="continue-prompt">¿Quieres jugar otra partida?</p>
             <div class="continue-buttons">
@@ -150,6 +165,8 @@
     [Parameter] public int RoundNumber { get; set; }
     [Parameter] public Guid MyPlayerId { get; set; }
     [Parameter] public EventCallback<bool> OnContinue { get; set; }
+    [Parameter] public int TargetWins { get; set; }
+    [Parameter] public bool GameOver { get; set; }
 
     private bool _decided = false;
 

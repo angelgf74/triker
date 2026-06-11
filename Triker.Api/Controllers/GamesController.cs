@@ -18,7 +18,7 @@ public class GamesController(GameService gameService, InactivityService inactivi
         if (string.IsNullOrWhiteSpace(req.PlayerName) || string.IsNullOrWhiteSpace(req.GameName))
             return BadRequest("Nombre requerido");
 
-        var (game, player) = gameService.CreateGame(req.GameName, req.PlayerName);
+        var (game, player) = gameService.CreateGame(req.GameName, req.PlayerName, req.TargetWins);
         await broadcaster.BroadcastLobbyUpdate();
         return new JoinResponse { PlayerId = player.Id, GameState = gameService.ToDto(game, player.Id) };
     }

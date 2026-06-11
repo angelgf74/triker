@@ -27,7 +27,9 @@
         <ResultsView Results="_results" GameName="@_state.Name" RoundNumber="_state.RoundNumber"
                      MyPlayerId="_myPlayerId"
                      OnContinue="HandleContinue"
-                     Players="_state.Players" />
+                     Players="_state.Players"
+                     TargetWins="_state.TargetWins"
+                     GameOver="_state.GameOver" />
     }
     else
     {
@@ -35,6 +37,10 @@
         <div class="game-header">
             <span class="game-title-small">@_state.Name</span>
             <span class="round-badge">Ronda @_state.RoundNumber</span>
+            @if (_state.TargetWins > 0)
+            {
+                <span class="target-badge">Meta @_state.TargetWins🥇</span>
+            }
             <DeckView DeckSize="_state.DeckSize" />
             <button class="btn-help" @onclick="@(() => _helpVisible = true)" title="Ayuda">?</button>
         </div>
