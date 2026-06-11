@@ -93,6 +93,12 @@
                             @if (pd.Thirds > 0)  { <span>🥉@pd.Thirds</span> }
                         </span>
                     }
+                    @if (pd != null)
+                    {
+                        <span class="discard-badge-result" title="Cartas descartadas esta ronda">
+                            @(pd.DiscardCount == 0 ? "pasó" : $"−{pd.DiscardCount}")
+                        </span>
+                    }
                 </div>
 
                 <div class="result-cards-row">

@@ -133,6 +133,26 @@
                     <HandView Cards="me.Hand"
                               CanDiscard="@(me.IsCurrentTurn && _state.Status == GameStatus.Playing && !_discarded)"
                               OnDiscard="HandleDiscard" />
+
+                    @if (me.TurnStatus == PlayerTurnStatus.Ready && _state.Status == GameStatus.Playing)
+                    {
+                        @if (me.DiscardCount > 0)
+                        {
+                            <div class="discard-section">
+                                <span class="discard-section-label">Descartaste @me.DiscardCount</span>
+                                <div class="discard-pile-row">
+                                    @for (int i = 0; i < me.DiscardCount; i++)
+                                    {
+                                        <CardView FaceDown="true" />
+                                    }
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="discard-info">Pasaste sin descartar</div>
+                        }
+                    }
                 </div>
             }
 

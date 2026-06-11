@@ -638,3 +638,29 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ===== EXPLICACIÓN DE RESULTADO (separadores de grupos) ===== */
 .grp-sep { color: #666; font-size: 0.85rem; padding: 0 0.15rem; align-self: center; }
+
+/* ===== VISTA DE DESCARTES ===== */
+.discard-section {
+    display: flex; flex-direction: column; gap: 4px;
+}
+.discard-section-label {
+    font-size: 0.72rem; color: #888; font-weight: 600; letter-spacing: 0.02em;
+}
+.discard-pile-row {
+    display: flex; gap: 3px; flex-wrap: wrap;
+}
+.discard-pile-row .card {
+    width: 32px; height: 46px;
+    border-radius: 5px; padding: 2px;
+    opacity: 0.45; border-style: dashed;
+    cursor: default; pointer-events: none;
+    transform: none !important;
+}
+.discard-badge-result {
+    margin-left: auto;
+    font-size: 0.72rem; color: #888; font-weight: 600;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; padding: 0.1rem 0.45rem;
+    white-space: nowrap;
+}
