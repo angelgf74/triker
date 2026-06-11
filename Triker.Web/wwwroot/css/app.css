@@ -692,10 +692,13 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .create-form-select {
     flex: 1; padding: 0.45rem 0.6rem;
-    background: rgba(255,255,255,0.07); color: #e8e8f0;
+    background: #2a2a3e; color: #e8e8f0;
     border: 1.5px solid rgba(255,255,255,0.15); border-radius: 8px;
     font-size: 0.9rem; cursor: pointer;
 }
 .create-form-select:focus {
     outline: none; border-color: rgba(255,255,255,0.35);
+}
+.create-form-select option {
+    background: #2a2a3e; color: #e8e8f0;
 }
