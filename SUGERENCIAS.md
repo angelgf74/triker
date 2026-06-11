@@ -39,7 +39,7 @@
 
 ### Presentación / Pulido
 - [ ] Animación de reparto — animar la llegada de cartas al inicio de cada ronda
-- [ ] Sonidos — efectos sutiles (clic al seleccionar, fanfarria al ganar)
+- [x] Sonidos — efectos sutiles (clic al seleccionar, fanfarria al ganar)
 - [x] Indicador de turno en lista de jugadores — resaltar visualmente quién tiene el turno activo
 
 ### Técnica
