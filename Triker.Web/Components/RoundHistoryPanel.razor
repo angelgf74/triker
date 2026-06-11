@@ -1,0 +1,26 @@
+@using Triker.Shared.Dtos
+
+<div class="rhp">
+    <div class="rhp-header">
+        <span class="rhp-title">Ronda @RoundNumber</span>
+        <button class="rhp-close" @onclick="OnClose" title="Cerrar">✕</button>
+    </div>
+    <div class="rhp-rows">
+        @foreach (var r in Results.OrderBy(r => r.Rank))
+        {
+            int above = Results.Count(x => x.HandRank > r.HandRank);
+            string medal = (above + 1) switch { 1 => "🥇", 2 => "🥈", 3 => "🥉", var n => $"{n}º" };
+            <div class="rhp-row @(above == 0 ? "rhp-winner" : "")">
+                <span class="rhp-medal">@medal</span>
+                <span class="rhp-name">@r.PlayerName</span>
+                <span class="rhp-hand">@r.HandName</span>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<HandResultDto> Results { get; set; } = [];
+    [Parameter] public int RoundNumber { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+}

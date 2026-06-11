@@ -89,6 +89,12 @@
         }
         else
         {
+            @if (_lastRoundResults != null && _historyVisible)
+            {
+                <RoundHistoryPanel Results="_lastRoundResults" RoundNumber="_lastRoundNumber"
+                                   OnClose="@(() => _historyVisible = false)" />
+            }
+
                 var me = _state.Players.FirstOrDefault(p => p.Id == _myPlayerId);
 
             @if (me != null)
@@ -177,6 +183,9 @@
 
     private GameStateDto? _state;
     private List<HandResultDto>? _results;
+    private List<HandResultDto>? _lastRoundResults;
+    private int _lastRoundNumber;
+    private bool _historyVisible = true;
     private Guid _myPlayerId;
     private bool _discarded = false;
     private bool _helpVisible = false;
@@ -289,6 +298,7 @@
 
     private void OnHandsRevealed(List<HandResultDto> results)
     {
+        _lastRoundResults = null;
         _results = results;
         InvokeAsync(StateHasChanged);
     }
@@ -318,6 +328,12 @@
 
     private async Task HandleContinue(bool wantsToContinue)
     {
+        if (wantsToContinue && _results != null)
+        {
+            _lastRoundResults = _results;
+            _lastRoundNumber = _state?.RoundNumber ?? 0;
+            _historyVisible = true;
+        }
         _results = null;
         _discarded = false;
         await Api.Continue(GameId, _myPlayerId, new() { WantsToContinue = wantsToContinue });
