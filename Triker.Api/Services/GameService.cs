@@ -141,8 +141,8 @@ public class GameService(DeckService deckService, ScoringService scoringService,
         if (game.Status != GameStatus.Waiting) return null;
         if (game.Players.Count >= game.MaxPlayers) return null;
 
-        var name = botService.PickName(game.Players.Select(p => p.Name));
-        game.Players.Add(new PlayerState { Name = name, IsBot = true });
+        var (name, personality) = botService.PickBot(game.Players.Select(p => p.Name));
+        game.Players.Add(new PlayerState { Name = name, IsBot = true, Personality = personality });
         return game;
     }
 
@@ -176,7 +176,7 @@ public class GameService(DeckService deckService, ScoringService scoringService,
         var player = game.CurrentTurnPlayer;
         if (player == null || !player.IsBot || game.Status != GameStatus.Playing) return false;
 
-        var discardIds = botService.ChooseDiscards(player.Hand);
+        var discardIds = botService.ChooseDiscards(player.Hand, player.Personality);
         return SubmitDiscard(gameId, player.Id, discardIds);
     }
 

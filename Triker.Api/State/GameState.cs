@@ -2,6 +2,8 @@ using Triker.Shared.Models;
 
 namespace Triker.Api.State;
 
+public enum BotPersonality { Balanced, Conservative, Aggressive, EscaleraSeeker }
+
 public class PlayerState
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -11,6 +13,7 @@ public class PlayerState
     public PlayerTurnStatus TurnStatus { get; set; } = PlayerTurnStatus.Thinking;
     public bool WantsToContinue { get; set; } = false;
     public bool IsBot { get; set; } = false;
+    public BotPersonality Personality { get; set; } = BotPersonality.Balanced;
     public int Wins { get; set; } = 0;
     public int Seconds { get; set; } = 0;
     public int Thirds { get; set; } = 0;
