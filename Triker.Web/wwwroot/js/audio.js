@@ -1,6 +1,7 @@
 window.trikerAudio = (() => {
     let ctx = null;
     let enabled = true;
+    let lastInteractionAt = 0;
 
     function getCtx() {
         if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -32,20 +33,45 @@ window.trikerAudio = (() => {
         osc.start(t); osc.stop(t + dur + 0.05);
     }
 
-    // Sonidos de interacción: pointerdown nativo → resume().then(play)
-    // Así el audio se ejecuta cuando el contexto está garantizadamente 'running'
-    document.addEventListener('pointerdown', (e) => {
+    // Desbloquear el AudioContext en la primera interacción (cualquier toque/clic)
+    function unlockCtx() {
+        const c = getCtx();
+        if (c.state !== 'running') c.resume().catch(() => {});
+        document.removeEventListener('pointerdown', unlockCtx, true);
+        document.removeEventListener('keydown',     unlockCtx, true);
+    }
+    document.addEventListener('pointerdown', unlockCtx, { capture: true, passive: true });
+    document.addEventListener('keydown',     unlockCtx, { capture: true });
+
+    // Sonidos de interacción: cartas y botón de descarte.
+    // Se escuchan en fase de captura (no se puede stop-propagar antes de nosotros)
+    // y en pointerdown + click para máxima fiabilidad. Antirrebote para evitar doble sonido.
+    function tryPlayInteraction(e) {
         if (!enabled) return;
-        const isCard    = !!e.target.closest('.card:not(.face-down)');
-        const isDiscard = !!e.target.closest('.btn-discard');
+        const target = e.target;
+        if (!target || !target.closest) return;
+        const isCard    = !!target.closest('.card');
+        const isDiscard = !!target.closest('.btn-discard');
         if (!isCard && !isDiscard) return;
 
+        const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+        if (now - lastInteractionAt < 150) return;
+        lastInteractionAt = now;
+
         const c = getCtx();
-        c.resume().then(() => {
-            if (isCard)    playTone(c,  900, 0.06, 'triangle', 0.18);
+        const doPlay = () => {
+            if (isCard)    playTone(c, 1200, 0.09, 'square', 0.28);
             if (isDiscard) { playSweep(c, 700, 220, 0.22, 0.28); playTone(c, 220, 0.15, 'sine', 0.12, 0.18); }
-        });
-    }, { passive: true });
+        };
+
+        if (c.state === 'running') {
+            doPlay();
+        } else {
+            c.resume().then(doPlay).catch(() => {});
+        }
+    }
+    document.addEventListener('pointerdown', tryPlayInteraction, { capture: true, passive: true });
+    document.addEventListener('click',       tryPlayInteraction, { capture: true, passive: true });
 
     // Sonidos de estado: desde JS interop (SignalR), el contexto ya está activo
     async function interopTone(freq, dur, type, gain, delay) {
