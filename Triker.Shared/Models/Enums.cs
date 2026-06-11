@@ -10,7 +10,6 @@ public enum HandRank
 {
     SinJugada = 0,
     ParejaSimple = 1,
-    EscaleraSimple = 2,
     DobleParejaSimple = 3,
     ParejaDoble = 4,
     ParejaDobleConParejaSimple = 5,
@@ -18,7 +17,6 @@ public enum HandRank
     DobleParejaDoble = 7,
     TrioSimpleConParejaSimple = 8,
     TrioSimpleConParejaDoble = 9,
-    EscaleraDoble = 10,
     TrioDoble = 11,
     TrioDobleConParejaSimple = 12,
     TrikerSimple = 13,

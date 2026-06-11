@@ -12,7 +12,7 @@ public class ScoringService
         int groupsScore = bestGroups.Sum(g => g.Score);
 
         int escaleraLevel = CountEscaleraLevel(hand);
-        int escaleraScore = escaleraLevel switch { 3 => 50, 2 => 12, 1 => 3, _ => 0 };
+        int escaleraScore = escaleraLevel == 3 ? 50 : 0;
 
         bool usedEscalera = escaleraScore > groupsScore;
         string handName;
@@ -21,7 +21,7 @@ public class ScoringService
 
         if (usedEscalera)
         {
-            handName = escaleraLevel switch { 3 => "Escalera Real", 2 => "Escalera Doble", _ => "Escalera Simple" };
+            handName = "Escalera Real";
             totalScore = escaleraScore;
             resultGroups = [];
         }
@@ -47,12 +47,7 @@ public class ScoringService
 
     private static HandRank ComputeHandRank(List<CardGroupDto> groups, bool usedEscalera, int escaleraLevel)
     {
-        if (usedEscalera) return escaleraLevel switch
-        {
-            3 => HandRank.EscaleraReal,
-            2 => HandRank.EscaleraDoble,
-            _ => HandRank.EscaleraSimple
-        };
+        if (usedEscalera) return HandRank.EscaleraReal;
 
         if (groups.Count == 0) return HandRank.SinJugada;
 
