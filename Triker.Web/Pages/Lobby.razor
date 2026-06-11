@@ -22,7 +22,7 @@
 
     <div class="player-name-section">
         <label>Tu nombre:</label>
-        <input class="name-input" @bind="_playerName" @bind:event="oninput"
+        <input class="name-input" value="@_playerName" @oninput="OnNameInput"
                placeholder="Introduce tu nombre..." maxlength="20" />
     </div>
 
@@ -119,6 +119,13 @@
         });
 
         await _hubConnection.StartAsync();
+    }
+
+    private async Task OnNameInput(ChangeEventArgs e)
+    {
+        _playerName = e.Value?.ToString() ?? "";
+        if (_playerName.Length > 0)
+            await Session.SetPlayerName(_playerName);
     }
 
     private async Task LoadGames()

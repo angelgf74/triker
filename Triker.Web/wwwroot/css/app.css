@@ -572,3 +572,47 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .stats-table td:first-child { text-align: left; color: #e0e0e0; }
 .stats-table tbody tr:last-child td { border-bottom: none; }
 .stats-me td { color: #64b5f6 !important; font-weight: 600; }
+
+/* ===== HELP MINI CARDS (ejemplos visuales) ===== */
+.help-mini-card {
+    display: inline-flex; flex-direction: column;
+    align-items: center; justify-content: space-between;
+    width: 34px; height: 48px;
+    border-radius: 6px; border: 1.5px solid;
+    padding: 3px 2px; box-sizing: border-box; flex-shrink: 0;
+}
+.hmc-lt  { font-size: 0.65rem; font-weight: 900; align-self: flex-start; line-height: 1; }
+.hmc-fig { font-size: 1.3rem; line-height: 1; }
+.color-red     .hmc-lt, .color-red     .hmc-fig { color: #e53935; }
+.color-green   .hmc-lt, .color-green   .hmc-fig { color: #43A047; }
+.color-blue    .hmc-lt, .color-blue    .hmc-fig { color: #1E88E5; }
+.color-cyan    .hmc-lt, .color-cyan    .hmc-fig { color: #00ACC1; }
+.color-magenta .hmc-lt, .color-magenta .hmc-fig { color: #9C27B0; }
+
+.help-examples-row {
+    display: flex; gap: 1.5rem; flex-wrap: wrap; margin: 0.5rem 0;
+}
+.help-example {
+    display: flex; flex-direction: column; align-items: center; gap: 0.35rem;
+}
+.help-mini-hand {
+    display: flex; align-items: flex-end; gap: 4px;
+}
+.help-ex-plus { color: #888; font-size: 1.1rem; align-self: center; padding: 0 2px; }
+.help-ex-label { font-size: 0.8rem; font-weight: 700; color: #f0c040; }
+.help-ex-desc  { font-size: 0.72rem; color: #888; text-align: center; max-width: 130px; }
+
+/* ===== RESPONSIVE RESULTS (mobile improvements) ===== */
+.stats-table-wrap { overflow-x: auto; }
+
+@media (max-width: 480px) {
+    .result-entry { padding: 0.65rem 0.75rem; }
+    .result-player-header { flex-wrap: wrap; gap: 0.4rem; }
+    .result-player-name { font-size: 0.9rem; }
+    .continue-section { padding: 1rem; }
+    .continue-buttons { flex-direction: column; width: 100%; }
+    .continue-buttons .btn-primary,
+    .continue-buttons .btn-secondary { width: 100%; text-align: center; }
+    .session-stats { padding: 0.65rem 0.75rem; }
+    .results-header h2 { font-size: 1.4rem; }
+}
