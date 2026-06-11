@@ -1,12 +1,10 @@
 using System.Collections.Concurrent;
-using Microsoft.AspNetCore.SignalR;
-using Triker.Api.Hubs;
 using Triker.Api.State;
 using Triker.Shared.Models;
 
 namespace Triker.Api.Services;
 
-public class InactivityService(GameService gameService, IHubContext<GameHub> hub)
+public class InactivityService(GameService gameService, GameBroadcaster broadcaster)
 {
     private static readonly TimeSpan TurnTimeout   = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan FinishTimeout = TimeSpan.FromMinutes(5);
@@ -98,7 +96,7 @@ public class InactivityService(GameService gameService, IHubContext<GameHub> hub
         foreach (var player in undecided)
         {
             if (player.ConnectionId != null)
-                await hub.Clients.Client(player.ConnectionId).SendAsync("AutoLeft", true);
+                await broadcaster.SendAutoLeft(player.ConnectionId);
 
             gameService.RemovePlayerFromFinishedGame(gameId, player.Id);
         }
@@ -124,14 +122,14 @@ public class InactivityService(GameService gameService, IHubContext<GameHub> hub
 
         while (game.Status == GameStatus.Playing && game.CurrentTurnPlayer?.IsBot == true)
         {
-            await BroadcastPersonalized(gameId, game);
+            await broadcaster.BroadcastPersonalized(game);
             await Task.Delay(1200);
 
             gameService.ProcessBotTurn(gameId);
             game = gameService.GetGame(gameId)!;
             anyBotPlayed = true;
 
-            await BroadcastPersonalized(gameId, game);
+            await broadcaster.BroadcastPersonalized(game);
 
             if (game.Status == GameStatus.Playing && game.CurrentTurnPlayer?.IsBot == true)
                 await Task.Delay(900);
@@ -141,7 +139,7 @@ public class InactivityService(GameService gameService, IHubContext<GameHub> hub
         {
             if (anyBotPlayed) await Task.Delay(600);
             var results = gameService.GetRevealedHands(gameId);
-            await hub.Clients.Group(gameId.ToString()).SendAsync("HandsRevealed", results);
+            await broadcaster.SendHandsRevealed(gameId, results!);
             game = gameService.GetGame(gameId)!;
             StartFinishTimer(gameId);
         }
@@ -149,7 +147,7 @@ public class InactivityService(GameService gameService, IHubContext<GameHub> hub
         game = gameService.GetGame(gameId);
         if (game == null) return;
 
-        await BroadcastPersonalized(gameId, game);
+        await broadcaster.BroadcastPersonalized(game);
 
         // Start turn timer for the next human player
         if (game.Status == GameStatus.Playing && game.CurrentTurnPlayer?.IsBot == false)
@@ -158,21 +156,5 @@ public class InactivityService(GameService gameService, IHubContext<GameHub> hub
 
     // Convenience broadcast without bot processing (used for Waiting-phase events)
     public async Task BroadcastState(Guid gameId)
-    {
-        var game = gameService.GetGame(gameId);
-        if (game != null)
-            await BroadcastPersonalized(gameId, game);
-    }
-
-    private async Task BroadcastPersonalized(Guid gameId, GameState game)
-    {
-        foreach (var player in game.Players)
-        {
-            if (player.ConnectionId != null)
-            {
-                var dto = gameService.ToDto(game, player.Id);
-                await hub.Clients.Client(player.ConnectionId).SendAsync("GameState", dto);
-            }
-        }
-    }
+        => await broadcaster.BroadcastState(gameId);
 }
