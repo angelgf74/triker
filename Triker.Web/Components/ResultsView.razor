@@ -74,6 +74,12 @@
                 <div class="result-badges">
                     @if (realGroups.Count > 1)
                     {
+                        @for (int gi = 0; gi < realGroups.Count; gi++)
+                        {
+                            if (gi > 0) { <span class="grp-sep">+</span> }
+                            <span class="grp-badge" style="--gc:@GroupColors[gi % GroupColors.Length]">@realGroups[gi].Name</span>
+                        }
+                        <span class="grp-sep">→</span>
                         <span class="grp-badge grp-hand-name">@result.HandName</span>
                     }
                     else if (realGroups.Count == 1)

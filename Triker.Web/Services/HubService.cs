@@ -15,6 +15,9 @@ public class HubService : IAsyncDisposable
     public event Action? OnChange;
     public event Action<List<HandResultDto>>? OnHandsRevealed;
     public event Action? OnAutoLeft;
+    public event Action? OnReconnecting;
+    public event Action? OnReconnected;
+    public event Action? OnConnectionClosed;
 
     public bool IsConnected => _hub?.State == HubConnectionState.Connected;
 
@@ -57,6 +60,10 @@ public class HubService : IAsyncDisposable
         });
 
         _hub.On<bool>("AutoLeft", _ => OnAutoLeft?.Invoke());
+
+        _hub.Reconnecting  += _ => { OnReconnecting?.Invoke();     return Task.CompletedTask; };
+        _hub.Reconnected   += _ => { OnReconnected?.Invoke();      return Task.CompletedTask; };
+        _hub.Closed        += _ => { OnConnectionClosed?.Invoke(); return Task.CompletedTask; };
 
         await _hub.StartAsync();
     }

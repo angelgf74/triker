@@ -7,6 +7,17 @@
 @implements IAsyncDisposable
 
 <div class="game-room">
+    @if (_reconnecting)
+    {
+        <div class="reconnect-banner reconnect-warn">⟳ Reconectando...</div>
+    }
+    else if (_connectionClosed)
+    {
+        <div class="reconnect-banner reconnect-error">
+            Conexión perdida. <button class="btn-reload" @onclick="Reload">Recargar</button>
+        </div>
+    }
+
     @if (_state == null)
     {
         <div class="loading">Conectando a la partida...</div>
@@ -89,7 +100,11 @@
                         }
                         @if (_state.Status == GameStatus.Playing)
                         {
-                            @if (me.IsCurrentTurn)
+                            @if (_discarded && me.IsCurrentTurn)
+                            {
+                                <span class="turn-indicator discarded-ok">Descarte enviado ✓</span>
+                            }
+                            else if (me.IsCurrentTurn)
                             {
                                 <span class="turn-indicator my-turn">¡Tu turno!</span>
                                 @if (_turnSecondsLeft > 0)
@@ -139,6 +154,8 @@
     private Guid _myPlayerId;
     private bool _discarded = false;
     private bool _helpVisible = false;
+    private bool _reconnecting = false;
+    private bool _connectionClosed = false;
     private string _error = "";
     private int _turnSecondsLeft;
     private CancellationTokenSource? _countdownCts;
@@ -154,6 +171,9 @@
         Hub.OnChange += OnHubChange;
         Hub.OnHandsRevealed += OnHandsRevealed;
         Hub.OnAutoLeft += OnAutoLeft;
+        Hub.OnReconnecting += OnHubReconnecting;
+        Hub.OnReconnected += OnHubReconnected;
+        Hub.OnConnectionClosed += OnHubConnectionClosed;
 
         var apiBase = GetApiBase();
         await Hub.Connect(apiBase, GameId, _myPlayerId);
@@ -168,23 +188,51 @@
     private void OnHubChange()
     {
         _state = Hub.GameState;
+        _reconnecting = false;
         if (_state?.Status == GameStatus.Playing)
         {
             var me = _state.Players.FirstOrDefault(p => p.Id == _myPlayerId);
-            if (me != null && me.TurnStatus == PlayerTurnStatus.Thinking)
-                _discarded = false;
+            if (me != null)
+            {
+                if (me.TurnStatus == PlayerTurnStatus.Thinking || !me.IsCurrentTurn)
+                    _discarded = false;
 
-            if (me != null && me.IsCurrentTurn && _state.TurnDeadline.HasValue)
-                StartCountdown(_state.TurnDeadline.Value);
-            else
-                StopCountdown();
+                if (me.IsCurrentTurn && !_discarded && _state.TurnDeadline.HasValue)
+                    StartCountdown(_state.TurnDeadline.Value);
+                else
+                    StopCountdown();
+            }
         }
         else
         {
             StopCountdown();
+            _discarded = false;
         }
         InvokeAsync(StateHasChanged);
     }
+
+    private void OnHubReconnecting()
+    {
+        _reconnecting = true;
+        _connectionClosed = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnHubReconnected()
+    {
+        _reconnecting = false;
+        _connectionClosed = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnHubConnectionClosed()
+    {
+        _reconnecting = false;
+        _connectionClosed = true;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void Reload() => Nav.NavigateTo(Nav.Uri, forceLoad: true);
 
     private void StartCountdown(DateTimeOffset deadline)
     {
@@ -237,6 +285,7 @@
     private async Task HandleDiscard(List<Guid> cardIds)
     {
         _discarded = true;
+        StopCountdown();
         var ok = await Api.Discard(GameId, _myPlayerId, new() { CardIds = cardIds });
         if (!ok) { _error = "Error al descartar"; _discarded = false; }
     }
@@ -271,6 +320,9 @@
         Hub.OnChange -= OnHubChange;
         Hub.OnHandsRevealed -= OnHandsRevealed;
         Hub.OnAutoLeft -= OnAutoLeft;
+        Hub.OnReconnecting -= OnHubReconnecting;
+        Hub.OnReconnected -= OnHubReconnected;
+        Hub.OnConnectionClosed -= OnHubConnectionClosed;
         await Hub.DisposeAsync();
     }
 }
