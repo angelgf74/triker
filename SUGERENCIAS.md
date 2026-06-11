@@ -35,7 +35,7 @@
 ### Jugabilidad / Profundidad
 - [x] Partida a X victorias — configurar "primero a N victorias" o "N rondas" como fin de sesión
 - [x] Vista de descartes — mostrar cuántas cartas descartó cada jugador en su turno
-- [ ] Historial de ronda — poder revisar el resultado de la ronda anterior al empezar una nueva
+- [x] Historial de ronda — poder revisar el resultado de la ronda anterior al empezar una nueva
 
 ### Presentación / Pulido
 - [ ] Animación de reparto — animar la llegada de cartas al inicio de cada ronda
