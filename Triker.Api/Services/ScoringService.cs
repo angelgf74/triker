@@ -129,7 +129,6 @@ public class ScoringService
     {
         if (candidates.Count == 0) return [];
 
-        // Represent each candidate as a bitmask over hand indices
         var masks = candidates.Select(g =>
         {
             int mask = g.Cards.Aggregate(0, (acc, c) =>
@@ -139,15 +138,13 @@ public class ScoringService
 
         int k = masks.Count;
         var best = new List<CardGroupDto>();
-        int bestScore = 0;
+        HandRank bestRank = HandRank.SinJugada;
 
-        // Enumerate all 2^k subsets of candidates (k <= ~15 for N=5)
         for (int subset = 1; subset < (1 << k); subset++)
         {
             int usedCards = 0;
             bool valid = true;
             var current = new List<CardGroupDto>();
-            int score = 0;
 
             for (int i = 0; i < k; i++)
             {
@@ -156,12 +153,13 @@ public class ScoringService
                 if ((usedCards & mask) != 0) { valid = false; break; }
                 usedCards |= mask;
                 current.Add(group);
-                score += group.Score;
             }
 
-            if (valid && score > bestScore)
+            if (!valid) continue;
+            var rank = ComputeHandRank(current, false, 0);
+            if (rank > bestRank)
             {
-                bestScore = score;
+                bestRank = rank;
                 best = current;
             }
         }
