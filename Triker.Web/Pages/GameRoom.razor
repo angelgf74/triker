@@ -91,8 +91,16 @@
         {
             @if (_lastRoundResults != null && _historyVisible)
             {
-                <RoundHistoryPanel Results="_lastRoundResults" RoundNumber="_lastRoundNumber"
-                                   OnClose="@(() => _historyVisible = false)" />
+                <div class="info-row">
+                    <div class="info-col">
+                        <RoundHistoryPanel Results="_lastRoundResults" RoundNumber="_lastRoundNumber"
+                                           OnClose="@(() => _historyVisible = false)" />
+                    </div>
+                    <div class="info-col">
+                        <SessionStatsPanel Players="_state.Players" RoundNumber="_lastRoundNumber"
+                                           MyPlayerId="_myPlayerId" />
+                    </div>
+                </div>
             }
 
                 var me = _state.Players.FirstOrDefault(p => p.Id == _myPlayerId);

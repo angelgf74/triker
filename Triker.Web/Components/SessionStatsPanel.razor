@@ -1,0 +1,38 @@
+@using Triker.Shared.Dtos
+
+<div class="ssp">
+    <span class="ssp-title">Sesión — @RoundNumber rondas</span>
+    <table class="ssp-table">
+        <thead>
+            <tr>
+                <th>Jugador</th>
+                <th>🥇</th>
+                <th>🥈</th>
+                <th>🥉</th>
+                <th>%</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in Players
+                .OrderByDescending(p => p.Wins)
+                .ThenByDescending(p => p.Seconds)
+                .ThenByDescending(p => p.Thirds))
+            {
+                var pct = RoundNumber > 0 ? p.Wins * 100 / RoundNumber : 0;
+                <tr class="@(p.Id == MyPlayerId ? "ssp-me" : "")">
+                    <td>@p.Name@(p.Id == MyPlayerId ? " (tú)" : "")</td>
+                    <td>@p.Wins</td>
+                    <td>@p.Seconds</td>
+                    <td>@p.Thirds</td>
+                    <td>@pct%</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    [Parameter] public List<PlayerDto> Players { get; set; } = [];
+    [Parameter] public int RoundNumber { get; set; }
+    [Parameter] public Guid MyPlayerId { get; set; }
+}
