@@ -1,18 +1,25 @@
 window.trikerAudio = (() => {
     let ctx = null;
 
+    // Crea/desbloquea el AudioContext en el evento DOM nativo,
+    // ANTES de que el runtime WASM procese el click.
+    // Chrome desktop exige que el AudioContext se cree o desbloquee
+    // dentro de un gesto de usuario real del DOM, no desde JS interop.
+    ['pointerdown', 'touchstart', 'keydown'].forEach(type =>
+        document.addEventListener(type, () => {
+            if (!ctx) {
+                ctx = new (window.AudioContext || window.webkitAudioContext)();
+            } else if (ctx.state === 'suspended') {
+                ctx.resume();
+            }
+        }, { passive: true })
+    );
+
     async function ensureCtx() {
         if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
         if (ctx.state === 'suspended') await ctx.resume();
         return ctx;
     }
-
-    // Desbloquea proactivamente en cualquier gesto del usuario
-    ['click', 'touchstart', 'pointerdown', 'keydown'].forEach(type =>
-        document.addEventListener(type, () => {
-            if (ctx && ctx.state === 'suspended') ctx.resume();
-        }, { passive: true })
-    );
 
     async function tone(freq, dur, type = 'sine', gain = 0.22, delay = 0) {
         const c = await ensureCtx();
