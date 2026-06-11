@@ -1,78 +1,76 @@
 window.trikerAudio = (() => {
     let ctx = null;
 
-    function ac() {
+    async function ensureCtx() {
         if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
-        if (ctx.state === 'suspended') ctx.resume();
+        if (ctx.state === 'suspended') await ctx.resume();
         return ctx;
     }
 
-    function tone(freq, duration, type = 'sine', gain = 0.25, startDelay = 0) {
-        const c = ac();
+    // Desbloquea proactivamente en cualquier gesto del usuario
+    ['click', 'touchstart', 'pointerdown', 'keydown'].forEach(type =>
+        document.addEventListener(type, () => {
+            if (ctx && ctx.state === 'suspended') ctx.resume();
+        }, { passive: true })
+    );
+
+    async function tone(freq, dur, type = 'sine', gain = 0.22, delay = 0) {
+        const c = await ensureCtx();
         const osc = c.createOscillator();
         const g = c.createGain();
-        osc.connect(g);
-        g.connect(c.destination);
+        osc.connect(g); g.connect(c.destination);
         osc.type = type;
         osc.frequency.value = freq;
-        const t = c.currentTime + startDelay;
+        const t = c.currentTime + delay;
         g.gain.setValueAtTime(gain, t);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
         osc.start(t);
-        osc.stop(t + duration + 0.01);
+        osc.stop(t + dur + 0.05);
     }
 
-    function sweep(freqStart, freqEnd, duration, gain = 0.2, startDelay = 0) {
-        const c = ac();
+    async function sweep(f0, f1, dur, gain = 0.2, delay = 0) {
+        const c = await ensureCtx();
         const osc = c.createOscillator();
         const g = c.createGain();
-        osc.connect(g);
-        g.connect(c.destination);
+        osc.connect(g); g.connect(c.destination);
         osc.type = 'sine';
-        const t = c.currentTime + startDelay;
-        osc.frequency.setValueAtTime(freqStart, t);
-        osc.frequency.exponentialRampToValueAtTime(freqEnd, t + duration);
+        const t = c.currentTime + delay;
+        osc.frequency.setValueAtTime(f0, t);
+        osc.frequency.exponentialRampToValueAtTime(f1, t + dur);
         g.gain.setValueAtTime(gain, t);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
         osc.start(t);
-        osc.stop(t + duration + 0.01);
+        osc.stop(t + dur + 0.05);
     }
 
     return {
-        // Clic rápido al seleccionar/deseleccionar carta
-        cardClick() {
-            tone(900, 0.055, 'triangle', 0.18);
+        cardClick:  () => tone(900, 0.06, 'triangle', 0.18),
+
+        discard: async () => {
+            await sweep(700, 220, 0.22, 0.28);
+            await tone(220, 0.15, 'sine', 0.12, 0.18);
         },
 
-        // Barrido descendente al enviar descarte
-        discard() {
-            sweep(700, 220, 0.22, 0.28);
-            tone(220, 0.15, 'sine', 0.12, 0.18);
+        yourTurn: async () => {
+            await tone(523, 0.18, 'sine', 0.22);
+            await tone(659, 0.22, 'sine', 0.26, 0.14);
         },
 
-        // Dos notas ascendentes: es tu turno
-        yourTurn() {
-            tone(523, 0.18, 'sine', 0.22);        // C5
-            tone(659, 0.22, 'sine', 0.26, 0.14);  // E5
+        winRound: () => Promise.all(
+            [523, 659, 784, 1047].map((f, i) => tone(f, 0.28, 'sine', 0.22, i * 0.1))
+        ),
+
+        loseRound: async () => {
+            await tone(392, 0.2, 'sine', 0.18);
+            await tone(294, 0.3, 'sine', 0.14, 0.18);
         },
 
-        // Arpeggio ascendente: ganaste la ronda
-        winRound() {
-            const notes = [523, 659, 784, 1047];  // C5 E5 G5 C6
-            notes.forEach((f, i) => tone(f, 0.28, 'sine', 0.22, i * 0.1));
-        },
-
-        // Dos notas descendentes: perdiste la ronda
-        loseRound() {
-            tone(392, 0.2, 'sine', 0.18);         // G4
-            tone(294, 0.3, 'sine', 0.14, 0.18);   // D4
-        },
-
-        // Fanfarria completa: campeón de la partida
-        champion() {
+        champion: () => {
             const seq = [523, 659, 784, 659, 1047];
-            seq.forEach((f, i) => tone(f, 0.35, 'sine', 0.28, i * 0.13));
-            tone(1047, 0.7, 'sine', 0.22, seq.length * 0.13);
+            return Promise.all([
+                ...seq.map((f, i) => tone(f, 0.35, 'sine', 0.28, i * 0.13)),
+                tone(1047, 0.7, 'sine', 0.22, seq.length * 0.13)
+            ]);
         }
     };
 })();
