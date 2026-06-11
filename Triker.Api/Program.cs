@@ -16,6 +16,7 @@ builder.Services.AddSingleton<BotService>();
 builder.Services.AddSingleton<GameService>();
 builder.Services.AddSingleton<GameBroadcaster>();
 builder.Services.AddSingleton<InactivityService>();
+builder.Services.AddHostedService<GameCleanupService>();
 
 var allowedOrigins = builder.Configuration
     .GetSection("AllowedOrigins")

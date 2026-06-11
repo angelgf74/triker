@@ -35,6 +35,10 @@ public class GameState
     public int RoundNumber { get; set; } = 1;
 
     public DateTimeOffset? TurnDeadline { get; set; }
+    public DateTimeOffset LastActivityAt { get; set; } = DateTimeOffset.UtcNow;
+
+    // Per-game lock for concurrent request protection.
+    public object SyncLock { get; } = new();
 
     public int MaxPlayers => (int)Math.Floor((double)(N * N) / 2);
     public PlayerState? CurrentTurnPlayer => Players.Count > 0 ? Players[CurrentTurnIndex % Players.Count] : null;

@@ -5,8 +5,15 @@ using Triker.Shared.Models;
 
 namespace Triker.Api.Services;
 
-public class GameService(DeckService deckService, ScoringService scoringService, BotService botService)
+public class GameService(
+    DeckService deckService,
+    ScoringService scoringService,
+    BotService botService,
+    ILogger<GameService> logger)
 {
+    private static readonly TimeSpan FinishedGameTtl = TimeSpan.FromMinutes(30);
+    private static readonly TimeSpan ActiveGameTtl   = TimeSpan.FromHours(2);
+
     private readonly ConcurrentDictionary<Guid, GameState> _games = new();
 
     public List<GameSummaryDto> ListGames()
@@ -22,6 +29,7 @@ public class GameService(DeckService deckService, ScoringService scoringService,
         game.CreatorId = player.Id;
         game.Players.Add(player);
         _games[game.Id] = game;
+        logger.LogInformation("Game created: {GameId} '{GameName}' by '{Player}'", game.Id, gameName, playerName);
         return (game, player);
     }
 
@@ -33,6 +41,9 @@ public class GameService(DeckService deckService, ScoringService scoringService,
 
         var player = new PlayerState { Name = playerName };
         game.Players.Add(player);
+        game.LastActivityAt = DateTimeOffset.UtcNow;
+        logger.LogInformation("Player '{Player}' joined game {GameId} ({Count}/{Max})",
+            playerName, gameId, game.Players.Count, game.MaxPlayers);
 
         if (game.Players.Count >= game.MaxPlayers)
             StartGame(game);
@@ -58,33 +69,37 @@ public class GameService(DeckService deckService, ScoringService scoringService,
     public bool SubmitDiscard(Guid gameId, Guid playerId, List<Guid> cardIds)
     {
         if (!_games.TryGetValue(gameId, out var game)) return false;
-        var player = game.Players.FirstOrDefault(p => p.Id == playerId);
-        if (player == null || game.Status != GameStatus.Playing) return false;
-        if (game.CurrentTurnPlayer?.Id != playerId) return false;
-        if (player.TurnStatus == PlayerTurnStatus.Ready) return false;
 
-        // Remove discarded cards from hand
-        player.Discarded = player.Hand.Where(c => cardIds.Contains(c.Id)).ToList();
-        player.Hand = player.Hand.Where(c => !cardIds.Contains(c.Id)).ToList();
-
-        // Draw replacement cards
-        var (drawn, remaining) = deckService.Draw(game.Deck, game.DiscardPile, player.Discarded.Count);
-        player.Hand.AddRange(drawn);
-        game.Deck = remaining;
-        game.DiscardPile.AddRange(player.Discarded);
-
-        player.TurnStatus = PlayerTurnStatus.Ready;
-
-        // Advance to next player
-        game.CurrentTurnIndex++;
-
-        // If all players have had their turn (full rotation from start player), reveal
-        if (game.CurrentTurnIndex >= game.StartPlayerIndex + game.Players.Count)
+        lock (game.SyncLock)
         {
-            game.Status = GameStatus.Revealing;
-        }
+            var player = game.Players.FirstOrDefault(p => p.Id == playerId);
+            if (player == null || game.Status != GameStatus.Playing) return false;
+            if (game.CurrentTurnPlayer?.Id != playerId) return false;
+            if (player.TurnStatus == PlayerTurnStatus.Ready) return false;
 
-        return true;
+            player.Discarded = player.Hand.Where(c => cardIds.Contains(c.Id)).ToList();
+            player.Hand      = player.Hand.Where(c => !cardIds.Contains(c.Id)).ToList();
+
+            var (drawn, remaining) = deckService.Draw(game.Deck, game.DiscardPile, player.Discarded.Count);
+            player.Hand.AddRange(drawn);
+            game.Deck = remaining;
+            game.DiscardPile.AddRange(player.Discarded);
+
+            player.TurnStatus = PlayerTurnStatus.Ready;
+            game.CurrentTurnIndex++;
+            game.LastActivityAt = DateTimeOffset.UtcNow;
+
+            logger.LogDebug("Player '{Player}' discarded {Count} cards in game {GameId}",
+                player.Name, player.Discarded.Count, gameId);
+
+            if (game.CurrentTurnIndex >= game.StartPlayerIndex + game.Players.Count)
+            {
+                game.Status = GameStatus.Revealing;
+                logger.LogInformation("Game {GameId} round {Round} revealing hands", gameId, game.RoundNumber);
+            }
+
+            return true;
+        }
     }
 
     public List<HandResultDto>? GetRevealedHands(Guid gameId)
@@ -100,7 +115,6 @@ public class GameService(DeckService deckService, ScoringService scoringService,
         for (int i = 0; i < results.Count; i++)
             results[i].Rank = i + 1;
 
-        // Actualizar contadores acumulados usando la misma lógica de posición real (sin empates)
         foreach (var result in results)
         {
             var player = game.Players.FirstOrDefault(p => p.Id == result.PlayerId);
@@ -112,6 +126,11 @@ public class GameService(DeckService deckService, ScoringService scoringService,
         }
 
         game.Status = GameStatus.Finished;
+        game.LastActivityAt = DateTimeOffset.UtcNow;
+
+        logger.LogInformation("Game {GameId} round {Round} finished. Winner: '{Winner}' ({Hand})",
+            gameId, game.RoundNumber, results[0].PlayerName, results[0].HandName);
+
         return results;
     }
 
@@ -122,8 +141,13 @@ public class GameService(DeckService deckService, ScoringService scoringService,
         if (player == null || game.Status != GameStatus.Finished) return false;
 
         player.WantsToContinue = wantsToContinue;
+        game.LastActivityAt = DateTimeOffset.UtcNow;
 
-        if (!wantsToContinue) return true;
+        if (!wantsToContinue)
+        {
+            logger.LogInformation("Player '{Player}' left game {GameId}", player.Name, gameId);
+            return true;
+        }
 
         foreach (var bot in game.Players.Where(p => p.IsBot))
             bot.WantsToContinue = true;
@@ -143,6 +167,7 @@ public class GameService(DeckService deckService, ScoringService scoringService,
 
         var (name, personality) = botService.PickBot(game.Players.Select(p => p.Name));
         game.Players.Add(new PlayerState { Name = name, IsBot = true, Personality = personality });
+        logger.LogDebug("Bot '{Name}' ({Personality}) added to game {GameId}", name, personality, gameId);
         return game;
     }
 
@@ -155,15 +180,15 @@ public class GameService(DeckService deckService, ScoringService scoringService,
         if (player == null) return false;
 
         game.Players.Remove(player);
+        game.LastActivityAt = DateTimeOffset.UtcNow;
 
-        // Close the game when no human players remain
         if (!game.Players.Any(p => !p.IsBot))
         {
             _games.TryRemove(gameId, out _);
+            logger.LogInformation("Game {GameId} closed (no human players remaining)", gameId);
             return true;
         }
 
-        // Start a new round if all remaining players are ready to continue
         if (game.Players.All(p => p.WantsToContinue))
             StartNewRound(game);
 
@@ -184,6 +209,22 @@ public class GameService(DeckService deckService, ScoringService scoringService,
     {
         var player = GetPlayer(gameId, playerId);
         if (player != null) player.ConnectionId = connectionId;
+    }
+
+    public int CleanupStaleGames()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var stale = _games.Values
+            .Where(g => g.Status == GameStatus.Finished
+                ? (now - g.LastActivityAt) > FinishedGameTtl
+                : (now - g.LastActivityAt) > ActiveGameTtl)
+            .Select(g => g.Id)
+            .ToList();
+
+        foreach (var id in stale)
+            _games.TryRemove(id, out _);
+
+        return stale.Count;
     }
 
     public GameStateDto ToDto(GameState game, Guid? forPlayerId = null)
@@ -213,7 +254,6 @@ public class GameService(DeckService deckService, ScoringService scoringService,
                 Wins = p.Wins,
                 Seconds = p.Seconds,
                 Thirds = p.Thirds,
-                // Only reveal own hand (or during/after Revealing)
                 Hand = (forPlayerId == p.Id || game.Status == GameStatus.Revealing || game.Status == GameStatus.Finished)
                     ? p.Hand.Select(c => new CardDto { Id = c.Id, Letter = c.Letter, Figure = c.Figure, Color = c.Color }).ToList()
                     : []
@@ -238,6 +278,10 @@ public class GameService(DeckService deckService, ScoringService scoringService,
 
         game.CurrentTurnIndex = game.StartPlayerIndex;
         game.Status = GameStatus.Playing;
+        game.LastActivityAt = DateTimeOffset.UtcNow;
+
+        logger.LogInformation("Game {GameId} '{GameName}' round {Round} started with {Count} players",
+            game.Id, game.Name, game.RoundNumber, game.Players.Count);
     }
 
     private void StartNewRound(GameState game)

@@ -4,7 +4,7 @@ using Triker.Shared.Models;
 
 namespace Triker.Api.Services;
 
-public class InactivityService(GameService gameService, GameBroadcaster broadcaster)
+public class InactivityService(GameService gameService, GameBroadcaster broadcaster, ILogger<InactivityService> logger)
 {
     private static readonly TimeSpan TurnTimeout   = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan FinishTimeout = TimeSpan.FromMinutes(5);
@@ -80,6 +80,8 @@ public class InactivityService(GameService gameService, GameBroadcaster broadcas
         if (game == null || game.Status != GameStatus.Playing) return;
         if (game.CurrentTurnPlayer?.Id != playerId) return;
 
+        logger.LogWarning("Turn timeout for player {PlayerId} in game {GameId} — auto-pass", playerId, gameId);
+
         // Auto-pass: discard nothing, keep all cards
         if (!gameService.SubmitDiscard(gameId, playerId, []))
             return;
@@ -91,6 +93,7 @@ public class InactivityService(GameService gameService, GameBroadcaster broadcas
     {
         var game = gameService.GetGame(gameId);
         if (game == null || game.Status != GameStatus.Finished) return;
+        logger.LogInformation("Finish timeout for game {GameId} — removing undecided players", gameId);
 
         // Gather undecided humans before modifying the list
         var undecided = game.Players
@@ -126,12 +129,14 @@ public class InactivityService(GameService gameService, GameBroadcaster broadcas
 
         while (game.Status == GameStatus.Playing && game.CurrentTurnPlayer?.IsBot == true)
         {
+            var botName = game.CurrentTurnPlayer.Name;
             await broadcaster.BroadcastPersonalized(game);
             await Task.Delay(1200);
 
             gameService.ProcessBotTurn(gameId);
             game = gameService.GetGame(gameId)!;
             anyBotPlayed = true;
+            logger.LogDebug("Bot '{Bot}' played in game {GameId}", botName, gameId);
 
             await broadcaster.BroadcastPersonalized(game);
 
