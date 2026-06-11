@@ -464,6 +464,12 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .help-hands-table .pts { color: #f0c040; font-weight: 700; text-align: right; }
 .help-hands-table .row-special td { color: #888; font-style: italic; }
 .help-hands-table .row-special td:nth-child(2) { color: #aaa; }
+.prob-cell { text-align: right; font-size: 0.8rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.prob-rare     { color: #666; }
+.prob-uncommon { color: #888; }
+.prob-low      { color: #aaa; }
+.prob-medium   { color: #c8a040; }
+.prob-common   { color: #f0c040; }
 
 /* ===== SUGERENCIAS ===== */
 .btn-sug {
