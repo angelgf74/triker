@@ -79,7 +79,7 @@ public class ScoringService
     {
         HandRank.ParejaDebil       => "Pareja Débil",
         HandRank.TrioDebil         => "Trío Débil",
-        HandRank.DobleParejaDebil  => "Doble Pareja",
+        HandRank.DobleParejaDebil  => "Doble Pareja Débil",
         HandRank.TrikerDebil       => "Triker Débil",
         HandRank.FullDebil         => "Full Débil",
         HandRank.RetrikerDebil     => "Retriker Débil",
