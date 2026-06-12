@@ -45,7 +45,7 @@
 ### Técnica
 - [ ] Persistencia entre reinicios — guardar partidas activas en SQLite/Redis para sobrevivir deploys
 - [ ] Límite de jugadores configurable — exponer el máximo de jugadores como opción al crear partida
-- [ ] PWA / instalable — manifest + service worker para instalar como app nativa en móvil
+- [x] PWA / instalable — manifest + service worker para instalar como app nativa en móvil
 
 ---
 
