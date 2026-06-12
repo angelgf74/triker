@@ -10,6 +10,7 @@
                       Selected="@_selected.Contains(card.Id)"
                       Draggable="true"
                       Dragging="@(_dragIndex == idx)"
+                      DealIndex="@(_dealIndices.TryGetValue(card.Id, out var di) ? di : (int?)null)"
                       OnClick="@(EventCallback.Factory.Create(this, () => ToggleSelect(card.Id)))"
                       OnDragStarted="@(() => _dragIndex = idx)"
                       OnDropped="@(() => ReorderCard(idx))" />
@@ -44,30 +45,46 @@
     private List<CardDto> _orderedCards = [];
     private HashSet<Guid> _selected = [];
     private int _dragIndex = -1;
+    private readonly Dictionary<Guid, int> _dealIndices = [];
 
     protected override void OnParametersSet()
     {
-        // Preserve order if only cards added/removed; rebuild if set changes completely
         var newIds = Cards.Select(c => c.Id).ToHashSet();
         var existingIds = _orderedCards.Select(c => c.Id).ToHashSet();
 
         if (!newIds.SetEquals(existingIds))
         {
-            // Remove gone cards, add new ones at end
             _orderedCards = _orderedCards.Where(c => newIds.Contains(c.Id)).ToList();
+
+            int dealIdx = 0;
+            _dealIndices.Clear();
             foreach (var card in Cards.Where(c => !existingIds.Contains(c.Id)))
+            {
                 _orderedCards.Add(card);
+                _dealIndices[card.Id] = dealIdx++;
+            }
             _selected.IntersectWith(newIds);
+
+            if (_dealIndices.Count > 0)
+                _ = ClearDealIndicesAfter(_dealIndices.Count);
         }
         else
         {
-            // Update card data (in case same id, different state)
             for (int i = 0; i < _orderedCards.Count; i++)
             {
                 var updated = Cards.FirstOrDefault(c => c.Id == _orderedCards[i].Id);
                 if (updated != null) _orderedCards[i] = updated;
             }
         }
+    }
+
+    private async Task ClearDealIndicesAfter(int count)
+    {
+        // Wait for all cards to finish their staggered animation
+        var ms = (int)((0.45 + (count - 1) * 0.1 + 0.15) * 1000);
+        await Task.Delay(ms);
+        _dealIndices.Clear();
+        await InvokeAsync(StateHasChanged);
     }
 
     private void ToggleSelect(Guid id)

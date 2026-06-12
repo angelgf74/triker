@@ -38,7 +38,7 @@
 - [x] Historial de ronda — poder revisar el resultado de la ronda anterior al empezar una nueva
 
 ### Presentación / Pulido
-- [ ] Animación de reparto — animar la llegada de cartas al inicio de cada ronda
+- [x] Animación de reparto — animar la llegada de cartas al inicio de cada ronda
 - [x] Sonidos — efectos sutiles (clic al seleccionar, fanfarria al ganar)
 - [x] Indicador de turno en lista de jugadores — resaltar visualmente quién tiene el turno activo
 

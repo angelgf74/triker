@@ -1,7 +1,8 @@
 @using Triker.Shared.Models
 @using Triker.Shared.Dtos
 
-<div class="card @ColorClass @(Selected ? "selected" : "") @(FaceDown ? "face-down" : "") @(Dragging ? "dragging" : "")"
+<div class="card @ColorClass @(Selected ? "selected" : "") @(FaceDown ? "face-down" : "") @(Dragging ? "dragging" : "") @(DealIndex.HasValue ? "dealing" : "")"
+     style="@(DealIndex.HasValue ? $"--deal-i:{DealIndex.Value}" : "")"
      @onclick="HandleClick"
      draggable="@(Draggable ? "true" : "false")"
      @ondragstart="OnDragStart"
@@ -35,6 +36,7 @@
     [Parameter] public EventCallback OnClick { get; set; }
     [Parameter] public EventCallback OnDragStarted { get; set; }
     [Parameter] public EventCallback OnDropped { get; set; }
+    [Parameter] public int? DealIndex { get; set; }
 
     private string LetterLabel => Card?.Letter.ToString() ?? "";
     private string ColorLabel => Card?.Color switch
