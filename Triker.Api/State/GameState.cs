@@ -18,6 +18,14 @@ public class PlayerState
     public int Seconds { get; set; } = 0;
     public int Thirds { get; set; } = 0;
     public string? ConnectionId { get; set; }
+    public DateTimeOffset LastReactionAt { get; set; } = DateTimeOffset.MinValue;
+}
+
+public class SpectatorState
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Name { get; set; } = "";
+    public string? ConnectionId { get; set; }
 }
 
 public class GameState
@@ -26,6 +34,7 @@ public class GameState
     public string Name { get; set; } = "";
     public GameStatus Status { get; set; } = GameStatus.Waiting;
     public List<PlayerState> Players { get; set; } = [];
+    public List<SpectatorState> Spectators { get; set; } = [];
     public List<Card> Deck { get; set; } = [];
     public List<Card> DiscardPile { get; set; } = [];
     public int CurrentTurnIndex { get; set; } = 0;
@@ -38,6 +47,8 @@ public class GameState
     public DateTimeOffset LastActivityAt { get; set; } = DateTimeOffset.UtcNow;
     public int TargetWins { get; set; } = 0;
     public bool GameOver { get; set; } = false;
+    public bool IsPrivate { get; set; } = false;
+    public string? AccessCode { get; set; }
 
     // Per-game lock for concurrent request protection.
     public object SyncLock { get; } = new();

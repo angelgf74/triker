@@ -15,10 +15,14 @@ public class ApiService(HttpClient http, JsonSerializerOptions json)
         return res.IsSuccessStatusCode ? await res.Content.ReadFromJsonAsync<JoinResponse>(json) : null;
     }
 
-    public async Task<JoinResponse?> JoinGame(Guid gameId, JoinGameRequest req)
+    public async Task<(JoinResponse? response, string? error)> JoinGame(Guid gameId, JoinGameRequest req)
     {
         var res = await http.PostAsJsonAsync($"api/games/{gameId}/join", req, json);
-        return res.IsSuccessStatusCode ? await res.Content.ReadFromJsonAsync<JoinResponse>(json) : null;
+        if (res.IsSuccessStatusCode)
+            return (await res.Content.ReadFromJsonAsync<JoinResponse>(json), null);
+
+        var msg = await res.Content.ReadAsStringAsync();
+        return (null, string.IsNullOrWhiteSpace(msg) ? "No se puede unir" : msg);
     }
 
     public async Task<bool> AddBot(Guid gameId, Guid playerId)
@@ -46,5 +50,26 @@ public class ApiService(HttpClient http, JsonSerializerOptions json)
     {
         var res = await http.PostAsJsonAsync($"api/games/{gameId}/continue?playerId={playerId}", req, json);
         return res.IsSuccessStatusCode;
+    }
+
+    public async Task SendReaction(Guid gameId, Guid playerId, string emoji)
+    {
+        try { await http.PostAsJsonAsync($"api/games/{gameId}/react?playerId={playerId}", new SendReactionRequest { Emoji = emoji }, json); }
+        catch { /* fire-and-forget */ }
+    }
+
+    public async Task<(SpectateResponse? response, string? error)> Spectate(Guid gameId, SpectateGameRequest req)
+    {
+        var res = await http.PostAsJsonAsync($"api/games/{gameId}/spectate", req, json);
+        if (res.IsSuccessStatusCode)
+            return (await res.Content.ReadFromJsonAsync<SpectateResponse>(json), null);
+        var msg = await res.Content.ReadAsStringAsync();
+        return (null, string.IsNullOrWhiteSpace(msg) ? "No se puede ver la partida" : msg);
+    }
+
+    public async Task LeaveSpectate(Guid gameId, Guid spectatorId)
+    {
+        try { await http.PostAsync($"api/games/{gameId}/spectate/leave?spectatorId={spectatorId}", null); }
+        catch { /* fire-and-forget */ }
     }
 }

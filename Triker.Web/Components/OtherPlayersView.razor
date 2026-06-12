@@ -7,6 +7,10 @@
         .Concat(Players.TakeWhile(p => p.Id != MyPlayerId)))
     {
         <div class="other-player @(player.IsCurrentTurn ? "active-turn" : "")">
+            @if (Reactions != null && Reactions.TryGetValue(player.Id, out var rx))
+            {
+                <span class="reaction-bubble" @key="rx.Seq">@rx.Emoji</span>
+            }
             <div class="other-player-header">
                 <span class="other-player-name">@player.Name</span>
                 @if (player.IsBot) { <span class="player-tag tag-bot">Bot</span> }
@@ -59,4 +63,5 @@
 @code {
     [Parameter] public List<PlayerDto> Players { get; set; } = [];
     [Parameter] public Guid MyPlayerId { get; set; }
+    [Parameter] public Dictionary<Guid, ReactionEntry>? Reactions { get; set; }
 }

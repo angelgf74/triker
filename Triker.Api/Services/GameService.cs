@@ -22,23 +22,33 @@ public class GameService(
             .Select(ToSummary)
             .ToList();
 
-    public (GameState game, PlayerState player) CreateGame(string gameName, string playerName, int targetWins = 0)
+    public (GameState game, PlayerState player) CreateGame(string gameName, string playerName, int targetWins = 0, bool isPrivate = false)
     {
-        var game = new GameState { Name = gameName, TargetWins = Math.Max(0, targetWins) };
+        var game = new GameState
+        {
+            Name = gameName,
+            TargetWins = Math.Max(0, targetWins),
+            IsPrivate = isPrivate,
+            AccessCode = isPrivate ? Random.Shared.Next(1000, 10000).ToString() : null
+        };
         var player = new PlayerState { Name = playerName };
         game.CreatorId = player.Id;
         game.Players.Add(player);
         _games[game.Id] = game;
-        logger.LogInformation("Game created: {GameId} '{GameName}' by '{Player}' (target={Target})",
-            game.Id, gameName, playerName, game.TargetWins == 0 ? "∞" : game.TargetWins.ToString());
+        logger.LogInformation("Game created: {GameId} '{GameName}' by '{Player}' (target={Target}, private={Private})",
+            game.Id, gameName, playerName, game.TargetWins == 0 ? "∞" : game.TargetWins.ToString(), isPrivate);
         return (game, player);
     }
 
-    public (GameState game, PlayerState player)? JoinGame(Guid gameId, string playerName)
+    public enum JoinResult { Ok, NotFound, NotWaiting, Full, WrongCode }
+
+    public (JoinResult result, GameState? game, PlayerState? player) JoinGame(Guid gameId, string playerName, string? accessCode = null)
     {
-        if (!_games.TryGetValue(gameId, out var game)) return null;
-        if (game.Status != GameStatus.Waiting) return null;
-        if (game.Players.Count >= game.MaxPlayers) return null;
+        if (!_games.TryGetValue(gameId, out var game)) return (JoinResult.NotFound, null, null);
+        if (game.Status != GameStatus.Waiting) return (JoinResult.NotWaiting, null, null);
+        if (game.Players.Count >= game.MaxPlayers) return (JoinResult.Full, null, null);
+        if (game.IsPrivate && !string.Equals(game.AccessCode, accessCode?.Trim(), StringComparison.Ordinal))
+            return (JoinResult.WrongCode, null, null);
 
         var player = new PlayerState { Name = playerName };
         game.Players.Add(player);
@@ -49,7 +59,7 @@ public class GameService(
         if (game.Players.Count >= game.MaxPlayers)
             StartGame(game);
 
-        return (game, player);
+        return (JoinResult.Ok, game, player);
     }
 
     public bool StartGame(Guid gameId, Guid requesterId)
@@ -218,6 +228,79 @@ public class GameService(
         if (player != null) player.ConnectionId = connectionId;
     }
 
+    public enum SpectateResult { Ok, NotFound, GameOver, WrongCode }
+
+    public (SpectateResult result, GameState? game, SpectatorState? spectator) AddSpectator(Guid gameId, string name, string? accessCode)
+    {
+        if (!_games.TryGetValue(gameId, out var game)) return (SpectateResult.NotFound, null, null);
+        if (game.Status == GameStatus.Finished && game.GameOver) return (SpectateResult.GameOver, null, null);
+        if (game.IsPrivate && !string.Equals(game.AccessCode, accessCode?.Trim(), StringComparison.Ordinal))
+            return (SpectateResult.WrongCode, null, null);
+
+        var spectator = new SpectatorState { Name = string.IsNullOrWhiteSpace(name) ? "Espectador" : name };
+        game.Spectators.Add(spectator);
+        game.LastActivityAt = DateTimeOffset.UtcNow;
+        logger.LogInformation("Spectator '{Name}' joined game {GameId} (total spectators: {Count})",
+            spectator.Name, gameId, game.Spectators.Count);
+        return (SpectateResult.Ok, game, spectator);
+    }
+
+    public SpectatorState? GetSpectator(Guid gameId, Guid spectatorId)
+        => _games.GetValueOrDefault(gameId)?.Spectators.FirstOrDefault(s => s.Id == spectatorId);
+
+    public void UpdateSpectatorConnectionId(Guid gameId, Guid spectatorId, string connectionId)
+    {
+        var s = GetSpectator(gameId, spectatorId);
+        if (s != null) s.ConnectionId = connectionId;
+    }
+
+    public bool RemoveSpectator(Guid gameId, Guid spectatorId)
+    {
+        if (!_games.TryGetValue(gameId, out var game)) return false;
+        var s = game.Spectators.FirstOrDefault(x => x.Id == spectatorId);
+        if (s == null) return false;
+        game.Spectators.Remove(s);
+        logger.LogInformation("Spectator '{Name}' left game {GameId}", s.Name, gameId);
+        return true;
+    }
+
+    public Guid? RemoveSpectatorByConnection(string connectionId)
+    {
+        foreach (var game in _games.Values)
+        {
+            var s = game.Spectators.FirstOrDefault(x => x.ConnectionId == connectionId);
+            if (s != null)
+            {
+                game.Spectators.Remove(s);
+                logger.LogInformation("Spectator '{Name}' disconnected from game {GameId}", s.Name, game.Id);
+                return game.Id;
+            }
+        }
+        return null;
+    }
+
+    public static readonly HashSet<string> AllowedReactionEmojis = new() { "👍", "❤️", "😂", "😮", "😢", "🎉" };
+    private static readonly TimeSpan ReactionCooldown = TimeSpan.FromMilliseconds(1500);
+
+    public ChatReactionDto? SendReaction(Guid gameId, Guid playerId, string emoji)
+    {
+        if (!_games.TryGetValue(gameId, out var game)) return null;
+        var player = game.Players.FirstOrDefault(p => p.Id == playerId);
+        if (player == null) return null;
+        if (!AllowedReactionEmojis.Contains(emoji)) return null;
+
+        var now = DateTimeOffset.UtcNow;
+        if (now - player.LastReactionAt < ReactionCooldown) return null;
+        player.LastReactionAt = now;
+
+        return new ChatReactionDto
+        {
+            PlayerId = player.Id,
+            PlayerName = player.Name,
+            Emoji = emoji
+        };
+    }
+
     public int CleanupStaleGames()
     {
         var now = DateTimeOffset.UtcNow;
@@ -234,7 +317,7 @@ public class GameService(
         return stale.Count;
     }
 
-    public GameStateDto ToDto(GameState game, Guid? forPlayerId = null)
+    public GameStateDto ToDto(GameState game, Guid? forPlayerId = null, bool isSpectator = false)
     {
         return new GameStateDto
         {
@@ -250,6 +333,12 @@ public class GameService(
             TurnDeadline = game.TurnDeadline,
             TargetWins = game.TargetWins,
             GameOver = game.GameOver,
+            IsPrivate = game.IsPrivate,
+            AccessCode = forPlayerId.HasValue && game.Players.Any(p => p.Id == forPlayerId.Value)
+                ? game.AccessCode
+                : null,
+            Spectators = game.Spectators.Select(s => new SpectatorDto { Id = s.Id, Name = s.Name }).ToList(),
+            IAmSpectator = isSpectator,
             Players = game.Players.Select(p => new PlayerDto
             {
                 Id = p.Id,
@@ -307,6 +396,7 @@ public class GameService(
         Status = g.Status,
         PlayerCount = g.Players.Count,
         MaxPlayers = g.MaxPlayers,
-        CreatorName = g.Players.FirstOrDefault()?.Name ?? ""
+        CreatorName = g.Players.FirstOrDefault()?.Name ?? "",
+        IsPrivate = g.IsPrivate
     };
 }

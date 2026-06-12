@@ -51,6 +51,10 @@
                     <option value="10">10 victorias</option>
                 </select>
             </div>
+            <label class="private-toggle">
+                <input type="checkbox" @bind="_isPrivate" />
+                <span>🔒 Partida privada (con código)</span>
+            </label>
             <button class="btn-primary" @onclick="CreateGame">Crear</button>
             <button class="btn-secondary" @onclick="() => _showCreateForm = false">Cancelar</button>
         </div>
@@ -77,19 +81,49 @@
                 {
                     <div class="game-card">
                         <div class="game-info">
-                            <span class="game-name">@game.Name</span>
+                            <span class="game-name">@(game.IsPrivate ? "🔒 " : "")@game.Name</span>
                             <span class="game-creator">por @game.CreatorName</span>
                         </div>
                         <div class="game-meta">
                             <span class="player-count">@game.PlayerCount / @game.MaxPlayers jugadores</span>
                             <span class="game-status @game.Status.ToString().ToLower()">@StatusLabel(game.Status)</span>
                         </div>
-                        @if (game.Status == Triker.Shared.Models.GameStatus.Waiting)
+                        @if (_joiningGameId == game.Id && game.IsPrivate)
                         {
-                            <button class="btn-join" @onclick="() => JoinGame(game.Id)"
-                                    disabled="@(string.IsNullOrWhiteSpace(_playerName))">
-                                Unirse
-                            </button>
+                            <div class="join-code-row">
+                                <input class="name-input" @bind="_joinCode" placeholder="Código (4 dígitos)" maxlength="4" />
+                                @if (game.Status == Triker.Shared.Models.GameStatus.Waiting)
+                                {
+                                    <button class="btn-join" @onclick="() => JoinGame(game.Id, true)"
+                                            disabled="@(string.IsNullOrWhiteSpace(_playerName) || string.IsNullOrWhiteSpace(_joinCode))">
+                                        Entrar
+                                    </button>
+                                }
+                                <button class="btn-spectate" @onclick="() => Spectate(game.Id, true)"
+                                        disabled="@(string.IsNullOrWhiteSpace(_playerName) || string.IsNullOrWhiteSpace(_joinCode))">
+                                    👁 Ver
+                                </button>
+                                <button class="btn-secondary" @onclick="() => { _joiningGameId = null; _joinCode = string.Empty; }">Cancelar</button>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="game-actions">
+                                @if (game.Status == Triker.Shared.Models.GameStatus.Waiting)
+                                {
+                                    <button class="btn-join" @onclick="() => JoinGame(game.Id)"
+                                            disabled="@(string.IsNullOrWhiteSpace(_playerName))">
+                                        @(game.IsPrivate ? "🔒 Unirse" : "Unirse")
+                                    </button>
+                                }
+                                @if (game.Status == Triker.Shared.Models.GameStatus.Waiting || game.Status == Triker.Shared.Models.GameStatus.Playing)
+                                {
+                                    <button class="btn-spectate" @onclick="() => Spectate(game.Id)"
+                                            disabled="@(string.IsNullOrWhiteSpace(_playerName))">
+                                        👁 Ver
+                                    </button>
+                                }
+                            </div>
                         }
                     </div>
                 }
@@ -102,11 +136,14 @@
     private string _playerName = "";
     private string _gameName = "";
     private int _targetWins = 0;
+    private bool _isPrivate = false;
     private string _error = "";
     private bool _loading = true;
     private bool _showCreateForm = false;
     private bool _helpVisible = false;
     private bool _sugVisible = false;
+    private Guid? _joiningGameId = null;
+    private string _joinCode = "";
     private List<Triker.Shared.Dtos.GameSummaryDto> _games = [];
     private HubConnection? _hubConnection;
 
@@ -159,23 +196,66 @@
         if (string.IsNullOrWhiteSpace(_playerName) || string.IsNullOrWhiteSpace(_gameName)) return;
         _error = "";
         await Session.SetPlayerName(_playerName);
-        var result = await Api.CreateGame(new() { PlayerName = _playerName, GameName = _gameName, TargetWins = _targetWins });
+        var result = await Api.CreateGame(new() { PlayerName = _playerName, GameName = _gameName, TargetWins = _targetWins, IsPrivate = _isPrivate });
         if (result != null)
             Nav.NavigateTo($"game/{result.GameState.Id}?playerId={result.PlayerId}");
         else
             _error = "No se pudo crear la partida";
     }
 
-    private async Task JoinGame(Guid gameId)
+    private async Task JoinGame(Guid gameId, bool withCode = false)
     {
         if (string.IsNullOrWhiteSpace(_playerName)) return;
+        var target = _games.FirstOrDefault(g => g.Id == gameId);
+        if (target == null) return;
+
+        // Si es privada y aún no estamos en modo "ingresar código", solo abrir el input
+        if (target.IsPrivate && !withCode)
+        {
+            _joiningGameId = gameId;
+            _joinCode = "";
+            _error = "";
+            return;
+        }
+
         _error = "";
         await Session.SetPlayerName(_playerName);
-        var result = await Api.JoinGame(gameId, new() { PlayerName = _playerName });
-        if (result != null)
-            Nav.NavigateTo($"game/{result.GameState.Id}?playerId={result.PlayerId}");
+        var (response, error) = await Api.JoinGame(gameId, new()
+        {
+            PlayerName = _playerName,
+            AccessCode = target.IsPrivate ? _joinCode : null
+        });
+        if (response != null)
+            Nav.NavigateTo($"game/{response.GameState.Id}?playerId={response.PlayerId}");
         else
-            _error = "No se pudo unir a la partida";
+            _error = error ?? "No se pudo unir a la partida";
+    }
+
+    private async Task Spectate(Guid gameId, bool withCode = false)
+    {
+        if (string.IsNullOrWhiteSpace(_playerName)) return;
+        var target = _games.FirstOrDefault(g => g.Id == gameId);
+        if (target == null) return;
+
+        if (target.IsPrivate && !withCode)
+        {
+            _joiningGameId = gameId;
+            _joinCode = "";
+            _error = "";
+            return;
+        }
+
+        _error = "";
+        await Session.SetPlayerName(_playerName);
+        var (response, error) = await Api.Spectate(gameId, new()
+        {
+            PlayerName = _playerName,
+            AccessCode = target.IsPrivate ? _joinCode : null
+        });
+        if (response != null)
+            Nav.NavigateTo($"game/{response.GameState.Id}?spectatorId={response.SpectatorId}");
+        else
+            _error = error ?? "No se pudo ver la partida";
     }
 
     private static string StatusLabel(Triker.Shared.Models.GameStatus s) => s switch

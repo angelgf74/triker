@@ -17,4 +17,8 @@ public class GameStateDto
     public DateTimeOffset? TurnDeadline { get; set; }
     public int TargetWins { get; set; }
     public bool GameOver { get; set; }
+    public bool IsPrivate { get; set; }
+    public string? AccessCode { get; set; }
+    public List<SpectatorDto> Spectators { get; set; } = [];
+    public bool IAmSpectator { get; set; }
 }

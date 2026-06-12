@@ -24,6 +24,16 @@ public class GameBroadcaster(GameService gameService, IHubContext<GameHub> hub)
                 await hub.Clients.Client(player.ConnectionId).SendAsync("GameState", dto);
             }
         }
+
+        if (game.Spectators.Count > 0)
+        {
+            var spectatorDto = gameService.ToDto(game, forPlayerId: null, isSpectator: true);
+            foreach (var spectator in game.Spectators)
+            {
+                if (spectator.ConnectionId != null)
+                    await hub.Clients.Client(spectator.ConnectionId).SendAsync("GameState", spectatorDto);
+            }
+        }
     }
 
     public async Task SendHandsRevealed(Guid gameId, List<HandResultDto> results)
@@ -34,4 +44,7 @@ public class GameBroadcaster(GameService gameService, IHubContext<GameHub> hub)
 
     public async Task BroadcastLobbyUpdate()
         => await hub.Clients.Group("lobby").SendAsync("GamesUpdated", gameService.ListGames());
+
+    public async Task SendReaction(Guid gameId, ChatReactionDto reaction)
+        => await hub.Clients.Group(gameId.ToString()).SendAsync("Reaction", reaction);
 }

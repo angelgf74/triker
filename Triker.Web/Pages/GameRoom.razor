@@ -30,7 +30,8 @@
                      OnContinue="HandleContinue"
                      Players="_state.Players"
                      TargetWins="_state.TargetWins"
-                     GameOver="_state.GameOver" />
+                     GameOver="_state.GameOver"
+                     IsSpectator="IsSpectator" />
     }
     else
     {
@@ -42,19 +43,45 @@
             {
                 <span class="target-badge">Meta @_state.TargetWins🥇</span>
             }
+            @if (IsSpectator)
+            {
+                <span class="spectator-badge">👁 Modo espectador</span>
+            }
+            else if (_state.Spectators.Count > 0)
+            {
+                <span class="spectator-count" title="@string.Join(", ", _state.Spectators.Select(s => s.Name))">
+                    👁 @_state.Spectators.Count
+                </span>
+            }
             <DeckView DeckSize="_state.DeckSize" />
             <button class="btn-mute" @onclick="@(() => Audio.Enabled = !Audio.Enabled)"
                     title="@(Audio.Enabled ? "Silenciar" : "Activar sonido")">
                 @(Audio.Enabled ? "🔊" : "🔇")
             </button>
             <button class="btn-help" @onclick="@(() => _helpVisible = true)" title="Ayuda">?</button>
+            @if (IsSpectator)
+            {
+                <button class="btn-secondary btn-leave-spectate" @onclick="LeaveSpectate">Salir</button>
+            }
         </div>
 
         @if (_state.Status == GameStatus.Waiting)
         {
             <div class="waiting-room">
                 <h2>Sala de espera</h2>
-                @if (_myPlayerId == _state.CreatorId)
+                @if (_state.IsPrivate && !string.IsNullOrEmpty(_state.AccessCode))
+                {
+                    <div class="private-code-banner">
+                        <span class="private-code-label">🔒 Código privado</span>
+                        <span class="private-code-value">@_state.AccessCode</span>
+                        <span class="private-code-hint">Compártelo con tus amigos para que puedan unirse</span>
+                    </div>
+                }
+                @if (IsSpectator)
+                {
+                    <p class="waiting-msg">Esperas a que la partida comience…</p>
+                }
+                else if (_myPlayerId == _state.CreatorId)
                 {
                     <div class="waiting-actions">
                         @if (_state.Players.Count < MaxPlayers)
@@ -108,11 +135,15 @@
                 </div>
             }
 
-                var me = _state.Players.FirstOrDefault(p => p.Id == _myPlayerId);
+                var me = IsSpectator ? null : _state.Players.FirstOrDefault(p => p.Id == _myPlayerId);
 
             @if (me != null)
             {
                 <div class="my-area @(me.IsCurrentTurn && _state.Status == GameStatus.Playing && !_discarded ? "active-turn" : "")">
+                    @if (_reactions.TryGetValue(me.Id, out var myRx))
+                    {
+                        <span class="reaction-bubble" @key="myRx.Seq">@myRx.Emoji</span>
+                    }
                     <div class="my-area-header">
                         <span class="my-name">@me.Name (tú)</span>
                         @if (me.Wins > 0 || me.Seconds > 0 || me.Thirds > 0)
@@ -181,7 +212,17 @@
                 </div>
             }
 
-            <OtherPlayersView Players="_state.Players" MyPlayerId="_myPlayerId" />
+            <OtherPlayersView Players="_state.Players" MyPlayerId="_myPlayerId" Reactions="_reactions" />
+
+            @if (!IsSpectator)
+            {
+                <div class="reaction-toolbar">
+                    @foreach (var emoji in _emojis)
+                    {
+                        <button class="reaction-btn" @onclick="() => SendReaction(emoji)" title="Reaccionar @emoji">@emoji</button>
+                    }
+                </div>
+            }
         }
 
         @if (!string.IsNullOrEmpty(_error))
@@ -201,6 +242,8 @@
     private bool _historyVisible = true;
     private bool _wasMyTurn = false;
     private Guid _myPlayerId;
+    private Guid? _spectatorId;
+    private bool IsSpectator => _spectatorId.HasValue;
     private bool _discarded = false;
     private bool _helpVisible = false;
     private bool _reconnecting = false;
@@ -209,13 +252,22 @@
     private int _turnSecondsLeft;
     private CancellationTokenSource? _countdownCts;
 
+    private static readonly string[] _emojis = ["👍", "❤️", "😂", "😮", "😢", "🎉"];
+    private readonly Dictionary<Guid, ReactionEntry> _reactions = [];
+    private int _reactionSeq = 0;
+    private static readonly TimeSpan ReactionTtl = TimeSpan.FromSeconds(2.5);
+
     private int MaxPlayers => _state != null ? (int)Math.Floor((double)(_state.N * _state.N) / 2) : 0;
     private string CountdownClass => _turnSecondsLeft switch { <= 10 => "countdown-danger", <= 20 => "countdown-warn", _ => "countdown-ok" };
 
     protected override async Task OnInitializedAsync()
     {
-        _myPlayerId = ParsePlayerIdFromUrl(Nav.Uri)
-            ?? await Session.GetOrCreatePlayerId();
+        _spectatorId = ParseGuidParamFromUrl(Nav.Uri, "spectatorId");
+        if (!_spectatorId.HasValue)
+        {
+            _myPlayerId = ParseGuidParamFromUrl(Nav.Uri, "playerId")
+                ?? await Session.GetOrCreatePlayerId();
+        }
 
         Hub.OnChange += OnHubChange;
         Hub.OnHandsRevealed += OnHandsRevealed;
@@ -223,11 +275,13 @@
         Hub.OnReconnecting += OnHubReconnecting;
         Hub.OnReconnected += OnHubReconnected;
         Hub.OnConnectionClosed += OnHubConnectionClosed;
+        Hub.OnReaction += OnReaction;
 
         var apiBase = GetApiBase();
-        await Hub.Connect(apiBase, GameId, _myPlayerId);
+        var id = _spectatorId ?? _myPlayerId;
+        await Hub.Connect(apiBase, GameId, id, asSpectator: IsSpectator);
 
-        if (_state == null)
+        if (_state == null && !IsSpectator)
         {
             _state = await Api.GetGameState(GameId, _myPlayerId);
             StateHasChanged();
@@ -358,8 +412,42 @@
         if (!ok) { _error = "Error al descartar"; _discarded = false; }
     }
 
+    private async Task SendReaction(string emoji)
+        => await Api.SendReaction(GameId, _myPlayerId, emoji);
+
+    private async Task LeaveSpectate()
+    {
+        if (_spectatorId.HasValue)
+            await Api.LeaveSpectate(GameId, _spectatorId.Value);
+        Nav.NavigateTo("");
+    }
+
+    private void OnReaction(ChatReactionDto r)
+    {
+        var seq = ++_reactionSeq;
+        _reactions[r.PlayerId] = new ReactionEntry(r.Emoji, seq);
+        InvokeAsync(StateHasChanged);
+        _ = ClearReactionAfter(r.PlayerId, seq);
+    }
+
+    private async Task ClearReactionAfter(Guid playerId, int seq)
+    {
+        await Task.Delay(ReactionTtl);
+        if (_reactions.TryGetValue(playerId, out var current) && current.Seq == seq)
+        {
+            _reactions.Remove(playerId);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
     private async Task HandleContinue(bool wantsToContinue)
     {
+        if (IsSpectator)
+        {
+            await LeaveSpectate();
+            return;
+        }
+
         if (wantsToContinue && _results != null)
         {
             _lastRoundResults = _results;
@@ -375,13 +463,13 @@
     private string GetApiBase()
         => Config["ApiBaseUrl"] ?? "https://localhost:7077";
 
-    private static Guid? ParsePlayerIdFromUrl(string url)
+    private static Guid? ParseGuidParamFromUrl(string url, string paramName)
     {
         var query = new Uri(url).Query.TrimStart('?');
         foreach (var part in query.Split('&'))
         {
             var kv = part.Split('=', 2);
-            if (kv.Length == 2 && kv[0] == "playerId"
+            if (kv.Length == 2 && kv[0] == paramName
                 && Guid.TryParse(Uri.UnescapeDataString(kv[1]), out var id))
                 return id;
         }
@@ -397,6 +485,7 @@
         Hub.OnReconnecting -= OnHubReconnecting;
         Hub.OnReconnected -= OnHubReconnected;
         Hub.OnConnectionClosed -= OnHubConnectionClosed;
+        Hub.OnReaction -= OnReaction;
         await Hub.DisposeAsync();
     }
 }

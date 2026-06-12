@@ -5,11 +5,13 @@ public class CreateGameRequest
     public string PlayerName { get; set; } = "";
     public string GameName { get; set; } = "";
     public int TargetWins { get; set; } = 0;
+    public bool IsPrivate { get; set; } = false;
 }
 
 public class JoinGameRequest
 {
     public string PlayerName { get; set; } = "";
+    public string? AccessCode { get; set; }
 }
 
 public class DiscardRequest

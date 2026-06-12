@@ -18,15 +18,17 @@ public class HubService : IAsyncDisposable
     public event Action? OnReconnecting;
     public event Action? OnReconnected;
     public event Action? OnConnectionClosed;
+    public event Action<ChatReactionDto>? OnReaction;
 
     public bool IsConnected => _hub?.State == HubConnectionState.Connected;
 
-    public async Task Connect(string apiBaseUrl, Guid gameId, Guid playerId)
+    public async Task Connect(string apiBaseUrl, Guid gameId, Guid id, bool asSpectator = false)
     {
         if (_hub != null) await DisposeAsync();
 
+        var idParam = asSpectator ? $"spectatorId={id}" : $"playerId={id}";
         _hub = new HubConnectionBuilder()
-            .WithUrl($"{apiBaseUrl}/gamehub?gameId={gameId}&playerId={playerId}")
+            .WithUrl($"{apiBaseUrl}/gamehub?gameId={gameId}&{idParam}")
             .WithAutomaticReconnect()
             .AddJsonProtocol(options =>
             {
@@ -60,6 +62,8 @@ public class HubService : IAsyncDisposable
         });
 
         _hub.On<bool>("AutoLeft", _ => OnAutoLeft?.Invoke());
+
+        _hub.On<ChatReactionDto>("Reaction", r => OnReaction?.Invoke(r));
 
         _hub.Reconnecting  += _ => { OnReconnecting?.Invoke();     return Task.CompletedTask; };
         _hub.Reconnected   += _ => { OnReconnected?.Invoke();      return Task.CompletedTask; };

@@ -10,4 +10,5 @@ public class GameSummaryDto
     public int PlayerCount { get; set; }
     public int MaxPlayers { get; set; }
     public string CreatorName { get; set; } = "";
+    public bool IsPrivate { get; set; }
 }
