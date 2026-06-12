@@ -43,7 +43,7 @@
 - [x] Indicador de turno en lista de jugadores — resaltar visualmente quién tiene el turno activo
 
 ### Técnica
-- [ ] Persistencia entre reinicios — guardar partidas activas en SQLite/Redis para sobrevivir deploys
+- [x] Persistencia entre reinicios — guardar partidas activas en SQLite/Redis para sobrevivir deploys
 - [ ] Límite de jugadores configurable — exponer el máximo de jugadores como opción al crear partida
 - [x] PWA / instalable — manifest + service worker para instalar como app nativa en móvil
 

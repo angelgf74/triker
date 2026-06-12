@@ -1,8 +1,9 @@
 [Unit]
 Description=Triker API
-After=network.target
+After=network.target postgresql.service
 
 [Service]
+User=webapps
 WorkingDirectory=/apps/triker/api
 ExecStart=/usr/bin/dotnet /apps/triker/api/Triker.Api.dll
 Environment=ASPNETCORE_ENVIRONMENT=Production
@@ -13,4 +14,4 @@ KillSignal=SIGINT
 SyslogIdentifier=triker-api
 
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target

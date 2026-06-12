@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
+using Triker.Api.Data;
 using Triker.Api.Hubs;
 using Triker.Api.Services;
 
@@ -10,9 +12,13 @@ builder.Services.AddControllers()
 builder.Services.AddSignalR()
     .AddJsonProtocol(o => o.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
+builder.Services.AddDbContextFactory<AppDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
+
 builder.Services.AddSingleton<DeckService>();
 builder.Services.AddSingleton<ScoringService>();
 builder.Services.AddSingleton<BotService>();
+builder.Services.AddSingleton<GamePersistenceService>();
 builder.Services.AddSingleton<GameService>();
 builder.Services.AddSingleton<GameBroadcaster>();
 builder.Services.AddSingleton<InactivityService>();
@@ -34,6 +40,10 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+var persistenceSvc = app.Services.GetRequiredService<GamePersistenceService>();
+await persistenceSvc.EnsureSchemaAsync();
+await app.Services.GetRequiredService<GameService>().LoadFromPersistenceAsync();
 
 app.UseCors();
 app.UseAuthorization();

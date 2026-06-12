@@ -9,6 +9,7 @@ public class GameService(
     DeckService deckService,
     ScoringService scoringService,
     BotService botService,
+    GamePersistenceService persistence,
     ILogger<GameService> logger)
 {
     private static readonly TimeSpan FinishedGameTtl = TimeSpan.FromMinutes(30);
@@ -37,6 +38,7 @@ public class GameService(
         _games[game.Id] = game;
         logger.LogInformation("Game created: {GameId} '{GameName}' by '{Player}' (target={Target}, private={Private})",
             game.Id, gameName, playerName, game.TargetWins == 0 ? "∞" : game.TargetWins.ToString(), isPrivate);
+        _ = persistence.SaveAsync(game);
         return (game, player);
     }
 
@@ -57,7 +59,9 @@ public class GameService(
             playerName, gameId, game.Players.Count, game.MaxPlayers);
 
         if (game.Players.Count >= game.MaxPlayers)
-            StartGame(game);
+            StartGame(game); // StartGame calls persistence internally
+        else
+            _ = persistence.SaveAsync(game);
 
         return (JoinResult.Ok, game, player);
     }
@@ -108,9 +112,10 @@ public class GameService(
                 game.Status = GameStatus.Revealing;
                 logger.LogInformation("Game {GameId} round {Round} revealing hands", gameId, game.RoundNumber);
             }
-
-            return true;
         }
+
+        _ = persistence.SaveAsync(game);
+        return true;
     }
 
     public List<HandResultDto>? GetRevealedHands(Guid gameId)
@@ -148,6 +153,7 @@ public class GameService(
         logger.LogInformation("Game {GameId} round {Round} finished. Winner: '{Winner}' ({Hand})",
             gameId, game.RoundNumber, results[0].PlayerName, results[0].HandName);
 
+        _ = persistence.SaveAsync(game);
         return results;
     }
 
@@ -163,6 +169,7 @@ public class GameService(
         if (!wantsToContinue)
         {
             logger.LogInformation("Player '{Player}' left game {GameId}", player.Name, gameId);
+            _ = persistence.SaveAsync(game);
             return true;
         }
 
@@ -170,7 +177,9 @@ public class GameService(
             bot.WantsToContinue = true;
 
         if (!game.GameOver && game.Players.All(p => p.WantsToContinue))
-            StartNewRound(game);
+            StartNewRound(game); // StartNewRound → StartGame → persistence
+        else
+            _ = persistence.SaveAsync(game);
 
         return true;
     }
@@ -185,6 +194,7 @@ public class GameService(
         var (name, personality) = botService.PickBot(game.Players.Select(p => p.Name));
         game.Players.Add(new PlayerState { Name = name, IsBot = true, Personality = personality });
         logger.LogDebug("Bot '{Name}' ({Personality}) added to game {GameId}", name, personality, gameId);
+        _ = persistence.SaveAsync(game);
         return game;
     }
 
@@ -202,12 +212,15 @@ public class GameService(
         if (!game.Players.Any(p => !p.IsBot))
         {
             _games.TryRemove(gameId, out _);
+            _ = persistence.DeleteAsync(gameId);
             logger.LogInformation("Game {GameId} closed (no human players remaining)", gameId);
             return true;
         }
 
         if (!game.GameOver && game.Players.All(p => p.WantsToContinue))
             StartNewRound(game);
+        else
+            _ = persistence.SaveAsync(game);
 
         return true;
     }
@@ -314,7 +327,32 @@ public class GameService(
         foreach (var id in stale)
             _games.TryRemove(id, out _);
 
+        if (stale.Count > 0)
+            _ = persistence.DeleteManyAsync(stale);
+
         return stale.Count;
+    }
+
+    public async Task LoadFromPersistenceAsync()
+    {
+        var games = await persistence.LoadAllAsync();
+        int loaded = 0;
+        foreach (var game in games)
+        {
+            if (game.Status == GameStatus.Finished || game.GameOver) continue;
+
+            // Connection IDs are ephemeral — clients will reconnect
+            foreach (var p in game.Players) p.ConnectionId = null;
+            game.Spectators.Clear();
+            // InactivityService will re-arm the timer on next turn
+            game.TurnDeadline = null;
+
+            _games[game.Id] = game;
+            loaded++;
+        }
+
+        if (loaded > 0)
+            logger.LogInformation("Restored {Count} active game(s) from persistence", loaded);
     }
 
     public GameStateDto ToDto(GameState game, Guid? forPlayerId = null, bool isSpectator = false)
@@ -380,6 +418,8 @@ public class GameService(
 
         logger.LogInformation("Game {GameId} '{GameName}' round {Round} started with {Count} players",
             game.Id, game.Name, game.RoundNumber, game.Players.Count);
+
+        _ = persistence.SaveAsync(game);
     }
 
     private void StartNewRound(GameState game)

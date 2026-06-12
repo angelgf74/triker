@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Triker.Shared.Models;
 
 namespace Triker.Api.State;
@@ -50,10 +51,8 @@ public class GameState
     public bool IsPrivate { get; set; } = false;
     public string? AccessCode { get; set; }
 
-    // Per-game lock for concurrent request protection.
-    public object SyncLock { get; } = new();
-
-    public int MaxPlayers => (int)Math.Floor((double)(N * N) / 2);
-    public PlayerState? CurrentTurnPlayer => Players.Count > 0 ? Players[CurrentTurnIndex % Players.Count] : null;
-    public bool AllPlayersReady => Players.Count > 0 && Players.All(p => p.TurnStatus == PlayerTurnStatus.Ready);
+    [JsonIgnore] public object SyncLock { get; } = new();
+    [JsonIgnore] public int MaxPlayers => (int)Math.Floor((double)(N * N) / 2);
+    [JsonIgnore] public PlayerState? CurrentTurnPlayer => Players.Count > 0 ? Players[CurrentTurnIndex % Players.Count] : null;
+    [JsonIgnore] public bool AllPlayersReady => Players.Count > 0 && Players.All(p => p.TurnStatus == PlayerTurnStatus.Ready);
 }

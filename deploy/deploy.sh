@@ -103,12 +103,11 @@ deploy_api() {
     log "Deteniendo servicio API y preparando destino..."
     ssh "$SSH_HOST" bash <<SCRIPT_END
 set -euo pipefail
-export XDG_RUNTIME_DIR="/run/user/\$(id -u)"
 target="$REMOTE_API"
 backup="$BACKUP_API"
 mkdir -p "\$target" "\$backup"
 
-systemctl --user stop triker-api 2>/dev/null || true
+sudo systemctl stop triker-api 2>/dev/null || true
 
 # Guardar appsettings existentes
 rm -f "\$backup"/appsettings*.json
@@ -121,12 +120,11 @@ find "\$target" -maxdepth 1 -mindepth 1 ! -name 'appsettings*.json' \
 SCRIPT_END
 
     log "Copiando archivos al destino..."
-    scp -r "$PUBLISH_API/." "$SSH_HOST:$REMOTE_API/"
+    scp -r -O "$PUBLISH_API/." "$SSH_HOST:$REMOTE_API/"
 
     log "Restaurando appsettings de producción e iniciando servicio..."
     ssh "$SSH_HOST" bash <<SCRIPT_END
 set -euo pipefail
-export XDG_RUNTIME_DIR="/run/user/\$(id -u)"
 target="$REMOTE_API"
 backup="$BACKUP_API"
 
@@ -138,20 +136,19 @@ done
 
 rm -rf "\$backup"
 
-mkdir -p ~/.config/systemd/user
 SCRIPT_END
 
-    log "Instalando servicio systemd de usuario..."
-    scp "$SCRIPT_DIR/triker-api.service" "$SSH_HOST:~/.config/systemd/user/triker-api.service"
+    log "Instalando servicio systemd de sistema..."
+    scp "$SCRIPT_DIR/triker-api.service" "$SSH_HOST:/tmp/triker-api.service"
+    ssh "$SSH_HOST" "sudo cp /tmp/triker-api.service /etc/systemd/system/triker-api.service && rm /tmp/triker-api.service"
 
     log "Iniciando servicio API..."
     ssh "$SSH_HOST" bash <<'SCRIPT_END'
-export XDG_RUNTIME_DIR="/run/user/$(id -u)"
-systemctl --user daemon-reload
-systemctl --user enable triker-api
-systemctl --user start triker-api
+sudo systemctl daemon-reload
+sudo systemctl enable triker-api
+sudo systemctl start triker-api
 sleep 2
-systemctl --user status triker-api --no-pager || true
+systemctl status triker-api --no-pager || true
 SCRIPT_END
 
     log "API desplegada correctamente."
