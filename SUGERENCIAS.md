@@ -28,9 +28,9 @@
 ## Lista 2
 
 ### Social / Multijugador
-- [ ] Chat en partida — reacciones o chat simple para comunicarse con los demás jugadores
-- [ ] Partidas privadas — sala con código/contraseña para jugar solo con amigos
-- [ ] Modo espectador — unirse a una partida en curso para observar sin jugar
+- [x] Chat en partida — reacciones o chat simple para comunicarse con los demás jugadores
+- [x] Partidas privadas — sala con código/contraseña para jugar solo con amigos
+- [x] Modo espectador — unirse a una partida en curso para observar sin jugar
 
 ### Jugabilidad / Profundidad
 - [x] Partida a X victorias — configurar "primero a N victorias" o "N rondas" como fin de sesión
