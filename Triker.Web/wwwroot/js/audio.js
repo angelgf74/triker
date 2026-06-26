@@ -1,7 +1,12 @@
 window.trikerAudio = (() => {
     let ctx = null;
-    let enabled = true;
     let lastInteractionAt = 0;
+
+    // Estado de sonido persistido en localStorage (por defecto activado).
+    let enabled = (() => {
+        try { return localStorage.getItem('triker.sound') !== 'false'; }
+        catch { return true; }
+    })();
 
     function getCtx() {
         if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -82,7 +87,12 @@ window.trikerAudio = (() => {
     }
 
     return {
-        setEnabled(val) { enabled = val; },
+        setEnabled(val) {
+            enabled = val;
+            try { localStorage.setItem('triker.sound', val ? 'true' : 'false'); }
+            catch { }
+        },
+        getEnabled() { return enabled; },
 
         yourTurn: async () => {
             await interopTone(523, 0.18, 'sine', 0.22);

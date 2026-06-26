@@ -271,6 +271,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await Audio.EnsureInitializedAsync();
         _spectatorId = ParseGuidParamFromUrl(Nav.Uri, "spectatorId");
         if (!_spectatorId.HasValue)
         {

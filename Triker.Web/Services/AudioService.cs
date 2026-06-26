@@ -5,10 +5,22 @@ namespace Triker.Web.Services;
 public class AudioService(IJSRuntime js)
 {
     private bool _enabled = true;
+    private bool _initialized;
+
     public bool Enabled
     {
         get => _enabled;
         set { _enabled = value; _ = SetEnabledJs(value); }
+    }
+
+    // Lee el estado persistido en localStorage (una sola vez). El setter ya
+    // se encarga de guardar los cambios posteriores.
+    public async Task EnsureInitializedAsync()
+    {
+        if (_initialized) return;
+        _initialized = true;
+        try { _enabled = await js.InvokeAsync<bool>("trikerAudio.getEnabled"); }
+        catch { }
     }
 
     public async Task PlayYourTurn()  => await Play("yourTurn");
