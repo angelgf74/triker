@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Triker</string>
+
+    <!-- URL de la app web que carga el WebView.
+         Si la web se sirve en una subruta, ajústala (p. ej. .../triker/). -->
+    <string name="app_url">https://triker-app.angelgf.com.es/</string>
+
+    <!-- ===== AdMob =====
+         IDs de PRUEBA oficiales de Google. NO generan ingresos y son seguros para desarrollo.
+         Sustitúyelos por los reales de tu cuenta AdMob antes de publicar en Google Play. -->
+    <string name="admob_app_id">ca-app-pub-8600791204816041~8807021310</string>
+    <string name="admob_interstitial_id">ca-app-pub-8600791204816041/2565468056</string>
+</resources>
