@@ -1,0 +1,3 @@
+# Ficheros Excel generados por el simulador
+*.xlsx
+~$*.xlsx

@@ -9,44 +9,24 @@ public class ScoringService
     {
         var candidates = GetCandidateGroups(hand);
         var bestGroups = FindBestGrouping(hand, candidates);
-        int groupsScore = bestGroups.Sum(g => g.Score);
+        int totalScore = bestGroups.Sum(g => g.Score);
 
-        int escaleraLevel = CountEscaleraLevel(hand);
-        int escaleraScore = escaleraLevel == 3 ? 50 : 0;
-
-        bool usedEscalera = escaleraScore > groupsScore;
-        int totalScore;
-        List<CardGroupDto> resultGroups;
-
-        if (usedEscalera)
-        {
-            totalScore = escaleraScore;
-            resultGroups = [];
-        }
-        else
-        {
-            totalScore = groupsScore;
-            resultGroups = bestGroups;
-        }
-
-        var rank = ComputeHandRank(resultGroups, usedEscalera, escaleraLevel);
+        var rank = ComputeHandRank(bestGroups);
 
         return new HandResultDto
         {
             PlayerId = playerId,
             PlayerName = playerName,
             Hand = hand.Select(ToDto).ToList(),
-            Groups = resultGroups,
+            Groups = bestGroups,
             TotalScore = totalScore,
             HandRank = rank,
             HandName = GetHandName(rank)
         };
     }
 
-    private static HandRank ComputeHandRank(List<CardGroupDto> groups, bool usedEscalera, int escaleraLevel)
+    private static HandRank ComputeHandRank(List<CardGroupDto> groups)
     {
-        if (usedEscalera) return HandRank.Escalera;
-
         if (groups.Count == 0) return HandRank.SinJugada;
 
         var key = groups
@@ -61,8 +41,8 @@ public class ScoringService
             [(4, 2)] => HandRank.TrikerFuerte,
             [(4, 1)] => HandRank.TrikerDebil,
             [(3, 2), (2, 2)] => HandRank.FullFuerte,
-            [(3, 2), (2, 1)] => HandRank.Full,
-            [(3, 1), (2, 2)] => HandRank.FullMixto,
+            [(3, 2), (2, 1)] => HandRank.FullMixto1,
+            [(3, 1), (2, 2)] => HandRank.FullMixto2,
             [(3, 1), (2, 1)] => HandRank.FullDebil,
             [(3, 2)] => HandRank.TrioFuerte,
             [(3, 1)] => HandRank.TrioDebil,
@@ -85,14 +65,13 @@ public class ScoringService
         HandRank.RetrikerDebil     => "Retriker Débil",
         HandRank.ParejaFuerte      => "Pareja Fuerte",
         HandRank.DobleParejaMedia  => "Doble Pareja Mixta",
-        HandRank.FullMixto         => "Full Mixto",
+        HandRank.FullMixto2        => "Full Mixto 2",
         HandRank.TrioFuerte        => "Trío Fuerte",
         HandRank.DobleParejaFuerte => "Doble Pareja Fuerte",
-        HandRank.Full              => "Full",
+        HandRank.FullMixto1        => "Full Mixto 1",
         HandRank.FullFuerte        => "Full Fuerte",
         HandRank.TrikerFuerte      => "Triker Fuerte",
         HandRank.RetrikerFuerte    => "Retriker Fuerte",
-        HandRank.Escalera          => "Escalera",
         _                          => "Sin jugada"
     };
 
@@ -144,7 +123,7 @@ public class ScoringService
 
         foreach (var (group, _) in masked)
         {
-            var rank = ComputeHandRank([group], false, 0);
+            var rank = ComputeHandRank([group]);
             if (rank > bestRank) { bestRank = rank; best = [group]; }
         }
 
@@ -153,7 +132,7 @@ public class ScoringService
         {
             if ((masked[i].Mask & masked[j].Mask) != 0) continue;
             var current = new List<CardGroupDto> { masked[i].Group, masked[j].Group };
-            var rank = ComputeHandRank(current, false, 0);
+            var rank = ComputeHandRank(current);
             if (rank > bestRank) { bestRank = rank; best = current; }
         }
 
@@ -196,15 +175,6 @@ public class ScoringService
             _ => ""
         };
         return $"{size} {suffix}".Trim();
-    }
-
-    private static int CountEscaleraLevel(List<Card> hand)
-    {
-        int level = 0;
-        if (hand.Select(c => c.Letter).Distinct().Count() == hand.Count) level++;
-        if (hand.Select(c => c.Figure).Distinct().Count() == hand.Count) level++;
-        if (hand.Select(c => c.Color).Distinct().Count() == hand.Count) level++;
-        return level;
     }
 
     private static CardDto ToDto(Card c) => new()

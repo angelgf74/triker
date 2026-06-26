@@ -5,6 +5,7 @@
 @inject NavigationManager Nav
 @inject IConfiguration Config
 @inject AudioService Audio
+@inject IJSRuntime JS
 @implements IAsyncDisposable
 
 <div class="game-room">
@@ -186,6 +187,14 @@
                         }
                     </div>
 
+                    @if (me.Play != null && _state.Status == GameStatus.Playing)
+                    {
+                        <div class="my-play-badge">
+                            <span class="my-play-label">Tu jugada:</span>
+                            <PlayBadge Result="me.Play" />
+                        </div>
+                    }
+
                     <HandView Cards="me.Hand"
                               CanDiscard="@(me.IsCurrentTurn && _state.Status == GameStatus.Playing && !_discarded)"
                               OnDiscard="HandleDiscard" />
@@ -257,7 +266,7 @@
     private int _reactionSeq = 0;
     private static readonly TimeSpan ReactionTtl = TimeSpan.FromSeconds(2.5);
 
-    private int MaxPlayers => _state != null ? (int)Math.Floor((double)(_state.N * _state.N) / 2) : 0;
+    private int MaxPlayers => _state != null ? Math.Min(16, (int)Math.Floor((double)(_state.N * _state.N) / 2)) : 0;
     private string CountdownClass => _turnSecondsLeft switch { <= 10 => "countdown-danger", <= 20 => "countdown-warn", _ => "countdown-ok" };
 
     protected override async Task OnInitializedAsync()
@@ -386,7 +395,17 @@
                 InvokeAsync(Audio.PlayLoseRound);
         }
 
+        // Intersticial AdMob entre partidas (solo surte efecto dentro de la app Android).
+        if (!IsSpectator)
+            _ = ShowInterstitialAd();
+
         InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ShowInterstitialAd()
+    {
+        try { await JS.InvokeVoidAsync("TrikerAds.interstitial"); }
+        catch { /* sin puente de anuncios (web normal) */ }
     }
 
     private void OnAutoLeft()

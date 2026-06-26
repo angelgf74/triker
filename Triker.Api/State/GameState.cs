@@ -3,7 +3,7 @@ using Triker.Shared.Models;
 
 namespace Triker.Api.State;
 
-public enum BotPersonality { Balanced, Conservative, Aggressive, EscaleraSeeker }
+public enum BotPersonality { Balanced, Conservative, Aggressive }
 
 public class PlayerState
 {
@@ -41,7 +41,7 @@ public class GameState
     public int CurrentTurnIndex { get; set; } = 0;
     public int StartPlayerIndex { get; set; } = 0;
     public Guid CreatorId { get; set; }
-    public int N { get; set; } = 5;
+    public int N { get; set; } = 8;
     public int RoundNumber { get; set; } = 1;
 
     public DateTimeOffset? TurnDeadline { get; set; }
@@ -52,7 +52,7 @@ public class GameState
     public string? AccessCode { get; set; }
 
     [JsonIgnore] public object SyncLock { get; } = new();
-    [JsonIgnore] public int MaxPlayers => (int)Math.Floor((double)(N * N) / 2);
+    [JsonIgnore] public int MaxPlayers => Math.Min(16, (int)Math.Floor((double)(N * N) / 2));
     [JsonIgnore] public PlayerState? CurrentTurnPlayer => Players.Count > 0 ? Players[CurrentTurnIndex % Players.Count] : null;
     [JsonIgnore] public bool AllPlayersReady => Players.Count > 0 && Players.All(p => p.TurnStatus == PlayerTurnStatus.Ready);
 }

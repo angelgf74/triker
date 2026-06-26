@@ -1,0 +1,36 @@
+@using Triker.Shared.Dtos
+
+@{
+    var realGroups = Result.Groups.Where(g => g.Cards.Count >= 2).ToList();
+    bool hasBreakdown = realGroups.Count > 1;
+}
+<div class="result-badges">
+    <span class="grp-badge grp-hand-name @(hasBreakdown ? "expandable" : "") @(realGroups.Count == 0 ? "grp-nojugada" : "")"
+          @onclick="@(() => { if (hasBreakdown) _expanded = !_expanded; })">
+        @Result.HandName
+        @if (hasBreakdown)
+        {
+            <span class="grp-caret @(_expanded ? "open" : "")" aria-hidden="true">▾</span>
+        }
+    </span>
+    @if (hasBreakdown && _expanded)
+    {
+        <div class="grp-breakdown">
+            @for (int gi = 0; gi < realGroups.Count; gi++)
+            {
+                if (gi > 0) { <span class="grp-sep">+</span> }
+                <span class="grp-badge" style="--gc:@GroupColors[gi % GroupColors.Length]">@realGroups[gi].Name</span>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public HandResultDto Result { get; set; } = new();
+
+    private bool _expanded;
+
+    // Mismos colores que el coloreado de cartas por grupo en ResultsView.
+    private static readonly string[] GroupColors =
+        ["#3b82f6", "#f59e0b", "#a855f7", "#22c55e", "#ef4444", "#06b6d4", "#ec4899"];
+}

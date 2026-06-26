@@ -41,9 +41,16 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-var persistenceSvc = app.Services.GetRequiredService<GamePersistenceService>();
-await persistenceSvc.EnsureSchemaAsync();
-await app.Services.GetRequiredService<GameService>().LoadFromPersistenceAsync();
+try
+{
+    var persistenceSvc = app.Services.GetRequiredService<GamePersistenceService>();
+    await persistenceSvc.EnsureSchemaAsync();
+    await app.Services.GetRequiredService<GameService>().LoadFromPersistenceAsync();
+}
+catch (Exception ex)
+{
+    app.Logger.LogWarning(ex, "No se pudo inicializar la persistencia (PostgreSQL no disponible). La API arranca sin persistencia.");
+}
 
 app.UseCors();
 app.UseAuthorization();

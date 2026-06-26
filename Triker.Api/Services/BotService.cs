@@ -16,9 +16,9 @@ public class BotService(ScoringService scoringService)
         ("Blaze",  BotPersonality.Aggressive),
         ("Rex",    BotPersonality.Aggressive),
         ("Nova",   BotPersonality.Aggressive),
-        ("Nyx",    BotPersonality.EscaleraSeeker),
-        ("Orion",  BotPersonality.EscaleraSeeker),
-        ("Kronos", BotPersonality.EscaleraSeeker),
+        ("Nyx",    BotPersonality.Conservative),
+        ("Orion",  BotPersonality.Balanced),
+        ("Kronos", BotPersonality.Aggressive),
     ];
 
     public (string Name, BotPersonality Personality) PickBot(IEnumerable<string> usedNames)
@@ -28,7 +28,7 @@ public class BotService(ScoringService scoringService)
         if (available.Count > 0)
             return available[Random.Shared.Next(available.Count)];
         var n = Random.Shared.Next(100, 999);
-        return ($"Bot-{n}", (BotPersonality)Random.Shared.Next(4));
+        return ($"Bot-{n}", (BotPersonality)Random.Shared.Next(3));
     }
 
     // Kept for backwards compatibility; personality defaults to Balanced.
@@ -38,7 +38,6 @@ public class BotService(ScoringService scoringService)
     {
         BotPersonality.Conservative  => ChooseConservative(hand),
         BotPersonality.Aggressive    => ChooseAggressive(hand),
-        BotPersonality.EscaleraSeeker => ChooseEscaleraSeeker(hand),
         _                            => ChooseBalanced(hand),
     };
 
@@ -48,7 +47,6 @@ public class BotService(ScoringService scoringService)
     private List<Guid> ChooseBalanced(List<Card> hand)
     {
         var result = scoringService.EvaluateHand(Guid.Empty, "", hand);
-        if (result.Groups.Count == 0 && result.TotalScore > 0) return []; // Escalera
         var keep = result.Groups.SelectMany(g => g.Cards.Select(c => c.Id)).ToHashSet();
         return Discards(hand, keep);
     }
@@ -58,7 +56,6 @@ public class BotService(ScoringService scoringService)
     {
         var result = scoringService.EvaluateHand(Guid.Empty, "", hand);
         if (result.HandRank >= HandRank.ParejaFuerte) return [];
-        if (result.Groups.Count == 0 && result.TotalScore > 0) return []; // Escalera
         var keep = result.Groups.SelectMany(g => g.Cards.Select(c => c.Id)).ToHashSet();
         return Discards(hand, keep).Take(2).ToList();
     }
@@ -67,7 +64,6 @@ public class BotService(ScoringService scoringService)
     private List<Guid> ChooseAggressive(List<Card> hand)
     {
         var result = scoringService.EvaluateHand(Guid.Empty, "", hand);
-        if (result.Groups.Count == 0 && result.TotalScore > 0) return []; // Escalera
 
         // Already strong: don't risk it
         if (result.HandRank >= HandRank.TrikerDebil)
@@ -93,32 +89,6 @@ public class BotService(ScoringService scoringService)
 
         var keepIds = best.Cards.Select(c => c.Id).ToHashSet();
         return Discards(hand, keepIds);
-    }
-
-    // Discard cards that block an Escalera (duplicate any attribute value).
-    // Falls back to Balanced when too many blockers exist.
-    private List<Guid> ChooseEscaleraSeeker(List<Card> hand)
-    {
-        var blockers = FindEscaleraBlockers(hand);
-
-        if (blockers.Count == 0) return []; // Already an Escalera
-        if (blockers.Count <= 2) return blockers;
-
-        // Too many blockers to fix cheaply — use balanced strategy instead
-        return ChooseBalanced(hand);
-    }
-
-    // Returns one card per duplicate attribute value (the "extra" copy to discard).
-    private static List<Guid> FindEscaleraBlockers(List<Card> hand)
-    {
-        var blockers = new HashSet<Guid>();
-        foreach (var g in hand.GroupBy(c => c.Letter).Where(g => g.Count() > 1))
-            foreach (var c in g.Skip(1)) blockers.Add(c.Id);
-        foreach (var g in hand.GroupBy(c => c.Figure).Where(g => g.Count() > 1))
-            foreach (var c in g.Skip(1)) blockers.Add(c.Id);
-        foreach (var g in hand.GroupBy(c => c.Color).Where(g => g.Count() > 1))
-            foreach (var c in g.Skip(1)) blockers.Add(c.Id);
-        return [.. blockers];
     }
 
     private static List<Guid> Discards(List<Card> hand, HashSet<Guid> keepIds)

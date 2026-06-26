@@ -303,6 +303,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .color-black  .card-letter, .color-black  .card-figure { color: #212121; }
 .color-magenta .card-letter, .color-magenta .card-figure { color: #9C27B0; }
 .color-cyan   .card-letter, .color-cyan   .card-figure { color: #00ACC1; }
+.color-orange .card-letter, .color-orange .card-figure { color: #F57C00; }
+.color-brown  .card-letter, .color-brown  .card-figure { color: #795548; }
 
 /* Color tinted card backgrounds */
 .color-red    { background: linear-gradient(160deg, #fff8f8, #fff); border-color: #ffcdd2; }
@@ -311,6 +313,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .color-black  { background: linear-gradient(160deg, #f5f5f5, #fff); border-color: #bdbdbd; }
 .color-magenta { background: linear-gradient(160deg, #fdf4ff, #fff); border-color: #e1bee7; }
 .color-cyan   { background: linear-gradient(160deg, #f0ffff, #fff); border-color: #b2ebf2; }
+.color-orange { background: linear-gradient(160deg, #fff7f0, #fff); border-color: #ffe0b2; }
+.color-brown  { background: linear-gradient(160deg, #faf5f2, #fff); border-color: #d7ccc8; }
 
 /* ===== RESULTS ===== */
 .results-view {
@@ -377,7 +381,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
     background: color-mix(in srgb, var(--gc, #888) 12%, transparent);
     font-size: 0.78rem; font-weight: 700; white-space: nowrap;
 }
-.grp-badge.grp-escalera {
+.grp-badge.grp-nojugada {
     --gc: #888;
     border-style: dashed;
     font-style: italic;
@@ -386,6 +390,27 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
     --gc: #a78bfa;
     font-size: 0.82rem;
     letter-spacing: 0.02em;
+}
+.grp-badge.grp-hand-name.expandable { cursor: pointer; user-select: none; }
+.grp-caret {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 1.15rem; height: 1.15rem; margin-left: 0.4rem;
+    border-radius: 50%;
+    background: var(--gc, #a78bfa);
+    color: #fff;
+    font-size: 0.72rem; line-height: 1; font-style: normal;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--gc, #a78bfa) 30%, transparent);
+    transition: transform 0.18s ease;
+}
+.grp-caret.open { transform: rotate(180deg); }
+.my-play-badge {
+    display: flex; align-items: center; gap: 0.5rem;
+    flex-wrap: wrap; margin: 0.1rem 0 0.6rem;
+}
+.my-play-label { font-size: 0.78rem; color: #9aa0aa; font-weight: 600; }
+.grp-breakdown {
+    display: flex; gap: 0.4rem; flex-wrap: wrap;
+    flex-basis: 100%; margin-top: 0.35rem;
 }
 
 /* Continue */

@@ -12,6 +12,8 @@ public class GameService(
     GamePersistenceService persistence,
     ILogger<GameService> logger)
 {
+    private const int HandSize = 5;
+
     private static readonly TimeSpan FinishedGameTtl = TimeSpan.FromMinutes(30);
     private static readonly TimeSpan ActiveGameTtl   = TimeSpan.FromHours(2);
 
@@ -392,7 +394,10 @@ public class GameService(
                 Thirds = p.Thirds,
                 Hand = (forPlayerId == p.Id || game.Status == GameStatus.Revealing || game.Status == GameStatus.Finished)
                     ? p.Hand.Select(c => new CardDto { Id = c.Id, Letter = c.Letter, Figure = c.Figure, Color = c.Color }).ToList()
-                    : []
+                    : [],
+                Play = (forPlayerId == p.Id && game.Status == GameStatus.Playing && p.Hand.Count > 0)
+                    ? scoringService.EvaluateHand(p.Id, p.Name, p.Hand)
+                    : null
             }).ToList()
         };
     }
@@ -404,7 +409,7 @@ public class GameService(
 
         foreach (var player in game.Players)
         {
-            var (drawn, remaining) = deckService.Draw(game.Deck, game.DiscardPile, game.N);
+            var (drawn, remaining) = deckService.Draw(game.Deck, game.DiscardPile, HandSize);
             player.Hand = drawn;
             game.Deck = remaining;
             player.TurnStatus = PlayerTurnStatus.Thinking;

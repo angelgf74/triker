@@ -105,8 +105,6 @@
                 .OrderBy(c => cardGroup.TryGetValue(c.Id, out var g) ? g : 999)
                 .ToList();
 
-            var realGroups = result.Groups.Where(g => g.Cards.Count >= 2).ToList();
-
             <div class="result-entry @(result.PlayerId == MyPlayerId ? "my-result" : "") rank-@result.Rank">
 
                 <div class="result-player-header">
@@ -143,27 +141,8 @@
                     }
                 </div>
 
-                <div class="result-badges">
-                    @if (realGroups.Count > 1)
-                    {
-                        @for (int gi = 0; gi < realGroups.Count; gi++)
-                        {
-                            if (gi > 0) { <span class="grp-sep">+</span> }
-                            <span class="grp-badge" style="--gc:@GroupColors[gi % GroupColors.Length]">@realGroups[gi].Name</span>
-                        }
-                        <span class="grp-sep">→</span>
-                        <span class="grp-badge grp-hand-name">@result.HandName</span>
-                    }
-                    else if (realGroups.Count == 1)
-                    {
-                        var grp = realGroups[0];
-                        <span class="grp-badge" style="--gc:@GroupColors[0]">@grp.Name</span>
-                    }
-                    else
-                    {
-                        <span class="grp-badge grp-escalera">@result.HandName</span>
-                    }
-                </div>
+                <PlayBadge Result="result" />
+
 
             </div>
         }

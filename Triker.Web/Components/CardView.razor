@@ -47,6 +47,8 @@
         CardColor.Black => "Negro",
         CardColor.Magenta => "Magenta",
         CardColor.Cyan => "Cyan",
+        CardColor.Orange => "Naranja",
+        CardColor.Brown => "Marrón",
         _ => ""
     };
     private string FigureLabel => Card?.Figure switch
@@ -57,6 +59,8 @@
         Figure.Triangle => "Triángulo",
         Figure.Heart => "Corazón",
         Figure.Clover => "Trébol",
+        Figure.Diamond => "Diamante",
+        Figure.Spade => "Pica",
         _ => ""
     };
     private string FigureSymbol => Card?.Figure switch
@@ -67,6 +71,8 @@
         Figure.Triangle => "▲",
         Figure.Heart => "♥",
         Figure.Clover => "♣",
+        Figure.Diamond => "♦",
+        Figure.Spade => "♠",
         _ => "?"
     };
     private string ColorClass => Card?.Color switch
@@ -77,6 +83,8 @@
         CardColor.Black => "color-black",
         CardColor.Magenta => "color-magenta",
         CardColor.Cyan => "color-cyan",
+        CardColor.Orange => "color-orange",
+        CardColor.Brown => "color-brown",
         _ => ""
     };
 

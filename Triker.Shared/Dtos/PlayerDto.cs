@@ -16,4 +16,8 @@ public class PlayerDto
     public int Seconds { get; set; }
     public int Thirds { get; set; }
     public List<CardDto> Hand { get; set; } = [];
+
+    // Jugada evaluada de la mano. El servidor solo la rellena para el propio
+    // jugador durante la partida (para mostrar su mejor jugada en curso).
+    public HandResultDto? Play { get; set; }
 }

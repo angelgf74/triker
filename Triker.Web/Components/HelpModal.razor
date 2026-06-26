@@ -20,15 +20,15 @@
             <section class="help-section">
                 <h3>Las cartas</h3>
                 <p>Cada carta tiene <strong>3 características</strong>: letra, figura y color.
-                Hay 5 valores posibles para cada una, lo que da una baraja de <strong>125 cartas únicas</strong>.</p>
+                Hay 8 valores posibles para cada una, lo que da una baraja de <strong>512 cartas únicas</strong>.</p>
                 <div class="help-params">
                     <div class="help-param">
                         <span class="help-param-name">Letra</span>
-                        <span class="help-param-vals">T · R · I · K · E</span>
+                        <span class="help-param-vals">T · R · I · K · E · A · G · F</span>
                     </div>
                     <div class="help-param">
                         <span class="help-param-name">Figura</span>
-                        <span class="help-param-vals help-figures">● ■ ★ ▲ ♥</span>
+                        <span class="help-param-vals help-figures">● ■ ★ ▲ ♥ ♣ ♦ ♠</span>
                     </div>
                     <div class="help-param">
                         <span class="help-param-name">Color</span>
@@ -37,7 +37,10 @@
                             <span style="color:#43A047">■</span> Verde &nbsp;
                             <span style="color:#1E88E5">■</span> Azul &nbsp;
                             <span style="color:#00ACC1">■</span> Cyan &nbsp;
-                            <span style="color:#9C27B0">■</span> Magenta
+                            <span style="color:#9C27B0">■</span> Magenta &nbsp;
+                            <span style="color:#212121">■</span> Negro &nbsp;
+                            <span style="color:#F57C00">■</span> Naranja &nbsp;
+                            <span style="color:#795548">■</span> Marrón
                         </span>
                     </div>
                 </div>
@@ -68,26 +71,25 @@
                             <tr><th>#</th><th>Jugada</th><th>Descripción</th></tr>
                         </thead>
                         <tbody>
-                            <tr class="row-special"><td>1</td><td>Escalera ✦</td><td>Las 5 cartas son todas distintas en letra, figura y color</td></tr>
-                            <tr><td>2</td><td>Retriker Fuerte</td><td>Las 5 cartas comparten 2 características</td></tr>
-                            <tr><td>3</td><td>Triker Fuerte</td><td>4 cartas comparten 2 características</td></tr>
+                            <tr><td>1</td><td>Retriker Fuerte</td><td>Las 5 cartas comparten 2 características</td></tr>
+                            <tr><td>2</td><td>Triker Fuerte</td><td>4 cartas comparten 2 características</td></tr>
+                            <tr><td>3</td><td>Retriker Débil</td><td>Las 5 cartas comparten 1 característica</td></tr>
                             <tr><td>4</td><td>Full Fuerte</td><td>Trío Fuerte y Pareja Fuerte</td></tr>
-                            <tr><td>5</td><td>Full</td><td>Trío Fuerte y Pareja Débil</td></tr>
-                            <tr><td>6</td><td>Doble Pareja Fuerte</td><td>Dos Parejas Fuertes</td></tr>
+                            <tr><td>5</td><td>Triker Débil</td><td>4 cartas comparten 1 característica</td></tr>
+                            <tr><td>6</td><td>Full Mixto 1</td><td>Trío Fuerte y Pareja Débil</td></tr>
                             <tr><td>7</td><td>Trío Fuerte</td><td>3 cartas comparten 2 características</td></tr>
-                            <tr><td>8</td><td>Full Mixto</td><td>Trío Débil y Pareja Fuerte</td></tr>
-                            <tr><td>9</td><td>Doble Pareja Mixta</td><td>Pareja Fuerte y Pareja Débil</td></tr>
-                            <tr><td>10</td><td>Pareja Fuerte</td><td>2 cartas comparten 2 características</td></tr>
-                            <tr><td>11</td><td>Retriker Débil</td><td>Las 5 cartas comparten 1 característica</td></tr>
-                            <tr><td>12</td><td>Full Débil</td><td>Trío Débil y Pareja Débil</td></tr>
-                            <tr><td>13</td><td>Triker Débil</td><td>4 cartas comparten 1 característica</td></tr>
+                            <tr><td>8</td><td>Full Mixto 2</td><td>Trío Débil y Pareja Fuerte</td></tr>
+                            <tr><td>9</td><td>Full Débil</td><td>Trío Débil y Pareja Débil</td></tr>
+                            <tr><td>10</td><td>Trío Débil</td><td>3 cartas comparten 1 característica</td></tr>
+                            <tr><td>11</td><td>Doble Pareja Fuerte</td><td>Dos Parejas Fuertes</td></tr>
+                            <tr><td>12</td><td>Doble Pareja Mixta</td><td>Pareja Fuerte y Pareja Débil</td></tr>
+                            <tr><td>13</td><td>Pareja Fuerte</td><td>2 cartas comparten 2 características</td></tr>
                             <tr><td>14</td><td>Doble Pareja Débil</td><td>Dos Parejas Débiles</td></tr>
-                            <tr><td>15</td><td>Trío Débil</td><td>3 cartas comparten 1 característica</td></tr>
-                            <tr><td>16</td><td>Pareja Débil</td><td>2 cartas comparten 1 característica</td></tr>
+                            <tr><td>15</td><td>Pareja Débil</td><td>2 cartas comparten 1 característica</td></tr>
+                            <tr class="row-special"><td>16</td><td>Sin jugada</td><td>Ninguna carta comparte característica con otra</td></tr>
                         </tbody>
                     </table>
                 </div>
-                <p class="help-note">✦ La Escalera es la jugada más alta: requiere que las 5 cartas sean todas distintas en letra, figura y color.</p>
             </section>
 
             <!-- EJEMPLOS VISUALES -->
@@ -123,7 +125,7 @@
                             <div class="help-mini-card color-cyan"><span class="hmc-lt">E</span><span class="hmc-fig">●</span></div>
                             <div class="help-mini-card color-cyan"><span class="hmc-lt">T</span><span class="hmc-fig">▲</span></div>
                         </div>
-                        <span class="help-ex-label">Full Mixto</span>
+                        <span class="help-ex-label">Full Mixto 2</span>
                         <span class="help-ex-desc">Pareja Fuerte + Trío Débil</span>
                     </div>
 
@@ -135,8 +137,8 @@
                             <div class="help-mini-card color-cyan"><span class="hmc-lt">K</span><span class="hmc-fig">▲</span></div>
                             <div class="help-mini-card color-magenta"><span class="hmc-lt">E</span><span class="hmc-fig">★</span></div>
                         </div>
-                        <span class="help-ex-label">Escalera ✦</span>
-                        <span class="help-ex-desc">Todas distintas en letra, figura y color</span>
+                        <span class="help-ex-label">Sin jugada</span>
+                        <span class="help-ex-desc">Ninguna carta comparte característica con otra</span>
                     </div>
 
                 </div>
