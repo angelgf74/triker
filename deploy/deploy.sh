@@ -57,7 +57,7 @@ find "\$target" -maxdepth 1 -mindepth 1 ! -name 'appsettings*.json' \
 SCRIPT_END
 
     log "Copiando archivos al destino..."
-    scp -r "$PUBLISH_WEB/wwwroot/." "$SSH_HOST:$REMOTE_APP/"
+    tar -C "$PUBLISH_WEB/wwwroot" -czf - . | ssh "$SSH_HOST" "tar -C '$REMOTE_APP' -xzf - --no-overwrite-dir --no-same-owner"
 
     log "Parcheando base href para producción..."
     ssh "$SSH_HOST" "sed -i 's|<base href=\"/triker/\" />|<base href=\"/\" />|' $REMOTE_APP/index.html"
@@ -120,7 +120,7 @@ find "\$target" -maxdepth 1 -mindepth 1 ! -name 'appsettings*.json' \
 SCRIPT_END
 
     log "Copiando archivos al destino..."
-    scp -r -O "$PUBLISH_API/." "$SSH_HOST:$REMOTE_API/"
+    tar -C "$PUBLISH_API" -czf - . | ssh "$SSH_HOST" "tar -C '$REMOTE_API' -xzf -"
 
     log "Restaurando appsettings de producción e iniciando servicio..."
     ssh "$SSH_HOST" bash <<SCRIPT_END

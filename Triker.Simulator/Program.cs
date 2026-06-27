@@ -268,12 +268,12 @@ static string ExportarExcel(int nMin, int nMax, long iteraciones, Dictionary<int
 
 static string NombreJugada(HandRank rank) => rank switch
 {
-    HandRank.ParejaDebil       => "Pareja Débil",
-    HandRank.TrioDebil         => "Trío Débil",
-    HandRank.DobleParejaDebil  => "Doble Pareja Débil",
-    HandRank.TrikerDebil       => "Triker Débil",
-    HandRank.FullDebil         => "Full Débil",
-    HandRank.RetrikerDebil     => "Retriker Débil",
+    HandRank.ParejaDebil       => "Pareja",
+    HandRank.TrioDebil         => "Trío",
+    HandRank.DobleParejaDebil  => "Doble Pareja",
+    HandRank.TrikerDebil       => "Triker",
+    HandRank.FullDebil         => "Full",
+    HandRank.RetrikerDebil     => "Retriker",
     HandRank.ParejaFuerte      => "Pareja Fuerte",
     HandRank.DobleParejaMedia  => "Doble Pareja Mixta",
     HandRank.FullMixto2        => "Full Mixto 2",
