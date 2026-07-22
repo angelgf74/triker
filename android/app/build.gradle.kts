@@ -13,14 +13,14 @@ val keystoreProps = Properties().apply {
 
 android {
     namespace = "com.angelgf.triker"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.angelgf.triker"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        targetSdk = 37
+        versionCode = 2
+        versionName = "1.1"
     }
 
     signingConfigs {
@@ -61,5 +61,8 @@ dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.activity:activity-ktx:1.9.3")
     implementation("androidx.webkit:webkit:1.12.1")
-    implementation("com.google.android.gms:play-services-ads:23.5.0")
+    implementation("com.google.android.gms:play-services-ads:23.6.0")
+    // play-services-ads arrastra androidx.fragment:1.1.0 (obsoleto, señalado por
+    // Play Console); se fuerza la última versión estable.
+    implementation("androidx.fragment:fragment:1.8.9")
 }
