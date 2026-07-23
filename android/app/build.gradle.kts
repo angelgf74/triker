@@ -13,12 +13,12 @@ val keystoreProps = Properties().apply {
 
 android {
     namespace = "com.angelgf.triker"
-    compileSdk = 37
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.angelgf.triker"
         minSdk = 26
-        targetSdk = 37
+        targetSdk = 35
         versionCode = 2
         versionName = "1.1"
     }
