@@ -5,20 +5,51 @@ namespace Triker.Api.Services;
 
 public class BotService(ScoringService scoringService)
 {
+    // 12 por personalidad. La mesa admite 16 jugadores (MaxPlayers en
+    // GameRoom.razor), asi que llenarla entera de bots deja 20 nombres sin usar
+    // y las partidas no salen siempre con el mismo reparto. Con 12 en total se
+    // agotaba la lista en cada mesa llena y aparecian los "Bot-799" de reserva.
+    // Nombres cortos a proposito: cada rival es una fila de una linea.
     private static readonly (string Name, BotPersonality Personality)[] Roster =
     [
         ("Atlas",  BotPersonality.Conservative),
         ("Vega",   BotPersonality.Conservative),
         ("Lyra",   BotPersonality.Conservative),
+        ("Nyx",    BotPersonality.Conservative),
+        ("Ceres",  BotPersonality.Conservative),
+        ("Juno",   BotPersonality.Conservative),
+        ("Vesta",  BotPersonality.Conservative),
+        ("Selene", BotPersonality.Conservative),
+        ("Titan",  BotPersonality.Conservative),
+        ("Rhea",   BotPersonality.Conservative),
+        ("Iris",   BotPersonality.Conservative),
+        ("Pallas", BotPersonality.Conservative),
+
         ("Echo",   BotPersonality.Balanced),
         ("Zara",   BotPersonality.Balanced),
         ("Pixel",  BotPersonality.Balanced),
+        ("Orion",  BotPersonality.Balanced),
+        ("Astra",  BotPersonality.Balanced),
+        ("Lumen",  BotPersonality.Balanced),
+        ("Indigo", BotPersonality.Balanced),
+        ("Delta",  BotPersonality.Balanced),
+        ("Onyx",   BotPersonality.Balanced),
+        ("Sigma",  BotPersonality.Balanced),
+        ("Kira",   BotPersonality.Balanced),
+        ("Quasar", BotPersonality.Balanced),
+
         ("Blaze",  BotPersonality.Aggressive),
         ("Rex",    BotPersonality.Aggressive),
         ("Nova",   BotPersonality.Aggressive),
-        ("Nyx",    BotPersonality.Conservative),
-        ("Orion",  BotPersonality.Balanced),
         ("Kronos", BotPersonality.Aggressive),
+        ("Ember",  BotPersonality.Aggressive),
+        ("Vulcan", BotPersonality.Aggressive),
+        ("Ares",   BotPersonality.Aggressive),
+        ("Ignis",  BotPersonality.Aggressive),
+        ("Talon",  BotPersonality.Aggressive),
+        ("Draco",  BotPersonality.Aggressive),
+        ("Furia",  BotPersonality.Aggressive),
+        ("Sable",  BotPersonality.Aggressive),
     ];
 
     public (string Name, BotPersonality Personality) PickBot(IEnumerable<string> usedNames)
