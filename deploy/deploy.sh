@@ -11,7 +11,10 @@
 #   4. Añadir al server block de nginx y recargar:
 #        include /apps/triker/nginx-triker.conf;
 # =============================================================================
-set -euo pipefail
+# -E hace que el trap ERR se herede en funciones. El de deploy_api se define
+# dentro de la propia funcion, asi que hoy saltaria igual; con -E el
+# comportamiento deja de depender de ese detalle si el trap se mueve fuera.
+set -Eeuo pipefail
 
 SSH_HOST="agfserver-angel"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -119,8 +122,21 @@ find "\$target" -maxdepth 1 -mindepth 1 ! -name 'appsettings*.json' \
     -exec rm -rf {} + 2>/dev/null || true
 SCRIPT_END
 
+    # A partir de aqui la API esta parada. Si algo falla, set -e aborta el
+    # script y la deja caida (paso de verdad: un fallo de tar tumbo produccion
+    # hasta que se arranco a mano). El trap la vuelve a levantar antes de salir.
+    trap 'echo "!! Deploy abortado; reintentando arrancar la API..." >&2; ssh "$SSH_HOST" "sudo systemctl start triker-api" || echo "!! No se pudo arrancar: la API sigue CAIDA" >&2' ERR
+
     log "Copiando archivos al destino..."
-    tar -C "$PUBLISH_API" -czf - . | ssh "$SSH_HOST" "tar -C '$REMOTE_API' -xzf -"
+    # Mismos flags que en deploy_web, que ya los tenía: el destino es de
+    # webapps y nos conectamos como angel, asi que sin --no-overwrite-dir
+    # --no-same-owner tar intenta aplicar duenyo/permisos/fecha al propio
+    # directorio ".", falla con "Cannot utime / Cannot change mode" y sale
+    # con estado 2. --warning=no-timestamp calla el aviso por desfase de
+    # reloj entre la maquina de desarrollo y el servidor, que tambien cuenta
+    # como error para tar.
+    tar -C "$PUBLISH_API" -czf - . \
+        | ssh "$SSH_HOST" "tar -C '$REMOTE_API' -xzf - --no-overwrite-dir --no-same-owner --warning=no-timestamp"
 
     log "Restaurando appsettings de producción e iniciando servicio..."
     ssh "$SSH_HOST" bash <<SCRIPT_END
@@ -150,6 +166,8 @@ sudo systemctl start triker-api
 sleep 2
 systemctl status triker-api --no-pager || true
 SCRIPT_END
+
+    trap - ERR
 
     log "API desplegada correctamente."
 }
