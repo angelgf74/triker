@@ -42,8 +42,9 @@ __pycache__/
 .venv/
 venv/
 
-# ── Claude Code (local settings, not shared) ─────────────────────────────────
-.claude/
+# ── Claude Code (local settings ignored, skills compartidas) ─────────────────
+.claude/*
+!.claude/skills/
 
 # ── OS ────────────────────────────────────────────────────────────────────────
 .DS_Store

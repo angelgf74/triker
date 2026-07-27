@@ -1,0 +1,9 @@
+{
+  "name": "run-triker-driver",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@microsoft/signalr": "^10.0.0",
+    "playwright": "^1.62.0"
+  }
+}
