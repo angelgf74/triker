@@ -85,8 +85,8 @@
 ### Presentación / Pulido
 - [ ] Rivales compactos — con 8 jugadores la partida ocupa 1656 px en una ventana de 873, y cada rival muestra 5 cartas boca abajo idénticas que no aportan nada. Colapsarlos a una fila (nombre · nº de cartas · turno/descarte) y reservar las cartas grandes para el reveal
 - [ ] La barra de reacciones tapa contenido — `.reaction-toolbar` es `position: sticky; bottom` (`app.css:846`); con la página larga flota sobre la lista de jugadores y oculta nombres
-- [ ] Tu resultado sin scroll — la pantalla de resultados con 8 jugadores mide 3810 px: hay que bajar cuatro pantallas para verte. Fijar arriba la entrada propia, o un resumen sticky ("6º · Doble Pareja")
-- [ ] Decidir después de ver — el bloque "¿Quieres jugar otra partida?" está encima de la lista de resultados: se pregunta antes de mostrar cómo ha ido la ronda
+- [x] Tu resultado sin scroll — la pantalla de resultados con 8 jugadores mide 1905 px (≈2,2 pantallas) y tu entrada queda hacia la mitad: había que bajar más de una pantalla solo para saber cómo te había ido. Resuelto con una tarjeta de resumen arriba (posición, jugada, puntos y quién ganó)
+- [x] Decidir después de ver — el bloque "¿Quieres jugar otra partida?" está encima de la lista de resultados: se pregunta antes de mostrar cómo ha ido la ronda
 - [ ] Cabecera responsive — un título de dos palabras ya envuelve y empuja el botón "?" a una fila propia; en la sala de espera muestra "Ronda 1" y "0 cartas", que ahí no significan nada
 - [ ] Etiqueta de descartes — los badges "−3" / "−2" son cartas descartadas, pero en un juego de puntos se leen como penalización
 - [ ] Copy del botón de pasar — la ayuda dice "pulsa *Descartar* sin seleccionar nada para pasar" y el botón real dice "Pasar (sin descartar)"

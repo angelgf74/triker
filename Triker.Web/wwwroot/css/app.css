@@ -387,6 +387,29 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .results-header { text-align: center; }
 .results-header h2 { font-size: 1.8rem; font-weight: 700; }
 .round-label { color: #888; margin-top: 0.3rem; }
+
+/* Resumen de ronda: lo primero que se ve, sin scroll. */
+.round-summary {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px; padding: 0.8rem 1rem;
+    display: flex; flex-direction: column; gap: 0.35rem;
+}
+.rs-mine {
+    display: flex; align-items: center; flex-wrap: wrap;
+    column-gap: 0.6rem; row-gap: 0.2rem;
+}
+.rs-medal { font-size: 1.5rem; line-height: 1; }
+.rs-position { font-size: 1.05rem; font-weight: 800; }
+.rs-play {
+    background: rgba(160,120,255,0.18); border: 1px solid rgba(160,120,255,0.45);
+    color: #cbb6ff; border-radius: 999px;
+    padding: 0.1rem 0.6rem; font-size: 0.85rem; font-weight: 700;
+}
+.rs-score { margin-left: auto; color: #9aa0aa; font-size: 0.85rem; white-space: nowrap; }
+.rs-winner { font-size: 0.85rem; color: #9aa0aa; }
+.rs-winner strong { color: #e8e8ec; }
+
 .results-list { display: flex; flex-direction: column; gap: 0.8rem; }
 
 .result-entry {

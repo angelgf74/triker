@@ -16,6 +16,50 @@
         <p class="round-label">Ronda @RoundNumber@(TargetWins > 0 && !GameOver ? $" · Meta: {TargetWins}🥇" : "")</p>
     </div>
 
+    @*
+        Resumen inmediato. Con 8 jugadores la pantalla mide ~1900px (unas 2,2
+        pantallas de movil) y tu entrada cae hacia la mitad: habia que bajar
+        mas de una pantalla solo para saber como te habia ido. Aqui caben las
+        dos preguntas del jugador -- que hice yo y quien gano -- sin tocar el
+        scroll. Las cartas siguen abajo, en la lista ordenada por posicion.
+    *@
+    @{
+        var mine = Results.FirstOrDefault(r => r.PlayerId == MyPlayerId);
+        var winner = Results.OrderBy(r => r.Rank).FirstOrDefault();
+    }
+    @if (mine != null || winner != null)
+    {
+        <div class="round-summary">
+            @if (mine != null)
+            {
+                <div class="rs-mine">
+                    @* Fuera del podio MedalLabel ya devuelve "8º": pintarlo
+                       junto a la posicion daba "8º 8º de 8". *@
+                    @if (Position(mine) <= 3)
+                    {
+                        <span class="rs-medal">@MedalLabel(mine)</span>
+                    }
+                    <span class="rs-position">@PositionLabel(mine) de @Results.Count</span>
+                    <span class="rs-play">@mine.HandName</span>
+                    <span class="rs-score">@mine.TotalScore pts</span>
+                </div>
+            }
+            @if (winner != null)
+            {
+                <div class="rs-winner">
+                    @if (mine != null && winner.PlayerId == MyPlayerId)
+                    {
+                        <span>🎉 Ganaste la ronda</span>
+                    }
+                    else
+                    {
+                        <span>Ganó <strong>@WinnerNames()</strong> con @winner.HandName</span>
+                    }
+                </div>
+            }
+        </div>
+    }
+
     @if (RoundNumber > 1)
     {
         <div class="session-stats">
@@ -52,7 +96,68 @@
         </div>
     }
 
-    <div class="continue-section">
+    <div class="results-list">
+        @foreach (var result in Results.OrderBy(r => r.Rank))
+        {
+            // Map cardId → group index (only groups with 2+ cards)
+            var cardGroup = new Dictionary<Guid, int>();
+            for (int gi = 0; gi < result.Groups.Count; gi++)
+                if (result.Groups[gi].Cards.Count >= 2)
+                    foreach (var c in result.Groups[gi].Cards)
+                        cardGroup[c.Id] = gi;
+
+            // Sort: grouped cards first (by group index), ungrouped last
+            var sortedHand = result.Hand
+                .OrderBy(c => cardGroup.TryGetValue(c.Id, out var g) ? g : 999)
+                .ToList();
+
+            <div class="result-entry @(result.PlayerId == MyPlayerId ? "my-result" : "") rank-@result.Rank">
+
+                <div class="result-player-header">
+                    <span class="rank-medal">@MedalLabel(result)</span>
+                    <span class="result-player-name">
+                        @result.PlayerName@(result.PlayerId == MyPlayerId ? " (tú)" : "")
+                    </span>
+                    @{ var pd = Players.FirstOrDefault(p => p.Id == result.PlayerId); }
+                    @if (pd != null && (pd.Wins > 0 || pd.Seconds > 0 || pd.Thirds > 0))
+                    {
+                        <span class="player-medals">
+                            @if (pd.Wins > 0)    { <span>🥇@pd.Wins</span> }
+                            @if (pd.Seconds > 0) { <span>🥈@pd.Seconds</span> }
+                            @if (pd.Thirds > 0)  { <span>🥉@pd.Thirds</span> }
+                        </span>
+                    }
+                    @if (pd != null)
+                    {
+                        @* "−2" se leia como una penalizacion de puntos; son
+                           cartas cambiadas. Mismo vocabulario que la mesa. *@
+                        <span class="discard-badge-result" title="Cartas descartadas esta ronda">
+                            @(pd.DiscardCount == 0 ? "pasó" : $"descartó {pd.DiscardCount}")
+                        </span>
+                    }
+                </div>
+
+                <div class="result-cards-row">
+                    @foreach (var card in sortedHand)
+                    {
+                        var inGroup = cardGroup.TryGetValue(card.Id, out var gi);
+                        var color = inGroup ? GroupColors[gi % GroupColors.Length] : null;
+                        <div class="rc-slot @(inGroup ? "rc-grouped" : "")"
+                             style="@(color != null ? $"--gc:{color}" : "")">
+                            <CardView Card="card" FaceDown="false" />
+                        </div>
+                    }
+                </div>
+
+                <PlayBadge Result="result" />
+
+            </div>
+        }
+    </div>
+
+    @* Va DESPUES de la lista: preguntar "¿otra partida?" encima de los
+       resultados obligaba a decidir antes de ver como habia ido la ronda. *@
+    <div class="continue-section continue-after">
         @if (IsSpectator)
         {
             @if (GameOver)
@@ -89,64 +194,6 @@
             </p>
         }
     </div>
-
-    <div class="results-list">
-        @foreach (var result in Results.OrderBy(r => r.Rank))
-        {
-            // Map cardId → group index (only groups with 2+ cards)
-            var cardGroup = new Dictionary<Guid, int>();
-            for (int gi = 0; gi < result.Groups.Count; gi++)
-                if (result.Groups[gi].Cards.Count >= 2)
-                    foreach (var c in result.Groups[gi].Cards)
-                        cardGroup[c.Id] = gi;
-
-            // Sort: grouped cards first (by group index), ungrouped last
-            var sortedHand = result.Hand
-                .OrderBy(c => cardGroup.TryGetValue(c.Id, out var g) ? g : 999)
-                .ToList();
-
-            <div class="result-entry @(result.PlayerId == MyPlayerId ? "my-result" : "") rank-@result.Rank">
-
-                <div class="result-player-header">
-                    <span class="rank-medal">@MedalLabel(result)</span>
-                    <span class="result-player-name">
-                        @result.PlayerName@(result.PlayerId == MyPlayerId ? " (tú)" : "")
-                    </span>
-                    @{ var pd = Players.FirstOrDefault(p => p.Id == result.PlayerId); }
-                    @if (pd != null && (pd.Wins > 0 || pd.Seconds > 0 || pd.Thirds > 0))
-                    {
-                        <span class="player-medals">
-                            @if (pd.Wins > 0)    { <span>🥇@pd.Wins</span> }
-                            @if (pd.Seconds > 0) { <span>🥈@pd.Seconds</span> }
-                            @if (pd.Thirds > 0)  { <span>🥉@pd.Thirds</span> }
-                        </span>
-                    }
-                    @if (pd != null)
-                    {
-                        <span class="discard-badge-result" title="Cartas descartadas esta ronda">
-                            @(pd.DiscardCount == 0 ? "pasó" : $"−{pd.DiscardCount}")
-                        </span>
-                    }
-                </div>
-
-                <div class="result-cards-row">
-                    @foreach (var card in sortedHand)
-                    {
-                        var inGroup = cardGroup.TryGetValue(card.Id, out var gi);
-                        var color = inGroup ? GroupColors[gi % GroupColors.Length] : null;
-                        <div class="rc-slot @(inGroup ? "rc-grouped" : "")"
-                             style="@(color != null ? $"--gc:{color}" : "")">
-                            <CardView Card="card" FaceDown="false" />
-                        </div>
-                    }
-                </div>
-
-                <PlayBadge Result="result" />
-
-
-            </div>
-        }
-    </div>
 </div>
 
 @code {
@@ -171,16 +218,25 @@
         await OnContinue.InvokeAsync(wantsToContinue);
     }
 
-    private string MedalLabel(HandResultDto result)
+    private int Position(HandResultDto result)
+        => Results.Count(r => r.HandRank > result.HandRank) + 1;
+
+    private string MedalLabel(HandResultDto result) => Position(result) switch
     {
-        // Número de jugadores con puntuación estrictamente mayor
-        int above = Results.Count(r => r.HandRank > result.HandRank);
-        return (above + 1) switch
-        {
-            1 => "🥇",
-            2 => "🥈",
-            3 => "🥉",
-            var n => $"{n}º"
-        };
+        1 => "🥇",
+        2 => "🥈",
+        3 => "🥉",
+        var n => $"{n}º"
+    };
+
+    private string PositionLabel(HandResultDto result) => $"{Position(result)}º";
+
+    // Puede haber empate arriba: se nombran todos los que comparten la mejor
+    // jugada, que es lo que decide la ronda (HandRank, no los puntos).
+    private string WinnerNames()
+    {
+        var best = Results.Max(r => r.HandRank);
+        var names = Results.Where(r => r.HandRank == best).Select(r => r.PlayerName).ToList();
+        return names.Count == 1 ? names[0] : string.Join(" y ", names);
     }
 }
