@@ -63,10 +63,10 @@ kotlin {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.13.1")
-    implementation("androidx.activity:activity-ktx:1.9.3")
-    implementation("androidx.webkit:webkit:1.12.1")
-    implementation("com.google.android.gms:play-services-ads:23.6.0")
+    implementation("androidx.core:core-ktx:1.19.0")
+    implementation("androidx.activity:activity-ktx:1.13.0")
+    implementation("androidx.webkit:webkit:1.16.0")
+    implementation("com.google.android.gms:play-services-ads:25.4.0")
     // play-services-ads arrastra androidx.fragment:1.1.0 (obsoleto, señalado por
     // Play Console); se fuerza la última versión estable.
     implementation("androidx.fragment:fragment:1.8.9")
