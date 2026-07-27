@@ -138,10 +138,30 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
     display: flex; flex-direction: column; gap: 1rem; min-height: 100vh;
 }
 .game-header {
-    display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
-    background: rgba(255,255,255,0.05); border-radius: 12px; padding: 0.8rem 1.2rem;
+    display: flex; align-items: center; gap: 0.8rem; flex-wrap: nowrap;
+    background: rgba(255,255,255,0.05); border-radius: 12px; padding: 0.6rem 0.9rem;
 }
-.game-title-small { font-size: 1.2rem; font-weight: 700; flex: 1; }
+/* Crece y absorbe el truncado; min-width:0 es lo que permite que el
+   text-overflow del titulo funcione dentro de un flex item.
+   Envuelve en vez de recortar: con `overflow:hidden` y los distintivos a
+   `flex:none`, el caso de espectador (titulo + ronda + meta + "Modo
+   espectador") tiraba el titulo a ancho cero y cortaba "Meta 5" por la mitad. */
+.game-header-main {
+    display: flex; align-items: center; flex-wrap: wrap;
+    column-gap: 0.5rem; row-gap: 0.3rem;
+    flex: 1 1 auto; min-width: 0;
+}
+.game-header-actions {
+    display: flex; align-items: center; gap: 0.6rem;
+    flex: 0 0 auto; margin-left: auto;
+}
+/* Un titulo de dos palabras envolvia y empujaba el "?" a una fila propia.
+   El min-width evita que se colapse a nada cuando hay muchos distintivos. */
+.game-title-small {
+    font-size: 1.05rem; font-weight: 700;
+    flex: 0 1 auto; min-width: 4.5rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .round-badge {
     background: rgba(240,192,64,0.15); color: #f0c040;
     padding: 0.2rem 0.8rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600;
@@ -158,6 +178,20 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
     border: 1.5px solid #3a3a5c;
 }
 .deck-count { font-size: 0.85rem; color: #aaa; white-space: nowrap; }
+.deck-view { flex: none; }
+
+/* En movil el mazo a 50x70 marcaba el alto de la cabecera y, entre dibujo y
+   texto, se llevaba ~100px de ancho: con eso el titulo se truncaba a "T.".
+   Se conserva la cuenta, que es el dato, y se cae el dibujo, que es adorno. */
+@media (max-width: 560px) {
+    .deck-stack { display: none; }
+    .deck-view { gap: 0.4rem; }
+    .deck-count { font-size: 0.72rem; }
+    .game-title-small { font-size: 0.95rem; }
+    .round-badge, .target-badge { font-size: 0.72rem; padding: 0.15rem 0.5rem; }
+}
+/* Los distintivos no se encogen: el que trunca es el titulo. */
+.round-badge, .target-badge, .spectator-badge, .spectator-count { flex: none; }
 
 /* ===== WAITING ROOM ===== */
 .waiting-room {
@@ -491,8 +525,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .lobby-header { display: flex; flex-direction: column; align-items: center; }
 .lobby-title-row { display: flex; align-items: center; gap: 0.5rem; }
 
-.game-header { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
-.game-header .btn-mute { margin-left: auto; }
+/* (la definicion de .game-header esta arriba; aqui solo el boton de sonido,
+   que ya no necesita margin-left:auto porque lo aporta .game-header-actions) */
 .btn-mute {
     background: transparent; border: none; font-size: 1.2rem;
     cursor: pointer; line-height: 1; padding: 0.2rem; opacity: 0.7;

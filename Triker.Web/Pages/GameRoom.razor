@@ -37,33 +37,46 @@
     else
     {
         <HelpModal Visible="_helpVisible" OnClose="@(() => _helpVisible = false)" />
+        @* Dos grupos para que el ajuste de linea sea predecible: la parte de la
+           izquierda crece y trunca el titulo; los controles nunca se parten. *@
         <div class="game-header">
-            <span class="game-title-small">@_state.Name</span>
-            <span class="round-badge">Ronda @_state.RoundNumber</span>
-            @if (_state.TargetWins > 0)
-            {
-                <span class="target-badge">Meta @_state.TargetWins🥇</span>
-            }
-            @if (IsSpectator)
-            {
-                <span class="spectator-badge">👁 Modo espectador</span>
-            }
-            else if (_state.Spectators.Count > 0)
-            {
-                <span class="spectator-count" title="@string.Join(", ", _state.Spectators.Select(s => s.Name))">
-                    👁 @_state.Spectators.Count
-                </span>
-            }
-            <DeckView DeckSize="_state.DeckSize" />
-            <button class="btn-mute" @onclick="@(() => Audio.Enabled = !Audio.Enabled)"
-                    title="@(Audio.Enabled ? "Silenciar" : "Activar sonido")">
-                @(Audio.Enabled ? "🔊" : "🔇")
-            </button>
-            <button class="btn-help" @onclick="@(() => _helpVisible = true)" title="Ayuda">?</button>
-            @if (IsSpectator)
-            {
-                <button class="btn-secondary btn-leave-spectate" @onclick="LeaveSpectate">Salir</button>
-            }
+            <div class="game-header-main">
+                <span class="game-title-small" title="@_state.Name">@_state.Name</span>
+                @* Ronda y mazo no significan nada antes de repartir. *@
+                @if (_state.Status != GameStatus.Waiting)
+                {
+                    <span class="round-badge">Ronda @_state.RoundNumber</span>
+                }
+                @if (_state.TargetWins > 0)
+                {
+                    <span class="target-badge">Meta @_state.TargetWins🥇</span>
+                }
+                @if (IsSpectator)
+                {
+                    <span class="spectator-badge">👁 Modo espectador</span>
+                }
+                else if (_state.Spectators.Count > 0)
+                {
+                    <span class="spectator-count" title="@string.Join(", ", _state.Spectators.Select(s => s.Name))">
+                        👁 @_state.Spectators.Count
+                    </span>
+                }
+            </div>
+            <div class="game-header-actions">
+                @if (_state.Status != GameStatus.Waiting)
+                {
+                    <DeckView DeckSize="_state.DeckSize" />
+                }
+                <button class="btn-mute" @onclick="@(() => Audio.Enabled = !Audio.Enabled)"
+                        title="@(Audio.Enabled ? "Silenciar" : "Activar sonido")">
+                    @(Audio.Enabled ? "🔊" : "🔇")
+                </button>
+                <button class="btn-help" @onclick="@(() => _helpVisible = true)" title="Ayuda">?</button>
+                @if (IsSpectator)
+                {
+                    <button class="btn-secondary btn-leave-spectate" @onclick="LeaveSpectate">Salir</button>
+                }
+            </div>
         </div>
 
         @if (_state.Status == GameStatus.Waiting)
