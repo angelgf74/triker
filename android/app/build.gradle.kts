@@ -1,8 +1,9 @@
 import java.util.Properties
 
 plugins {
+    // Desde AGP 9.0 el soporte de Kotlin viene integrado: aplicar ademas
+    // org.jetbrains.kotlin.android falla. Ver https://kotl.in/gradle/agp-built-in-kotlin
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
 }
 
 // Carga credenciales de firma desde keystore.properties (no versionado), si existe.
@@ -51,9 +52,13 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+}
 
-    kotlinOptions {
-        jvmTarget = "17"
+// DSL moderno de Kotlin: `android { kotlinOptions { jvmTarget } }` dejo de ser
+// un aviso y pasa a error de compilacion del script en Kotlin 2.4.
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 

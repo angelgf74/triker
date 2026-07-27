@@ -1,5 +1,6 @@
 // Plugins declarados a nivel raíz, aplicados en cada módulo.
 plugins {
-    id("com.android.application") version "8.10.0" apply false
-    id("org.jetbrains.kotlin.android") version "2.1.0" apply false
+    // AGP 9 lleva el soporte de Kotlin dentro; ya no se declara el plugin
+    // org.jetbrains.kotlin.android. https://kotl.in/gradle/agp-built-in-kotlin
+    id("com.android.application") version "9.3.1" apply false
 }
