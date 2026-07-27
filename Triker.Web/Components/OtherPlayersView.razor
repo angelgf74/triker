@@ -1,61 +1,66 @@
 @using Triker.Shared.Dtos
 @using Triker.Shared.Models
 
+@*
+    Fila compacta por rival. Durante la partida HandSize siempre vale 5 (se
+    descartan N cartas y se roban N al momento), asi que pintar cinco cartas
+    boca abajo por jugador ocupaba ~180px para no decir nada: con 8 jugadores
+    la mesa medi­a 1656px en una ventana de 873. Lo que si cambia -- turno,
+    descarte, medallas -- cabe en una linea.
+*@
+
 <div class="other-players">
     @foreach (var player in Players
         .SkipWhile(p => p.Id != MyPlayerId).Skip(1)
         .Concat(Players.TakeWhile(p => p.Id != MyPlayerId)))
     {
-        <div class="other-player @(player.IsCurrentTurn ? "active-turn" : "")">
+        var ready = player.TurnStatus == PlayerTurnStatus.Ready;
+
+        <div class="other-player @(player.IsCurrentTurn ? "active-turn" : "") @(ready ? "is-ready" : "")">
             @if (Reactions != null && Reactions.TryGetValue(player.Id, out var rx))
             {
                 <span class="reaction-bubble" @key="rx.Seq">@rx.Emoji</span>
             }
-            <div class="other-player-header">
-                <span class="other-player-name">@player.Name</span>
-                @if (player.IsBot) { <span class="player-tag tag-bot">Bot</span> }
+
+            <span class="op-mark" aria-hidden="true">@(player.IsCurrentTurn ? "▶" : ready ? "✓" : "•")</span>
+
+            <span class="other-player-name">@player.Name</span>
+
+            @if (player.IsBot)
+            {
+                <span class="player-tag tag-bot">Bot</span>
+            }
+
+            @if (player.Wins > 0 || player.Seconds > 0 || player.Thirds > 0)
+            {
+                <span class="player-medals">
+                    @if (player.Wins > 0)    { <span>🥇@player.Wins</span> }
+                    @if (player.Seconds > 0) { <span>🥈@player.Seconds</span> }
+                    @if (player.Thirds > 0)  { <span>🥉@player.Thirds</span> }
+                </span>
+            }
+
+            <span class="op-state">
                 @if (player.IsCurrentTurn)
                 {
-                    <span class="turn-badge">▶ turno</span>
+                    <span class="turn-badge">su turno</span>
                 }
-                @if (player.TurnStatus == PlayerTurnStatus.Ready)
+                else if (ready)
                 {
-                    <span class="ready-badge">✓ listo</span>
-                }
-                @if (player.Wins > 0 || player.Seconds > 0 || player.Thirds > 0)
-                {
-                    <span class="player-medals">
-                        @if (player.Wins > 0)    { <span>🥇@player.Wins</span> }
-                        @if (player.Seconds > 0) { <span>🥈@player.Seconds</span> }
-                        @if (player.Thirds > 0)  { <span>🥉@player.Thirds</span> }
-                    </span>
-                }
-            </div>
-            <div class="other-player-cards">
-                @for (int i = 0; i < player.HandSize; i++)
-                {
-                    <CardView FaceDown="true" />
-                }
-            </div>
-            @if (player.TurnStatus == PlayerTurnStatus.Ready)
-            {
-                @if (player.DiscardCount > 0)
-                {
-                    <div class="discard-section">
-                        <span class="discard-section-label">Descartó @player.DiscardCount</span>
-                        <div class="discard-pile-row">
-                            @for (int i = 0; i < player.DiscardCount; i++)
-                            {
-                                <CardView FaceDown="true" />
-                            }
-                        </div>
-                    </div>
+                    @if (player.DiscardCount > 0)
+                    {
+                        <span class="ready-badge" title="Cambió @player.DiscardCount cartas">descartó @player.DiscardCount</span>
+                    }
+                    else
+                    {
+                        <span class="ready-badge pass">pasó</span>
+                    }
                 }
                 else
                 {
-                    <div class="discard-info">Pasó sin descartar</div>
+                    <span class="thinking-badge">pensando…</span>
                 }
-            }
+            </span>
         </div>
     }
 </div>
