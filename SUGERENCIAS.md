@@ -68,7 +68,7 @@
 
 ### Accesibilidad
 - [ ] Atajos de teclado — números 1-5 para seleccionar cartas, Enter para descartar, Esc para deseleccionar
-- [ ] Modo daltónico — añadir patrones/texturas a las cartas además del color
+- [x] Modo daltónico — añadir patrones/texturas a las cartas además del color. Resuelto con un código de dos letras (RJ, VD, AZ, CY, MG, NG, NJ, MR) en la esquina de cada carta, no con textura: a 54 px en móvil un patrón pelea con la figura central, y el código se compara de un vistazo. Interruptor en la ayuda, bajo "Accesibilidad"
 - [ ] Lector de pantalla — labels ARIA en componentes interactivos clave
 
 ### Técnica

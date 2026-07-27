@@ -14,6 +14,8 @@
         <div class="card-corner top-left">
             <span class="card-letter">@LetterLabel</span>
         </div>
+        @* Solo visible con el modo daltonico activo (body.colorblind), ver app.css. *@
+        <span class="card-color-code">@ColorCode</span>
         <div class="card-figure-center">
             <span class="card-figure">@FigureSymbol</span>
         </div>
@@ -75,6 +77,23 @@
         Figure.Spade => "♠",
         _ => "?"
     };
+    // Dos letras en vez de textura: a 54 px de ancho en movil un patron pelea
+    // con la figura central, y el codigo se compara de un vistazo, que es lo
+    // que hace falta para saber si dos cartas comparten color. La leyenda esta
+    // en el modal de ayuda.
+    private string ColorCode => Card?.Color switch
+    {
+        CardColor.Red => "RJ",
+        CardColor.Green => "VD",
+        CardColor.Blue => "AZ",
+        CardColor.Black => "NG",
+        CardColor.Magenta => "MG",
+        CardColor.Cyan => "CY",
+        CardColor.Orange => "NJ",
+        CardColor.Brown => "MR",
+        _ => ""
+    };
+
     private string ColorClass => Card?.Color switch
     {
         CardColor.Red => "color-red",

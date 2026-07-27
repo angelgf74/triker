@@ -379,6 +379,32 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .color-orange { background: linear-gradient(160deg, #fff7f0, #fff); border-color: #ffe0b2; }
 .color-brown  { background: linear-gradient(160deg, #faf5f2, #fff); border-color: #d7ccc8; }
 
+/* ===== MODO DALTONICO =====
+   El color es 1 de los 3 atributos que puntuan y el unico sin glifo propio.
+   El codigo va en gris neutro a proposito: si dependiera del tono no serviria
+   para lo que existe. Se activa desde el modal de ayuda (AccessibilityService). */
+.card-color-code {
+    display: none;
+    position: absolute; top: 3px; right: 4px;
+    font-size: 0.58rem; font-weight: 900; line-height: 1;
+    color: #263238;
+    background: rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.22);
+    border-radius: 4px;
+    padding: 1px 3px;
+}
+body.colorblind .card-color-code { display: block; }
+
+/* Leyenda de codigos en la ayuda: solo estorba si no se usan. */
+.cb-code { display: none; font-weight: 800; font-size: 0.78em; opacity: 0.75; }
+body.colorblind .cb-code { display: inline; }
+
+.help-accessibility {
+    display: flex; align-items: flex-start; gap: 0.6rem;
+    cursor: pointer; line-height: 1.35;
+}
+.help-accessibility input { margin-top: 0.2rem; flex-shrink: 0; }
+
 /* ===== RESULTS ===== */
 .results-view {
     display: flex; flex-direction: column; gap: 1.5rem;
@@ -534,6 +560,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
     }
     .card-letter { font-size: 0.72rem; }
     .card-figure  { font-size: 3.9rem; }
+    .card-color-code { font-size: 0.48rem; top: 2px; right: 2px; padding: 1px 2px; }
 
     /* Mano: una fila sin wrap */
     .hand-cards {
@@ -738,7 +765,15 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
     width: 34px; height: 48px;
     border-radius: 6px; border: 1.5px solid;
     padding: 3px 2px; box-sizing: border-box; flex-shrink: 0;
+    position: relative;
 }
+/* A 34 px no cabe el recuadro que llevan las cartas de verdad, solo el texto. */
+.hmc-cb {
+    display: none;
+    position: absolute; bottom: 1px; right: 2px;
+    font-size: 0.45rem; font-weight: 900; line-height: 1; color: #37474f;
+}
+body.colorblind .hmc-cb { display: block; }
 .hmc-lt  { font-size: 0.65rem; font-weight: 900; align-self: flex-start; line-height: 1; }
 .hmc-fig { font-size: 1.3rem; line-height: 1; }
 .color-red     .hmc-lt, .color-red     .hmc-fig { color: #e53935; }

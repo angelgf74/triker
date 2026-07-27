@@ -28,6 +28,13 @@
 </head>
 
 <body>
+    <script>
+        // Antes de pintar nada: si no, las cartas aparecen sin los codigos de
+        // color y se los ve aparecer al arrancar Blazor. Ver AccessibilityService.
+        if (localStorage.getItem('triker_colorblind') === '1') {
+            document.body.classList.add('colorblind');
+        }
+    </script>
     <div id="app">
         <div class="loading-screen">
             <h1 class="loading-title">TRI<span class="mirror-k">K</span>ER</h1>
