@@ -895,6 +895,32 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .private-code-hint { font-size: 0.8rem; color: #aaa; }
 
+/* El codigo es un boton, pero debe seguir leyendose como el numero grande. */
+.btn-copy-code {
+    background: none; border: none; padding: 0; cursor: pointer;
+    border-radius: 8px;
+    transition: opacity 0.15s ease;
+}
+.btn-copy-code:hover { opacity: 0.75; }
+
+.invite-row {
+    display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
+    margin-bottom: 1rem;
+}
+.btn-invite { font-size: 0.95rem; }
+
+.invite-banner {
+    display: flex; flex-direction: column; align-items: center; gap: 0.6rem;
+    background: linear-gradient(135deg, rgba(120,220,150,0.15), rgba(120,220,150,0.05));
+    border: 1.5px solid rgba(120,220,150,0.45); border-radius: 12px;
+    padding: 0.85rem 1rem; margin: 0.5rem 0 1rem;
+}
+.invite-banner-title { font-size: 1rem; font-weight: 700; color: #a7e8bd; text-align: center; }
+.invite-banner-actions {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.5rem;
+}
+.invite-banner-hint { font-size: 0.85rem; color: #aaa; }
+
 .game-actions {
     display: flex; gap: 0.4rem; flex-wrap: wrap;
 }

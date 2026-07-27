@@ -76,6 +76,36 @@ window.TrikerShare = (function () {
                 }
             }
             return 'unsupported';
+        },
+
+        // Copia texto sin abrir el selector de compartir (para el codigo privado).
+        // navigator.clipboard no existe fuera de contextos seguros ni en algunos
+        // WebView, de ahi el fallback con textarea + execCommand.
+        copy: async function (text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    return 'copied';
+                } catch (e) {
+                    console.warn('clipboard error', e);
+                }
+            }
+
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.setAttribute('readonly', '');
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                const ok = document.execCommand('copy');
+                ta.remove();
+                if (ok) return 'copied';
+            } catch (e) {
+                console.warn('execCommand copy error', e);
+            }
+            return 'unsupported';
         }
     };
 })();

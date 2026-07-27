@@ -52,7 +52,7 @@
 ## Lista 3
 
 ### Social / Multijugador
-- [ ] Invitación por enlace directo — URL compartible que abra una partida privada con el código pre-rellenado
+- [x] Invitación por enlace directo — URL compartible que abra una partida privada con el código pre-rellenado. Resuelto con `/?join=<id>&code=<código>`: si ya hay nombre guardado y la partida sigue esperando, entra sola; si no, un banner pide lo que falte
 - [ ] Jugadores recientes — recordar con quién has jugado para volver a invitarles fácilmente
 - [ ] Ranking global — tabla de victorias acumuladas entre sesiones (requiere persistencia)
 
@@ -83,7 +83,7 @@
 > Detectadas jugando partidas reales a viewport de móvil (393×873, el de la app Android).
 
 ### Presentación / Pulido
-- [ ] Rivales compactos — con 8 jugadores la partida ocupa 1656 px en una ventana de 873, y cada rival muestra 5 cartas boca abajo idénticas que no aportan nada. Colapsarlos a una fila (nombre · nº de cartas · turno/descarte) y reservar las cartas grandes para el reveal
+- [x] Rivales compactos — con 8 jugadores la partida ocupa 1656 px en una ventana de 873, y cada rival muestra 5 cartas boca abajo idénticas que no aportan nada. Colapsarlos a una fila (nombre · nº de cartas · turno/descarte) y reservar las cartas grandes para el reveal
 - [ ] La barra de reacciones tapa contenido — `.reaction-toolbar` es `position: sticky; bottom` (`app.css:846`); con la página larga flota sobre la lista de jugadores y oculta nombres
 - [x] Tu resultado sin scroll — la pantalla de resultados con 8 jugadores mide 1905 px (≈2,2 pantallas) y tu entrada queda hacia la mitad: había que bajar más de una pantalla solo para saber cómo te había ido. Resuelto con una tarjeta de resumen arriba (posición, jugada, puntos y quién ganó)
 - [x] Decidir después de ver — el bloque "¿Quieres jugar otra partida?" está encima de la lista de resultados: se pregunta antes de mostrar cómo ha ido la ronda
@@ -98,6 +98,6 @@
 - [ ] Meta visible en el lobby — las tarjetas muestran jugadores y estado, pero no si la partida es "a 3 victorias" o "sin límite"; te unes a ciegas a algo que puede no acabar nunca
 
 ### Social / Multijugador
-- [ ] Copiar el código privado — se muestra con un "Compártelo con tus amigos" pero no se puede copiar: hay que leer los dígitos y teclearlos en otra app
-- [ ] Salida de la sala de espera en solitario — creas partida, te quedas solo y la única acción posible es añadir bots; no hay ninguna forma de invitar a nadie
+- [x] Copiar el código privado — se muestra con un "Compártelo con tus amigos" pero no se puede copiar: hay que leer los dígitos y teclearlos en otra app. Resuelto: el código es un botón que copia al portapapeles
+- [x] Salida de la sala de espera en solitario — creas partida, te quedas solo y la única acción posible es añadir bots; no hay ninguna forma de invitar a nadie. Resuelto con "Invitar a un amigo" en la sala de espera (pública o privada), que comparte el enlace por el selector nativo
 - [ ] Espectador con información — hoy solo se ven cartas boca abajo hasta el reveal: darle el panel de estadísticas de sesión y el historial de rondas, que ya están construidos

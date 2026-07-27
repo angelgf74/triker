@@ -31,6 +31,29 @@
         <div class="error-msg">@_error</div>
     }
 
+    @if (InvitedGame is { } invited)
+    {
+        <div class="invite-banner">
+            <span class="invite-banner-title">🎴 Te han invitado a «@invited.Name»</span>
+            <div class="invite-banner-actions">
+                @if (string.IsNullOrWhiteSpace(_playerName))
+                {
+                    <span class="invite-banner-hint">Escribe tu nombre arriba para entrar.</span>
+                }
+                else if (invited.Status == Triker.Shared.Models.GameStatus.Waiting)
+                {
+                    <button class="btn-primary" @onclick="() => AcceptInvite(invited.Id)">Entrar en la partida</button>
+                }
+                else
+                {
+                    <span class="invite-banner-hint">La partida ya ha empezado.</span>
+                    <button class="btn-spectate" @onclick="() => Spectate(invited.Id, true)">👁 Ver</button>
+                }
+                <button class="btn-secondary" @onclick="DismissInvite">Cancelar</button>
+            </div>
+        </div>
+    }
+
     <div class="lobby-actions">
         <button class="btn-primary" @onclick="ShowCreateForm" disabled="@(string.IsNullOrWhiteSpace(_playerName))">
             + Nueva partida
@@ -144,13 +167,18 @@
     private bool _sugVisible = false;
     private Guid? _joiningGameId = null;
     private string _joinCode = "";
+    private Guid? _invitedGameId = null;
     private List<Triker.Shared.Dtos.GameSummaryDto> _games = [];
     private HubConnection? _hubConnection;
+
+    private Triker.Shared.Dtos.GameSummaryDto? InvitedGame
+        => _invitedGameId is Guid id ? _games.FirstOrDefault(g => g.Id == id) : null;
 
     protected override async Task OnInitializedAsync()
     {
         _playerName = await Session.GetPlayerName() ?? "";
         await LoadGames();
+        await HandleInvite();
 
         var apiBase = (Config["ApiBaseUrl"] ?? "https://localhost:7077").TrimEnd('/');
         _hubConnection = new HubConnectionBuilder()
@@ -167,6 +195,65 @@
         });
 
         await _hubConnection.StartAsync();
+    }
+
+    // Enlace de invitacion: /?join=<gameId>&code=<codigo> (lo genera InviteLink
+    // en GameRoom.razor). Si ya tenemos nombre y la partida sigue esperando,
+    // entramos directos; si no, el banner pide lo que falte.
+    private async Task HandleInvite()
+    {
+        _invitedGameId = ParseGuidParam(Nav.Uri, "join");
+        if (_invitedGameId == null) return;
+
+        _joinCode = ParseParam(Nav.Uri, "code") ?? "";
+
+        var game = InvitedGame;
+        if (game == null)
+        {
+            _error = "La partida de la invitación ya no está disponible.";
+            _invitedGameId = null;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_playerName)) return;
+        if (game.Status != Triker.Shared.Models.GameStatus.Waiting) return;
+
+        await AcceptInvite(game.Id);
+    }
+
+    // Si el codigo que venia en el enlace no vale, no tiene sentido dejar un
+    // boton que reintente lo mismo: abrimos el formulario manual de la partida.
+    private async Task AcceptInvite(Guid gameId)
+    {
+        await JoinGame(gameId, withCode: true);
+        if (!string.IsNullOrWhiteSpace(_error))
+        {
+            _invitedGameId = null;
+            _joiningGameId = gameId;
+        }
+    }
+
+    private void DismissInvite()
+    {
+        _invitedGameId = null;
+        _joinCode = "";
+        _error = "";
+        Nav.NavigateTo("/");
+    }
+
+    private static Guid? ParseGuidParam(string url, string name)
+        => Guid.TryParse(ParseParam(url, name), out var id) ? id : null;
+
+    private static string? ParseParam(string url, string name)
+    {
+        var query = new Uri(url).Query.TrimStart('?');
+        foreach (var part in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var kv = part.Split('=', 2);
+            if (kv.Length == 2 && kv[0] == name)
+                return Uri.UnescapeDataString(kv[1]);
+        }
+        return null;
     }
 
     private async Task OnNameInput(ChangeEventArgs e)

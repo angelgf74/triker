@@ -5,6 +5,7 @@
 @inject NavigationManager Nav
 @inject IConfiguration Config
 @inject AudioService Audio
+@inject ShareService ShareSvc
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
@@ -87,8 +88,21 @@
                 {
                     <div class="private-code-banner">
                         <span class="private-code-label">🔒 Código privado</span>
-                        <span class="private-code-value">@_state.AccessCode</span>
+                        <button class="private-code-value btn-copy-code" title="Copiar el código"
+                                @onclick="CopyCode">@_state.AccessCode 📋</button>
                         <span class="private-code-hint">Compártelo con tus amigos para que puedan unirse</span>
+                    </div>
+                }
+                @if (!IsSpectator)
+                {
+                    <div class="invite-row">
+                        <button class="btn-primary btn-invite" @onclick="InviteFriends">
+                            👥 Invitar a un amigo
+                        </button>
+                        @if (_inviteNotice != null)
+                        {
+                            <span class="share-notice">@_inviteNotice</span>
+                        }
                     </div>
                 }
                 @if (IsSpectator)
@@ -279,6 +293,8 @@
     private int _reactionSeq = 0;
     private static readonly TimeSpan ReactionTtl = TimeSpan.FromSeconds(2.5);
 
+    private string? _inviteNotice;
+
     private int MaxPlayers => _state != null ? Math.Min(16, (int)Math.Floor((double)(_state.N * _state.N) / 2)) : 0;
     private string CountdownClass => _turnSecondsLeft switch { <= 10 => "countdown-danger", <= 20 => "countdown-warn", _ => "countdown-ok" };
 
@@ -364,6 +380,55 @@
     }
 
     private void Reload() => Nav.NavigateTo(Nav.Uri, forceLoad: true);
+
+    // Enlace que abre el lobby con la partida ya elegida y, si es privada, el
+    // codigo puesto (ver el bloque de invitacion en Lobby.razor).
+    private string InviteLink()
+    {
+        var link = $"{Nav.BaseUri.TrimEnd('/')}/?join={GameId}";
+        if (_state?.IsPrivate == true && !string.IsNullOrEmpty(_state.AccessCode))
+            link += $"&code={_state.AccessCode}";
+        return link;
+    }
+
+    private async Task InviteFriends()
+    {
+        if (_state == null) return;
+
+        // El codigo va tambien en texto: hay clientes de mensajeria que recortan
+        // la query del enlace al generar la vista previa.
+        var text = $"🎴 ¡Te invito a jugar a Triker! Partida: \"{_state.Name}\"\n" +
+                    (_state.IsPrivate && !string.IsNullOrEmpty(_state.AccessCode)
+                        ? $"🔒 Código: {_state.AccessCode}\n"
+                        : "") +
+                    $"👉 {InviteLink()}";
+
+        var outcome = await ShareSvc.Share(text);
+        await ShowInviteNotice(outcome switch
+        {
+            "copied" => "¡Invitación copiada al portapapeles!",
+            "unsupported" or "error" => "No se pudo compartir la invitación",
+            _ => null,
+        });
+    }
+
+    private async Task CopyCode()
+    {
+        if (string.IsNullOrEmpty(_state?.AccessCode)) return;
+        var outcome = await ShareSvc.Copy(_state.AccessCode);
+        await ShowInviteNotice(outcome == "copied" ? "¡Código copiado!" : "No se pudo copiar el código");
+    }
+
+    private async Task ShowInviteNotice(string? notice)
+    {
+        _inviteNotice = notice;
+        StateHasChanged();
+        if (notice == null) return;
+
+        await Task.Delay(2500);
+        _inviteNotice = null;
+        StateHasChanged();
+    }
 
     private void StartCountdown(DateTimeOffset deadline)
     {
