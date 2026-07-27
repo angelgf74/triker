@@ -74,7 +74,7 @@ Reúne tus mejores combinaciones de letras, figuras y colores, sube en la clasif
 
 ## Notas de la versión  (What's new — máx. 500 caracteres)
 
-### Versión 1.1 (versionCode 2)
+### Versión 1.3 (versionCode 4)
 
 ```
 Novedades:
