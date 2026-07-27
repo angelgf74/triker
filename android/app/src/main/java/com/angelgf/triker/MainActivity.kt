@@ -39,8 +39,9 @@ class MainActivity : ComponentActivity() {
             // Mantiene la navegación dentro del WebView (no abre el navegador externo).
             webViewClient = WebViewClient()
             webChromeClient = WebChromeClient()
-            // Expone window.AndroidAds a la web.
+            // Expone window.AndroidAds y window.AndroidShare a la web.
             addJavascriptInterface(AdsBridge(this@MainActivity, ads), "AndroidAds")
+            addJavascriptInterface(ShareBridge(this@MainActivity), "AndroidShare")
         }
         setContentView(webView)
 

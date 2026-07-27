@@ -1,4 +1,6 @@
 @using Triker.Shared.Dtos
+@inject ShareService ShareSvc
+@inject IJSRuntime JS
 
 <div class="results-view">
     @if (GameOver)
@@ -151,6 +153,17 @@
 
                 <PlayBadge Result="result" />
 
+                @if (result.PlayerId == MyPlayerId)
+                {
+                    <button class="btn-share" title="Compartir jugada" @onclick="() => ShareResult(result)">
+                        📤 Compartir
+                    </button>
+                    @if (_shareNotice != null)
+                    {
+                        <span class="share-notice">@_shareNotice</span>
+                    }
+                }
+
             </div>
         }
     </div>
@@ -211,11 +224,64 @@
     [Parameter] public bool IsSpectator { get; set; }
 
     private bool _decided = false;
+    private string? _shareNotice;
 
     private async Task Decide(bool wantsToContinue)
     {
         _decided = true;
         await OnContinue.InvokeAsync(wantsToContinue);
+    }
+
+    private async Task ShareResult(HandResultDto result)
+    {
+        var text = $"🎴 ¡Conseguí \"{result.HandName}\" jugando a Triker! ({result.TotalScore} pts)\n" +
+                    "👉 App web: https://triker-app.angelgf.com.es/\n" +
+                    "👉 Android: https://play.google.com/store/apps/details?id=com.angelgf.triker";
+
+        string? image = null;
+        try { image = await RenderHandImage(result); }
+        catch { /* si falla el canvas, se comparte solo el texto */ }
+
+        var outcome = await ShareSvc.Share(text, image);
+        _shareNotice = outcome switch
+        {
+            "copied" => "¡Copiado al portapapeles!",
+            "copied+downloaded" => "¡Copiado! Imagen descargada.",
+            "unsupported" or "error" => "No se pudo compartir",
+            _ => null,
+        };
+        StateHasChanged();
+
+        if (_shareNotice != null)
+        {
+            await Task.Delay(2500);
+            _shareNotice = null;
+            StateHasChanged();
+        }
+    }
+
+    // Genera un PNG (data URL) con las cartas de la jugada, coloreando los
+    // grupos igual que en la tabla de resultados (ver ResultsView markup).
+    private async Task<string> RenderHandImage(HandResultDto result)
+    {
+        var cardGroup = new Dictionary<Guid, int>();
+        for (int gi = 0; gi < result.Groups.Count; gi++)
+            if (result.Groups[gi].Cards.Count >= 2)
+                foreach (var c in result.Groups[gi].Cards)
+                    cardGroup[c.Id] = gi;
+
+        var cards = result.Hand
+            .OrderBy(c => cardGroup.TryGetValue(c.Id, out var g) ? g : 999)
+            .Select(c => new
+            {
+                letter = c.Letter.ToString(),
+                figure = CardVisuals.FigureSymbol(c.Figure),
+                color = CardVisuals.ColorHex(c.Color),
+                groupColor = cardGroup.TryGetValue(c.Id, out var gi) ? GroupColors[gi % GroupColors.Length] : null
+            })
+            .ToList();
+
+        return await JS.InvokeAsync<string>("TrikerHandImage.render", cards, result.HandName, result.TotalScore, result.PlayerName);
     }
 
     private int Position(HandResultDto result)

@@ -21,5 +21,6 @@ builder.Services.AddScoped<ApiService>();
 builder.Services.AddScoped<SessionService>();
 builder.Services.AddScoped<HubService>();
 builder.Services.AddScoped<AudioService>();
+builder.Services.AddScoped<ShareService>();
 
 await builder.Build().RunAsync();

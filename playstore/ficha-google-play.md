@@ -74,6 +74,16 @@ Reúne tus mejores combinaciones de letras, figuras y colores, sube en la clasif
 
 ## Notas de la versión  (What's new — máx. 500 caracteres)
 
+### Versión 1.1 (versionCode 2)
+
+```
+Novedades:
+• Nuevo botón "Compartir" en los resultados: comparte tu jugada con una imagen de las cartas, la puntuación y el enlace a la app.
+¡Gracias por jugar! Cuéntanos qué te parece.
+```
+
+### Versión 1.0 (versionCode 1)
+
 ```
 ¡Primera versión de Triker!
 • Multijugador en tiempo real.
