@@ -3,9 +3,18 @@ Description=Triker API
 After=network.target postgresql.service
 
 [Service]
+# User=webapps es obligatorio, no cosmético: la cadena de conexión usa el
+# socket Unix (Host=/var/run/postgresql) con Username=webapps, y PostgreSQL
+# aplica ahí peer auth, que compara el usuario del SO con el de la base de
+# datos. Ejecutando como root falla con 28000 "Peer authentication failed"
+# y el arranque se queda sin persistencia (EnsureSchemaAsync no llega a
+# crear game_snapshots, y luego todo SaveAsync/DeleteAsync revienta).
 User=webapps
 WorkingDirectory=/apps/triker/api
-ExecStart=/usr/bin/dotnet /apps/triker/api/Triker.Api.dll
+# El puerto tiene que ser el mismo al que apunta proxy_pass en
+# deploy/nginx-triker.conf. Sin --urls la app cogería el Urls de
+# appsettings.Production.json (55001) y nginx seguiría llamando al 54003.
+ExecStart=/usr/bin/dotnet /apps/triker/api/Triker.Api.dll --urls=http://127.0.0.1:54003
 Environment=ASPNETCORE_ENVIRONMENT=Production
 Environment=DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
 Restart=always
