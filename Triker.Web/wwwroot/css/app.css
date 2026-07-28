@@ -319,7 +319,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
     max-width: 110px;
     container-type: inline-size;
 }
-.hand-cards .card .card-letter     { font-size: 19cqw; }
+.hand-cards .card .card-letter     { font-size: 32cqw; }
 .hand-cards .card .card-figure     { font-size: 76cqw; }
 .hand-cards .card .card-color-code { font-size: 13cqw; top: 4%; right: 4%; }
 .discard-controls { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
