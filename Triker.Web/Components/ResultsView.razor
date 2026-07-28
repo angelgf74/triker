@@ -182,10 +182,22 @@
                     @if (pd != null)
                     {
                         @* "−2" se leia como una penalizacion de puntos; son
-                           cartas cambiadas. Mismo vocabulario que la mesa. *@
-                        <span class="discard-badge-result" title="Cartas descartadas esta ronda">
-                            @(pd.DiscardCount == 0 ? "pasó" : $"descartó {pd.DiscardCount}")
-                        </span>
+                           cartas cambiadas. Mismo vocabulario que la mesa.
+                           Si el turno se agoto, "pasó" mentia: no lo decidio el
+                           jugador y aqui es donde va a preguntarse que paso. *@
+                        @if (pd.TurnTimedOut)
+                        {
+                            <span class="discard-badge-result badge-timeout"
+                                  title="Se acabó el tiempo del turno y se pasó automáticamente">
+                                ⏱ sin tiempo
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="discard-badge-result" title="Cartas descartadas esta ronda">
+                                @(pd.DiscardCount == 0 ? "pasó" : $"descartó {pd.DiscardCount}")
+                            </span>
+                        }
                     }
                 </div>
 

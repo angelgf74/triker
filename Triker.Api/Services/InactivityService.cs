@@ -82,9 +82,20 @@ public class InactivityService(GameService gameService, GameBroadcaster broadcas
 
         logger.LogWarning("Turn timeout for player {PlayerId} in game {GameId} — auto-pass", playerId, gameId);
 
+        // La conexion se lee antes de jugar: al pasar el turno avanza y el
+        // jugador deja de ser CurrentTurnPlayer.
+        var player = game.Players.FirstOrDefault(p => p.Id == playerId);
+        var connectionId = player?.ConnectionId;
+
         // Auto-pass: discard nothing, keep all cards
         if (!gameService.SubmitDiscard(gameId, playerId, []))
             return;
+
+        // Queda marcado en el estado, no solo en este aviso: quien se queda sin
+        // tiempo suele estar mirando a otro lado, asi que el banner puede
+        // perderselo y necesita encontrarlo luego en los resultados.
+        if (player != null) player.TurnTimedOut = true;
+        if (connectionId != null) await broadcaster.SendTurnTimedOut(connectionId);
 
         await ProcessBotsAndBroadcast(gameId);
     }

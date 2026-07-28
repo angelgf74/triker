@@ -15,6 +15,7 @@ public class HubService : IAsyncDisposable
     public event Action? OnChange;
     public event Action<List<HandResultDto>>? OnHandsRevealed;
     public event Action? OnAutoLeft;
+    public event Action? OnTurnTimedOut;
     public event Action? OnReconnecting;
     public event Action? OnReconnected;
     public event Action? OnConnectionClosed;
@@ -62,6 +63,8 @@ public class HubService : IAsyncDisposable
         });
 
         _hub.On<bool>("AutoLeft", _ => OnAutoLeft?.Invoke());
+
+        _hub.On<bool>("TurnTimedOut", _ => OnTurnTimedOut?.Invoke());
 
         _hub.On<ChatReactionDto>("Reaction", r => OnReaction?.Invoke(r));
 

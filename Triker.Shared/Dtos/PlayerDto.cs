@@ -15,6 +15,8 @@ public class PlayerDto
     public int Wins { get; set; }
     public int Seconds { get; set; }
     public int Thirds { get; set; }
+    // El turno se paso solo al agotarse el tiempo, no lo decidio el jugador.
+    public bool TurnTimedOut { get; set; }
     public List<CardDto> Hand { get; set; } = [];
 
     // Jugada evaluada de la mano. El servidor solo la rellena para el propio

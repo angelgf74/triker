@@ -94,7 +94,7 @@
 ### Jugabilidad / Profundidad
 - [x] Jerarquía visible en resultados — "Doble Pareja Mixta" gana a "Doble Pareja" y nada en pantalla lo explica; la escala de 16 jugadas solo vive dentro del modal de ayuda. Resuelto con el puesto (`12/16`, `14/16`) junto a cada jugada, con la misma numeración que la tabla de la ayuda, y una línea que aclara que gana la jugada más alta y no los puntos
 - [ ] Empates explicados — un reparto normal deja dos 🥇, ningún 🥈, dos 🥉 y tres 6º: es ranking de competición correcto, pero desconcierta sin una nota que lo aclare
-- [ ] Aviso de turno agotado — `HandleTurnTimeout` hace auto-pass en silencio (`InactivityService:85`): el turno se acaba solo y el jugador no se entera de qué ha pasado
+- [x] Aviso de turno agotado — `HandleTurnTimeout` hace auto-pass en silencio (`InactivityService:85`): el turno se acaba solo y el jugador no se entera de qué ha pasado. Resuelto por partida doble: un banner en el momento y, sobre todo, la marca "⏱ sin tiempo" en los resultados en lugar de "pasó" — quien se queda sin tiempo estaba mirando a otro lado, así que el banner es justo el que se puede perder
 - [ ] Meta visible en el lobby — las tarjetas muestran jugadores y estado, pero no si la partida es "a 3 victorias" o "sin límite"; te unes a ciegas a algo que puede no acabar nunca
 
 ### Social / Multijugador

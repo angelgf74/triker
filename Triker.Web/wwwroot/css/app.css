@@ -834,11 +834,19 @@ body.colorblind .hmc-cb { display: block; }
 }
 .reconnect-warn  { background: rgba(200,160,0,0.92); color: #1a1a2e; }
 .reconnect-error { background: rgba(183,28,28,0.92); color: #fff; }
+/* Naranja y no rojo: no es un error, es informacion de lo que ha pasado. */
+.timeout-banner  { background: rgba(230,126,34,0.95); color: #1a1a2e; }
 .btn-reload {
     padding: 0.15rem 0.7rem; border-radius: 4px;
     border: 1.5px solid currentColor; background: transparent;
     color: inherit; cursor: pointer; font-weight: 700; font-size: 0.82rem;
 }
+.btn-dismiss {
+    border: none; background: transparent; color: inherit;
+    cursor: pointer; font-weight: 900; font-size: 0.9rem;
+    padding: 0 0.2rem; line-height: 1; opacity: 0.75;
+}
+.btn-dismiss:hover { opacity: 1; }
 .btn-reload:hover { background: rgba(255,255,255,0.2); }
 
 /* ===== FEEDBACK DE DESCARTE ===== */
@@ -871,6 +879,11 @@ body.colorblind .hmc-cb { display: block; }
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 10px; padding: 0.1rem 0.45rem;
     white-space: nowrap;
+}
+.discard-badge-result.badge-timeout {
+    color: #f0a868;
+    background: rgba(230,126,34,0.14);
+    border-color: rgba(230,126,34,0.45);
 }
 
 /* ===== PARTIDA A X VICTORIAS ===== */

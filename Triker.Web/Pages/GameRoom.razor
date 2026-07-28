@@ -21,6 +21,14 @@
         </div>
     }
 
+    @if (_turnTimedOut)
+    {
+        <div class="reconnect-banner timeout-banner">
+            ⏱ Se acabó tu tiempo: pasaste sin descartar.
+            <button class="btn-dismiss" @onclick="() => _turnTimedOut = false" title="Cerrar">✕</button>
+        </div>
+    }
+
     @if (_state == null)
     {
         <div class="loading">Conectando a la partida...</div>
@@ -283,6 +291,7 @@
     private bool _discarded = false;
     private bool _helpVisible = false;
     private bool _reconnecting = false;
+    private bool _turnTimedOut = false;
     private bool _connectionClosed = false;
     private string _error = "";
     private int _turnSecondsLeft;
@@ -311,6 +320,7 @@
         Hub.OnChange += OnHubChange;
         Hub.OnHandsRevealed += OnHandsRevealed;
         Hub.OnAutoLeft += OnAutoLeft;
+        Hub.OnTurnTimedOut += OnTurnTimedOut;
         Hub.OnReconnecting += OnHubReconnecting;
         Hub.OnReconnected += OnHubReconnected;
         Hub.OnConnectionClosed += OnHubConnectionClosed;
@@ -338,6 +348,10 @@
             {
                 if (me.TurnStatus == PlayerTurnStatus.Thinking || !me.IsCurrentTurn)
                     _discarded = false;
+
+                // El aviso lo enciende el evento del hub y lo apaga el estado:
+                // el servidor reinicia TurnTimedOut al repartir la ronda nueva.
+                if (!me.TurnTimedOut) _turnTimedOut = false;
 
                 if (me.IsCurrentTurn && !_discarded && _state.TurnDeadline.HasValue)
                     StartCountdown(_state.TurnDeadline.Value);
@@ -490,6 +504,15 @@
     private void OnAutoLeft()
         => InvokeAsync(() => Nav.NavigateTo(""));
 
+    // No se cierra solo: si el turno se agoto es porque el jugador no estaba
+    // mirando, y un aviso que se desvanece es justo el que se pierde. Se quita
+    // al empezar la ronda siguiente (ver el reparto en OnStateChanged).
+    private void OnTurnTimedOut()
+    {
+        _turnTimedOut = true;
+        InvokeAsync(StateHasChanged);
+    }
+
     private async Task AddBot()
     {
         var ok = await Api.AddBot(GameId, _myPlayerId);
@@ -580,6 +603,7 @@
         Hub.OnChange -= OnHubChange;
         Hub.OnHandsRevealed -= OnHandsRevealed;
         Hub.OnAutoLeft -= OnAutoLeft;
+        Hub.OnTurnTimedOut -= OnTurnTimedOut;
         Hub.OnReconnecting -= OnHubReconnecting;
         Hub.OnReconnected -= OnHubReconnected;
         Hub.OnConnectionClosed -= OnHubConnectionClosed;

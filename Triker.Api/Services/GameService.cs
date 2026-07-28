@@ -392,6 +392,7 @@ public class GameService(
                 Wins = p.Wins,
                 Seconds = p.Seconds,
                 Thirds = p.Thirds,
+                TurnTimedOut = p.TurnTimedOut,
                 Hand = (forPlayerId == p.Id || game.Status == GameStatus.Revealing || game.Status == GameStatus.Finished)
                     ? p.Hand.Select(c => new CardDto { Id = c.Id, Letter = c.Letter, Figure = c.Figure, Color = c.Color }).ToList()
                     : [],
@@ -415,6 +416,7 @@ public class GameService(
             player.TurnStatus = PlayerTurnStatus.Thinking;
             player.Discarded = [];
             player.WantsToContinue = false;
+            player.TurnTimedOut = false;
         }
 
         game.CurrentTurnIndex = game.StartPlayerIndex;

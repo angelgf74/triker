@@ -42,6 +42,9 @@ public class GameBroadcaster(GameService gameService, IHubContext<GameHub> hub)
     public async Task SendAutoLeft(string connectionId)
         => await hub.Clients.Client(connectionId).SendAsync("AutoLeft", true);
 
+    public async Task SendTurnTimedOut(string connectionId)
+        => await hub.Clients.Client(connectionId).SendAsync("TurnTimedOut", true);
+
     public async Task BroadcastLobbyUpdate()
         => await hub.Clients.Group("lobby").SendAsync("GamesUpdated", gameService.ListGames());
 

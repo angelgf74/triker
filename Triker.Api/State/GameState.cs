@@ -20,6 +20,9 @@ public class PlayerState
     public int Thirds { get; set; } = 0;
     public string? ConnectionId { get; set; }
     public DateTimeOffset LastReactionAt { get; set; } = DateTimeOffset.MinValue;
+    // El turno se jugo solo al agotarse el tiempo. Se reinicia cada ronda en
+    // StartGame; sin esto el jugador ve "paso" y no sabe que no fue cosa suya.
+    public bool TurnTimedOut { get; set; } = false;
 }
 
 public class SpectatorState
