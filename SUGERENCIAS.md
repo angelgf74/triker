@@ -72,7 +72,7 @@
 - [ ] Lector de pantalla — labels ARIA en componentes interactivos clave
 
 ### Técnica
-- [ ] Tests automatizados — al menos `ScoringService` y `BotService` (no hay ninguno hoy)
+- [x] Tests automatizados — al menos `ScoringService` y `BotService` (no hay ninguno hoy). Hecho: `Triker.Tests` (xUnit, 46 pruebas) cubre las 16 jugadas, la fórmula de puntuación, que el rango y no los puntos decide el ganador, la integridad del roster de bots y `DeckService`. Comprobado con mutaciones que las pruebas fallan si se rompe la regla
 - [ ] Telemetría básica — métricas anónimas de partidas activas y jugadores conectados
 - [ ] Logs estructurados — sink JSON/remoto para producción en lugar de stdout plano
 

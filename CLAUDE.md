@@ -13,9 +13,17 @@ dotnet run --project Triker.Web --launch-profile https
 
 # Build entire solution
 dotnet build
+
+# Run the test suite
+dotnet test Triker.Tests
 ```
 
-There are no automated tests in this repository.
+Tests (`Triker.Tests`, xUnit) cover the game rules: `ScoringService` (the 16 hand
+ranks, the group scoring formula, and the fact that rank — not points — decides
+the winner), `BotService` (roster integrity, discard validity) and `DeckService`.
+They build hands from the rule definitions rather than from the implementation,
+so they fail when the rules change. There is no coverage of the HTTP/SignalR
+layer or the frontend; for those, `.claude/skills/run-triker` drives the real app.
 
 ## Architecture
 

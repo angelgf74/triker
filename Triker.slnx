@@ -2,5 +2,6 @@
   <Project Path="Triker.Api/Triker.Api.csproj" />
   <Project Path="Triker.Shared/Triker.Shared.csproj" />
   <Project Path="Triker.Simulator/Triker.Simulator.csproj" />
+  <Project Path="Triker.Tests/Triker.Tests.csproj" />
   <Project Path="Triker.Web/Triker.Web.csproj" />
 </Solution>
