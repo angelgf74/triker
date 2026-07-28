@@ -92,7 +92,7 @@
 - [ ] Copy del botón de pasar — la ayuda dice "pulsa *Descartar* sin seleccionar nada para pasar" y el botón real dice "Pasar (sin descartar)"
 
 ### Jugabilidad / Profundidad
-- [ ] Jerarquía visible en resultados — "Doble Pareja Mixta" gana a "Doble Pareja" y nada en pantalla lo explica; la escala de 16 jugadas solo vive dentro del modal de ayuda
+- [x] Jerarquía visible en resultados — "Doble Pareja Mixta" gana a "Doble Pareja" y nada en pantalla lo explica; la escala de 16 jugadas solo vive dentro del modal de ayuda. Resuelto con el puesto (`12/16`, `14/16`) junto a cada jugada, con la misma numeración que la tabla de la ayuda, y una línea que aclara que gana la jugada más alta y no los puntos
 - [ ] Empates explicados — un reparto normal deja dos 🥇, ningún 🥈, dos 🥉 y tres 6º: es ranking de competición correcto, pero desconcierta sin una nota que lo aclare
 - [ ] Aviso de turno agotado — `HandleTurnTimeout` hace auto-pass en silencio (`InactivityService:85`): el turno se acaba solo y el jugador no se entera de qué ha pasado
 - [ ] Meta visible en el lobby — las tarjetas muestran jugadores y estado, pero no si la partida es "a 3 victorias" o "sin límite"; te unes a ciegas a algo que puede no acabar nunca

@@ -8,6 +8,11 @@
     <span class="grp-badge grp-hand-name @(hasBreakdown ? "expandable" : "") @(realGroups.Count == 0 ? "grp-nojugada" : "")"
           @onclick="@(() => { if (hasBreakdown) _expanded = !_expanded; })">
         @Result.HandName
+        @* Sin esto, "Doble Pareja Mixta" gana a "Doble Pareja" y nada en
+           pantalla lo explica: la escala solo vivia en el modal de ayuda. *@
+        <span class="grp-ladder" title="@HandLadder.Label(Result.HandRank)">
+            @HandLadder.Position(Result.HandRank)/@HandLadder.Total
+        </span>
         @if (hasBreakdown)
         {
             <span class="grp-caret @(_expanded ? "open" : "")" aria-hidden="true">▾</span>

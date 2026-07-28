@@ -16,6 +16,10 @@
     <div class="results-header">
         <h2>Resultados — @GameName</h2>
         <p class="round-label">Ronda @RoundNumber@(TargetWins > 0 && !GameOver ? $" · Meta: {TargetWins}🥇" : "")</p>
+        <p class="scale-hint">
+            Gana la jugada más alta, no los puntos. El número junto a cada jugada es su puesto
+            en la escala de @HandLadder.Total: <strong>1 es la mejor</strong>.
+        </p>
     </div>
 
     @*
@@ -42,7 +46,12 @@
                         <span class="rs-medal">@MedalLabel(mine)</span>
                     }
                     <span class="rs-position">@PositionLabel(mine) de @Results.Count</span>
-                    <span class="rs-play">@mine.HandName</span>
+                    <span class="rs-play">
+                        @mine.HandName
+                        <span class="grp-ladder" title="@HandLadder.Label(mine.HandRank)">
+                            @HandLadder.Position(mine.HandRank)/@HandLadder.Total
+                        </span>
+                    </span>
                     <span class="rs-score">@mine.TotalScore pts</span>
                 </div>
             }
