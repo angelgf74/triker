@@ -76,11 +76,23 @@ Reúne tus mejores combinaciones de letras, figuras y colores, sube en la clasif
 
 ### Versión 1.3 (versionCode 4)
 
+435 caracteres de los 500 que admite Play.
+
 ```
 Novedades:
-• Nuevo botón "Compartir" en los resultados: comparte tu jugada con una imagen de las cartas, la puntuación y el enlace a la app.
+• Invita a tus amigos con un enlace: entran a tu partida de un toque.
+• Comparte tu jugada con una imagen de las cartas y tu puntuación.
+• Modo daltónico: cada carta lleva el código de su color.
+• Los resultados muestran el puesto de cada jugada en la escala de 16.
+• Aviso cuando se te acaba el tiempo del turno.
+• Cartas más grandes y legibles en el móvil.
 ¡Gracias por jugar! Cuéntanos qué te parece.
 ```
+
+Fuera se quedan, por espacio y por poco visibles: más nombres de bots (de 12
+a 36, ya no salen "Bot-799" al llenar la mesa), los botones de continuar
+subidos junto al resumen de ronda, y el arreglo del botón atrás, que ya no
+te devuelve a la partida que acabas de abandonar.
 
 ### Versión 1.0 (versionCode 1)
 
