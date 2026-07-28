@@ -3,6 +3,7 @@
 @inject SessionService Session
 @inject NavigationManager Nav
 @inject IConfiguration Config
+@inject IJSRuntime JS
 @using Microsoft.AspNetCore.SignalR.Client
 @using System.Text.Json.Serialization
 @implements IAsyncDisposable
@@ -218,6 +219,16 @@
         if (string.IsNullOrWhiteSpace(_playerName)) return;
         if (game.Status != Triker.Shared.Models.GameStatus.Waiting) return;
 
+        // Se limpia la URL antes de entrar: si no, el enlace de invitacion se
+        // queda en el historial justo debajo de la partida y "atras" lo vuelve
+        // a ejecutar, que es volver a entrar en la misma partida.
+        //
+        // Con replaceState y no con NavigateTo: estamos dentro de la
+        // inicializacion, y encadenar dos navegaciones del router aqui se come
+        // la segunda -- la que lleva a la partida -- y te deja en el lobby.
+        try { await JS.InvokeVoidAsync("history.replaceState", null, "", Nav.BaseUri); }
+        catch { /* sin JS no se limpia la URL, pero se entra igual */ }
+
         await AcceptInvite(game.Id);
     }
 
@@ -238,7 +249,7 @@
         _invitedGameId = null;
         _joinCode = "";
         _error = "";
-        Nav.NavigateTo("/");
+        Nav.NavigateTo("/", replace: true);
     }
 
     private static Guid? ParseGuidParam(string url, string name)

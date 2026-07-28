@@ -501,8 +501,14 @@
         catch { /* sin puente de anuncios (web normal) */ }
     }
 
+    // Volver al lobby es subir un nivel, no avanzar: con replace, el lobby
+    // sustituye a la partida en el historial en vez de apilarse encima. Sin
+    // esto, "atras" desde el lobby volvia a meterte en la partida que acababas
+    // de dejar (el boton de Android hace webView.goBack, ver MainActivity.kt).
+    private void GoToLobby() => Nav.NavigateTo("", replace: true);
+
     private void OnAutoLeft()
-        => InvokeAsync(() => Nav.NavigateTo(""));
+        => InvokeAsync(GoToLobby);
 
     // No se cierra solo: si el turno se agoto es porque el jugador no estaba
     // mirando, y un aviso que se desvanece es justo el que se pierde. Se quita
@@ -540,7 +546,7 @@
     {
         if (_spectatorId.HasValue)
             await Api.LeaveSpectate(GameId, _spectatorId.Value);
-        Nav.NavigateTo("");
+        GoToLobby();
     }
 
     private void OnReaction(ChatReactionDto r)
@@ -578,7 +584,7 @@
         _results = null;
         _discarded = false;
         await Api.Continue(GameId, _myPlayerId, new() { WantsToContinue = wantsToContinue });
-        if (!wantsToContinue) Nav.NavigateTo("");
+        if (!wantsToContinue) GoToLobby();
     }
 
     private string GetApiBase()
