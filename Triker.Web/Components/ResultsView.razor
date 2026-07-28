@@ -71,6 +71,47 @@
         </div>
     }
 
+    @* Justo debajo del resumen: cuando llega aqui el jugador ya sabe como le
+       ha ido, que era el motivo de no preguntarlo antes, y decide sin bajar
+       hasta el final de la lista de manos. *@
+    <div class="continue-section">
+        @if (IsSpectator)
+        {
+            @if (GameOver)
+            {
+                <p class="continue-prompt">La partida ha terminado.</p>
+            }
+            else
+            {
+                <p class="waiting-others">
+                    Esperando a los jugadores…
+                    (@Players.Count(p => p.WantsToContinue) / @Players.Count quieren continuar)
+                </p>
+            }
+            <button class="btn-secondary" @onclick="() => Decide(false)">Dejar de ver</button>
+        }
+        else if (GameOver)
+        {
+            <p class="continue-prompt">La partida ha terminado.</p>
+            <button class="btn-primary" @onclick="() => Decide(false)">Ir a sala de espera</button>
+        }
+        else if (!_decided)
+        {
+            <p class="continue-prompt">¿Quieres jugar otra partida?</p>
+            <div class="continue-buttons">
+                <button class="btn-primary" @onclick="() => Decide(true)">Próxima partida</button>
+                <button class="btn-secondary" @onclick="() => Decide(false)">Abandonar mesa</button>
+            </div>
+        }
+        else
+        {
+            <p class="waiting-others">
+                Esperando a los demás jugadores…
+                (@Players.Count(p => p.WantsToContinue) / @Players.Count quieren continuar)
+            </p>
+        }
+    </div>
+
     @if (RoundNumber > 1)
     {
         <div class="session-stats">
@@ -177,45 +218,6 @@
         }
     </div>
 
-    @* Va DESPUES de la lista: preguntar "¿otra partida?" encima de los
-       resultados obligaba a decidir antes de ver como habia ido la ronda. *@
-    <div class="continue-section continue-after">
-        @if (IsSpectator)
-        {
-            @if (GameOver)
-            {
-                <p class="continue-prompt">La partida ha terminado.</p>
-            }
-            else
-            {
-                <p class="waiting-others">
-                    Esperando a los jugadores…
-                    (@Players.Count(p => p.WantsToContinue) / @Players.Count quieren continuar)
-                </p>
-            }
-            <button class="btn-secondary" @onclick="() => Decide(false)">Dejar de ver</button>
-        }
-        else if (GameOver)
-        {
-            <p class="continue-prompt">La partida ha terminado.</p>
-            <button class="btn-primary" @onclick="() => Decide(false)">Ir a sala de espera</button>
-        }
-        else if (!_decided)
-        {
-            <p class="continue-prompt">¿Quieres jugar otra partida?</p>
-            <div class="continue-buttons">
-                <button class="btn-primary" @onclick="() => Decide(true)">Próxima partida</button>
-                <button class="btn-secondary" @onclick="() => Decide(false)">Abandonar mesa</button>
-            </div>
-        }
-        else
-        {
-            <p class="waiting-others">
-                Esperando a los demás jugadores…
-                (@Players.Count(p => p.WantsToContinue) / @Players.Count quieren continuar)
-            </p>
-        }
-    </div>
 </div>
 
 @code {
