@@ -13,3 +13,8 @@
 *.jks
 keystore.properties
 !debug.keystore
+# Salida de gplay compilar, y nada de firma en el repositorio: el keystore esta
+# en ~/.google-play/keystores y su contrasena en el Administrador de credenciales.
+/release/
+build.json
+release-signing.properties

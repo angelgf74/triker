@@ -1,17 +1,11 @@
-import java.util.Properties
-
 plugins {
     // Desde AGP 9.0 el soporte de Kotlin viene integrado: aplicar ademas
     // org.jetbrains.kotlin.android falla. Ver https://kotl.in/gradle/agp-built-in-kotlin
     id("com.android.application")
 }
 
-// Carga credenciales de firma desde keystore.properties (no versionado), si existe.
-val keystorePropsFile = rootProject.file("keystore.properties")
-val keystoreProps = Properties().apply {
-    if (keystorePropsFile.exists()) load(keystorePropsFile.inputStream())
-}
-
+// La release se compila sin firmar: la firma la pone "gplay compilar" con el
+// keystore de ~/.google-play/keystores (ver playstore/gplay.json).
 android {
     namespace = "com.angelgf.triker"
     compileSdk = 37
@@ -24,17 +18,6 @@ android {
         versionName = "1.3"
     }
 
-    signingConfigs {
-        create("release") {
-            if (keystorePropsFile.exists()) {
-                storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
-                storePassword = keystoreProps.getProperty("storePassword")
-                keyAlias = keystoreProps.getProperty("keyAlias")
-                keyPassword = keystoreProps.getProperty("keyPassword")
-            }
-        }
-    }
-
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -42,9 +25,6 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            if (keystorePropsFile.exists()) {
-                signingConfig = signingConfigs.getByName("release")
-            }
         }
     }
 

@@ -31,8 +31,8 @@ el mismo código funciona dentro y fuera de la app.
 # Instalar en un dispositivo/emulador conectado
 ./gradlew :app:installDebug
 
-# Bundle para publicar (release; requiere firma)
-./gradlew :app:bundleRelease
+# Bundle para publicar: compila sin firmar y lo firma con el keystore de la app
+gplay compilar                      # deja release/triker-<version>-vc<code>.aab
 ```
 
 El APK queda en `app/build/outputs/apk/debug/app-debug.apk`.
@@ -48,7 +48,8 @@ También puedes abrir la carpeta `android/` directamente en Android Studio y pul
    El App ID también se referencia en `AndroidManifest.xml` (`com.google.android.gms.ads.APPLICATION_ID`).
 2. Comprueba `app_url` en `strings.xml` (por defecto `https://triker-app.angelgf.com.es/`).
    Si la web se sirve en una subruta, ajústala (p. ej. `.../triker/`).
-3. Configura la firma de release (keystore) y sube un **App Bundle** (`.aab`) a Google Play.
+3. Sube la versión con `gplay version --menor`, compila y firma con `gplay compilar` y sube el
+   **App Bundle** con `gplay subir` (ensayo; con `--publicar`, de verdad).
 4. Si usas anuncios reales en pruebas, registra tu dispositivo como
    [dispositivo de prueba](https://developers.google.com/admob/android/test-ads) para no
    infringir las políticas de AdMob.

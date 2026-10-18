@@ -1,12 +1,13 @@
 # Recursos para la ficha de Google Play — Triker
 
-Todo lo necesario para publicar **Triker** en Google Play, generado a partir de la
-identidad real de la app (colores, logo y pantallas).
+Material propio de la ficha de **Triker**, generado a partir de la identidad real
+de la app (colores, logo y pantallas). La ficha que se publica está en
+`android/playstore/listing/` y se gestiona con `gplay ficha descargar` / `publicar`.
 
 ## Contenido
 
 ```
-playstore/
+android/playstore/fuentes/
 ├─ ficha-google-play.md      Textos: título, descripciones, novedades, categoría…
 ├─ graphics/
 │  ├─ icon-512.png           Icono de la app (512×512)
@@ -37,10 +38,10 @@ playstore/
 
 ```bash
 # Icono + gráfico de función
-python playstore/generate_graphics.py
+python android/playstore/fuentes/generate_graphics.py
 
 # Capturas (usa el Chrome instalado, no descarga Chromium)
-python playstore/capture_screenshots.py
+python android/playstore/fuentes/capture_screenshots.py
 ```
 
 ## PENDIENTE antes de publicar (no es generable automáticamente)
@@ -51,8 +52,9 @@ python playstore/capture_screenshots.py
 2. **Sección "Seguridad de los datos".** Declara que el SDK de AdMob recopila
    identificadores del dispositivo y datos de uso con fines publicitarios.
 3. **Casilla "Contiene anuncios".** Márcala en la ficha y en el cuestionario IARC.
-4. **APK/AAB firmado.** Para Play hay que subir un **Android App Bundle** firmado:
-   `cd android && ./gradlew :app:bundleRelease` (configura antes el keystore de release).
+4. **AAB firmado.** Se compila y firma con `gplay compilar` desde `android/`; el
+   keystore está en `~/.google-play/keystores/` y su contraseña en el Administrador
+   de credenciales de Windows.
 5. **Sustituir el ID de intersticial** por uno de formato **Intersticial** real en
    `android/app/src/main/res/values/strings.xml` (el actual es un banner).
 ```

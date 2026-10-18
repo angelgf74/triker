@@ -1,0 +1,8 @@
+Novedades:
+• Invita a tus amigos con un enlace: entran a tu partida de un toque.
+• Comparte tu jugada con una imagen de las cartas y tu puntuación.
+• Modo daltónico: cada carta lleva el código de su color.
+• Los resultados muestran el puesto de cada jugada en la escala de 16.
+• Aviso cuando se te acaba el tiempo del turno.
+• Cartas más grandes y legibles en el móvil.
+¡Gracias por jugar! Cuéntanos qué te parece.

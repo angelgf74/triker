@@ -59,3 +59,18 @@ There are 16 hand ranks (`HandRank` enum, values 0–15), ordered worst to best 
 ## Deployment
 
 Linux target via `deploy/` scripts (bash + systemd + nginx). The API runs as a systemd service; the Web project is served as static files through nginx.
+
+## Publishing to Google Play
+
+Same flow as every Android project, with `gplay` (skill `google-play`), from `android/`:
+
+    gplay version --menor         # or --parche, --mayor, x.y.z
+    gplay compilar                # signed and verified AAB in android/release/
+    gplay subir --canal internal  # dry run; add --publicar to publish
+
+`gplay compilar` builds the release unsigned and signs it: the keystore lives in
+`~/.google-play/keystores/` and its password in the Windows Credential Manager. There are no
+passwords or signing scripts in the repo. Config in `android/playstore/gplay.json`, release
+notes in `android/playstore/listing/<lang>/changelogs/<versionCode>.txt`, store listing in
+`android/playstore/listing/` (`gplay ficha descargar` / `publicar`) and its source material in
+`android/playstore/fuentes/`. versionCode = MAJOR*10000 + MINOR*100 + PATCH (1.4.0 -> 10400).
