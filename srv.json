@@ -1,0 +1,9 @@
+{
+  "app": "triker",
+  "web": { "blazor": "Triker.Web", "dominio": "triker-app.angelgf.com.es" },
+  "api": { "dotnet": "Triker.Api", "dominio": "triker-api.angelgf.com.es", "salud": "/salud" },
+  "basedatos": "triker",
+  "pasos": [
+    { "programa": "node", "argumentos": ["deploy/base-en-la-raiz.mjs"] }
+  ]
+}

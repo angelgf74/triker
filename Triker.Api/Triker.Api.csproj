@@ -4,6 +4,9 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Como la unidad de antes de srv (DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1): la de srv no
+         lleva variables propias, así que va aquí y el servidor sigue igual. -->
+    <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
   <ItemGroup>
