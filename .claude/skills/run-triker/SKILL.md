@@ -138,10 +138,11 @@ the smoke suite.
 
 - **`<base href="/triker/">` is hardcoded in `Triker.Web/wwwroot/index.html`,
   but the dev server serves from `/`.** Opening `https://localhost:7164` gives
-  a blank page and a wall of 404s (`/triker/_framework/...`). `deploy/deploy.sh`
-  rewrites the tag to `/` on the server, so nobody notices in production. Fix
-  locally with `-- --pathbase=/triker` and browse `https://localhost:7164/triker/`.
-  Don't edit `index.html` — it's tracked and the deploy script depends on it.
+  a blank page and a wall of 404s (`/triker/_framework/...`). When publishing,
+  `srv` runs `deploy/base-en-la-raiz.mjs`, which rewrites the tag to `/` in the
+  package, so nobody notices in production. Fix locally with
+  `-- --pathbase=/triker` and browse `https://localhost:7164/triker/`.
+  Don't edit `index.html`'s base — that step looks for exactly `<base href="/triker/" />`.
 
 - **`HandsRevealed` never arrives over REST.** Round results go only to the
   SignalR group named after the gameId (`GameBroadcaster.SendHandsRevealed`),

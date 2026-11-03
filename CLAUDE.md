@@ -58,7 +58,23 @@ There are 16 hand ranks (`HandRank` enum, values 0–15), ordered worst to best 
 
 ## Deployment
 
-Linux target via `deploy/` scripts (bash + systemd + nginx). The API runs as a systemd service; the Web project is served as static files through nginx.
+With `srv` (skill `servidor`), from the repo root: `srv.json` publishes the Blazor web at
+`triker-app.angelgf.com.es` and the API at `triker-api.angelgf.com.es` (health `/salud`, which
+reads `game_snapshots`: 200, or 503 without the database), running as `webapps` with the
+`triker` database. There are no secrets: the connection string (Unix socket, peer auth as
+`webapps`) lives in `Triker.Api/appsettings.json`. There are no EF migrations either: the API
+creates its table on startup (`EnsureCreated`).
+
+    srv estado                    # what is published, service and health
+    srv subir                     # dry run; srv subir --publicar to publish
+    srv volver                    # back to the previous release (dry run first)
+    srv logs api
+
+- `<base href="/triker/">` stays in `index.html` for development; `deploy/base-en-la-raiz.mjs`
+  (a `pasos` step in `srv.json`) rewrites it to `/` in the package, and fails if it can't find it.
+- Don't put `Urls` in `appsettings*.json`: it overrides the `ASPNETCORE_URLS` that srv sets.
+- The API is built with `InvariantGlobalization` (the pre-srv unit set
+  `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1`).
 
 ## Publishing to Google Play
 
