@@ -66,19 +66,25 @@
     [Parameter] public bool Visible { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
 
+    // Buzón común de sugerencias de las apps del autor (proyecto GestorSugerencias).
+    private const string UrlDelBuzon = "https://gestorsugerencias-api.angelgf.com.es/api/Sugerencias";
+
     private string _email = "";
     private string _texto = "";
-    private int _tipo = 0;
+    private string _tipo = "Mejora";
     private string _error = "";
     private bool _enviando = false;
     private bool _enviado = false;
 
-    private static readonly (int Value, string Label)[] _tipos =
+    // Los valores son los nombres del enumerado TipoSugerencia del buzón. Viajan por nombre y no
+    // por número: un número cambiaría de sentido si el buzón reordenara su enumerado.
+    private static readonly (string Value, string Label)[] _tipos =
     [
-        (0, "Sugerencia"),
-        (1, "Error"),
-        (2, "Mejora"),
-        (3, "Otro"),
+        ("Mejora", "Mejora"),
+        ("NuevaFuncionalidad", "Nueva funcionalidad"),
+        ("ErrorReportado", "Reporte de error"),
+        ("PreguntaSoporte", "Pregunta de soporte"),
+        ("OtraConsulta", "Otra consulta"),
     ];
 
     private bool PuedeEnviar =>
@@ -99,8 +105,7 @@
                 Texto = _texto.Trim(),
                 Tipo = _tipo,
             };
-            var response = await Http.PostAsJsonAsync(
-                "https://angelgf.com.es/gestorsugerenciasapi/api/sugerencias", payload);
+            var response = await Http.PostAsJsonAsync(UrlDelBuzon, payload);
 
             if (response.IsSuccessStatusCode)
                 _enviado = true;
@@ -121,7 +126,7 @@
     {
         _email = "";
         _texto = "";
-        _tipo = 0;
+        _tipo = "Mejora";
         _error = "";
         _enviado = false;
         return OnClose.InvokeAsync();
