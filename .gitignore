@@ -50,3 +50,6 @@ venv/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Notas locales de Angel, fuera del repo
+PLAN-GOOGLE-PLAY-2027.md

@@ -54,6 +54,26 @@ catch (Exception ex)
 
 app.UseCors();
 app.UseAuthorization();
+
+// Salud para srv (api.salud en srv.json): 200 si la API lee las partidas guardadas y 503 si no.
+// Sin base la API arranca igual, en memoria, y su raíz da 404 (que srv da por bueno): sin esto,
+// un despliegue que no puede guardar partidas pasaría la comprobación y no volvería atrás.
+app.MapMethods("/salud", [HttpMethods.Get, HttpMethods.Head],
+    async (IDbContextFactory<AppDbContext> fabrica, ILogger<Program> log, CancellationToken ct) =>
+    {
+        try
+        {
+            await using var db = await fabrica.CreateDbContextAsync(ct);
+            await db.GameSnapshots.AsNoTracking().AnyAsync(ct);
+            return Results.Ok();
+        }
+        catch (Exception ex) when (!ct.IsCancellationRequested)
+        {
+            log.LogWarning(ex, "Salud: no se pueden leer las partidas guardadas");
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
+    });
+
 app.MapControllers();
 app.MapHub<GameHub>("/gamehub");
 
