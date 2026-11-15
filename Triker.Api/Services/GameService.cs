@@ -5,6 +5,14 @@ using Triker.Shared.Models;
 
 namespace Triker.Api.Services;
 
+// Ciclo de vida de las partidas. Toda lectura o cambio de una partida va dentro
+// de lock (game.SyncLock): llegan a la vez peticiones HTTP, temporizadores y el
+// hub, y sin cerrojo dos "continuar" simultaneos repartian dos rondas seguidas.
+// El cerrojo es reentrante (Monitor), asi que un metodo que ya lo tiene puede
+// llamar a otro que lo vuelve a pedir.
+//
+// Los snapshots se piden dentro del cerrojo: GamePersistenceService serializa
+// en el acto y escribe despues, asi que el JSON nunca mezcla dos estados.
 public class GameService(
     DeckService deckService,
     ScoringService scoringService,
@@ -14,33 +22,49 @@ public class GameService(
 {
     private const int HandSize = 5;
 
-    private static readonly TimeSpan FinishedGameTtl = TimeSpan.FromMinutes(30);
-    private static readonly TimeSpan ActiveGameTtl   = TimeSpan.FromHours(2);
+    public static readonly TimeSpan FinishedGameTtl = TimeSpan.FromMinutes(30);
+    public static readonly TimeSpan ActiveGameTtl   = TimeSpan.FromHours(2);
+    private static readonly TimeSpan SpectatorGoneTtl = TimeSpan.FromMinutes(10);
 
     private readonly ConcurrentDictionary<Guid, GameState> _games = new();
 
     public List<GameSummaryDto> ListGames()
-        => _games.Values
-            .Where(g => g.Status == GameStatus.Waiting || g.Status == GameStatus.Playing)
-            .Select(ToSummary)
-            .ToList();
-
-    public (GameState game, PlayerState player) CreateGame(string gameName, string playerName, int targetWins = 0, bool isPrivate = false)
     {
+        var list = new List<GameSummaryDto>();
+        foreach (var g in _games.Values)
+        {
+            lock (g.SyncLock)
+            {
+                if (g.Status == GameStatus.Waiting || g.Status == GameStatus.Playing)
+                    list.Add(ToSummary(g));
+            }
+        }
+        return list;
+    }
+
+    // Null si ya hay demasiadas partidas abiertas (el controlador responde 503).
+    public (GameState game, PlayerState player)? CreateGame(string gameName, string playerName, int targetWins = 0, bool isPrivate = false)
+    {
+        if (_games.Count >= Limites.PartidasMaximas) return null;
+
         var game = new GameState
         {
             Name = gameName,
-            TargetWins = Math.Max(0, targetWins),
+            TargetWins = Math.Clamp(targetWins, 0, Limites.MetaMaxima),
             IsPrivate = isPrivate,
-            AccessCode = isPrivate ? Random.Shared.Next(1000, 10000).ToString() : null
+            AccessCode = isPrivate ? Limites.NuevoCodigo() : null
         };
-        var player = new PlayerState { Name = playerName };
+        var player = new PlayerState { Name = playerName, Token = Limites.NuevoToken() };
         game.CreatorId = player.Id;
         game.Players.Add(player);
-        _games[game.Id] = game;
+
+        lock (game.SyncLock)
+        {
+            _games[game.Id] = game;
+            _ = persistence.SaveAsync(game);
+        }
         logger.LogInformation("Game created: {GameId} '{GameName}' by '{Player}' (target={Target}, private={Private})",
             game.Id, gameName, playerName, game.TargetWins == 0 ? "∞" : game.TargetWins.ToString(), isPrivate);
-        _ = persistence.SaveAsync(game);
         return (game, player);
     }
 
@@ -49,39 +73,91 @@ public class GameService(
     public (JoinResult result, GameState? game, PlayerState? player) JoinGame(Guid gameId, string playerName, string? accessCode = null)
     {
         if (!_games.TryGetValue(gameId, out var game)) return (JoinResult.NotFound, null, null);
-        if (game.Status != GameStatus.Waiting) return (JoinResult.NotWaiting, null, null);
-        if (game.Players.Count >= game.MaxPlayers) return (JoinResult.Full, null, null);
-        if (game.IsPrivate && !string.Equals(game.AccessCode, accessCode?.Trim(), StringComparison.Ordinal))
-            return (JoinResult.WrongCode, null, null);
 
-        var player = new PlayerState { Name = playerName };
-        game.Players.Add(player);
-        game.LastActivityAt = DateTimeOffset.UtcNow;
-        logger.LogInformation("Player '{Player}' joined game {GameId} ({Count}/{Max})",
-            playerName, gameId, game.Players.Count, game.MaxPlayers);
+        lock (game.SyncLock)
+        {
+            if (game.Status != GameStatus.Waiting) return (JoinResult.NotWaiting, null, null);
+            if (game.Players.Count >= game.MaxPlayers) return (JoinResult.Full, null, null);
+            if (game.IsPrivate && !string.Equals(game.AccessCode, accessCode?.Trim(), StringComparison.Ordinal))
+                return (JoinResult.WrongCode, null, null);
 
-        if (game.Players.Count >= game.MaxPlayers)
-            StartGame(game); // StartGame calls persistence internally
-        else
-            _ = persistence.SaveAsync(game);
+            var player = new PlayerState { Name = playerName, Token = Limites.NuevoToken() };
+            game.Players.Add(player);
+            game.LastActivityAt = DateTimeOffset.UtcNow;
+            logger.LogInformation("Player '{Player}' joined game {GameId} ({Count}/{Max})",
+                playerName, gameId, game.Players.Count, game.MaxPlayers);
 
-        return (JoinResult.Ok, game, player);
+            if (game.Players.Count >= game.MaxPlayers)
+                StartGameLocked(game);
+            else
+                _ = persistence.SaveAsync(game);
+
+            return (JoinResult.Ok, game, player);
+        }
     }
 
     public bool StartGame(Guid gameId, Guid requesterId)
     {
         if (!_games.TryGetValue(gameId, out var game)) return false;
-        if (game.CreatorId != requesterId) return false;
-        if (game.Status != GameStatus.Waiting || game.Players.Count < 2) return false;
-        StartGame(game);
-        return true;
+        lock (game.SyncLock)
+        {
+            if (game.CreatorId != requesterId) return false;
+            if (game.Status != GameStatus.Waiting || game.Players.Count < 2) return false;
+            StartGameLocked(game);
+            return true;
+        }
     }
 
     public GameState? GetGame(Guid gameId)
         => _games.GetValueOrDefault(gameId);
 
-    public PlayerState? GetPlayer(Guid gameId, Guid playerId)
-        => _games.GetValueOrDefault(gameId)?.Players.FirstOrDefault(p => p.Id == playerId);
+    public IReadOnlyList<GameState> AllGames() => [.. _games.Values];
+
+    // ── Identidad ───────────────────────────────────────────────────────────
+    // El id es publico; el token, secreto. Los bots no tienen token y nadie
+    // puede actuar por ellos desde fuera.
+
+    public bool IsPlayer(GameState game, Guid playerId, string? token)
+    {
+        lock (game.SyncLock)
+        {
+            var p = game.Players.FirstOrDefault(x => x.Id == playerId);
+            return p is { IsBot: false } && Limites.MismoToken(p.Token, token);
+        }
+    }
+
+    public bool IsSpectator(GameState game, Guid spectatorId, string? token)
+    {
+        lock (game.SyncLock)
+        {
+            var s = game.Spectators.FirstOrDefault(x => x.Id == spectatorId);
+            return s != null && Limites.MismoToken(s.Token, token);
+        }
+    }
+
+    public bool ConnectPlayer(GameState game, Guid playerId, string? token, string connectionId)
+    {
+        lock (game.SyncLock)
+        {
+            if (!IsPlayer(game, playerId, token)) return false;
+            game.Players.First(p => p.Id == playerId).ConnectionId = connectionId;
+            return true;
+        }
+    }
+
+    public bool ConnectSpectator(GameState game, Guid spectatorId, string? token, string connectionId)
+    {
+        lock (game.SyncLock)
+        {
+            if (!IsSpectator(game, spectatorId, token)) return false;
+            var s = game.Spectators.First(x => x.Id == spectatorId);
+            s.ConnectionId = connectionId;
+            s.DisconnectedAt = null;
+            return true;
+        }
+    }
+
+    // ── Juego ───────────────────────────────────────────────────────────────
 
     public bool SubmitDiscard(Guid gameId, Guid playerId, List<Guid> cardIds)
     {
@@ -114,185 +190,279 @@ public class GameService(
                 game.Status = GameStatus.Revealing;
                 logger.LogInformation("Game {GameId} round {Round} revealing hands", gameId, game.RoundNumber);
             }
-        }
 
-        _ = persistence.SaveAsync(game);
-        return true;
-    }
-
-    public List<HandResultDto>? GetRevealedHands(Guid gameId)
-    {
-        if (!_games.TryGetValue(gameId, out var game)) return null;
-        if (game.Status != GameStatus.Revealing && game.Status != GameStatus.Finished) return null;
-
-        var results = game.Players
-            .Select(p => scoringService.EvaluateHand(p.Id, p.Name, p.Hand))
-            .OrderByDescending(r => r.HandRank)
-            .ToList();
-
-        for (int i = 0; i < results.Count; i++)
-            results[i].Rank = i + 1;
-
-        foreach (var result in results)
-        {
-            var player = game.Players.FirstOrDefault(p => p.Id == result.PlayerId);
-            if (player == null) continue;
-            int pos = results.Count(r => r.HandRank > result.HandRank) + 1;
-            if (pos == 1) player.Wins++;
-            else if (pos == 2) player.Seconds++;
-            else if (pos == 3) player.Thirds++;
-        }
-
-        game.Status = GameStatus.Finished;
-        game.LastActivityAt = DateTimeOffset.UtcNow;
-
-        if (game.TargetWins > 0 && game.Players.Any(p => p.Wins >= game.TargetWins))
-        {
-            game.GameOver = true;
-            logger.LogInformation("Game {GameId} over — target {Target} wins reached", gameId, game.TargetWins);
-        }
-
-        logger.LogInformation("Game {GameId} round {Round} finished. Winner: '{Winner}' ({Hand})",
-            gameId, game.RoundNumber, results[0].PlayerName, results[0].HandName);
-
-        _ = persistence.SaveAsync(game);
-        return results;
-    }
-
-    public bool SetContinue(Guid gameId, Guid playerId, bool wantsToContinue)
-    {
-        if (!_games.TryGetValue(gameId, out var game)) return false;
-        var player = game.Players.FirstOrDefault(p => p.Id == playerId);
-        if (player == null || game.Status != GameStatus.Finished) return false;
-
-        player.WantsToContinue = wantsToContinue;
-        game.LastActivityAt = DateTimeOffset.UtcNow;
-
-        if (!wantsToContinue)
-        {
-            logger.LogInformation("Player '{Player}' left game {GameId}", player.Name, gameId);
             _ = persistence.SaveAsync(game);
             return true;
         }
+    }
 
-        foreach (var bot in game.Players.Where(p => p.IsBot))
-            bot.WantsToContinue = true;
+    // Reparte medallas y deja la partida en Finished. Solo actua en Revealing:
+    // si dos hilos llegan a la vez, el segundo recibe null y no vuelve a contar
+    // las medallas de la ronda.
+    public List<HandResultDto>? GetRevealedHands(Guid gameId)
+    {
+        if (!_games.TryGetValue(gameId, out var game)) return null;
 
-        if (!game.GameOver && game.Players.All(p => p.WantsToContinue))
-            StartNewRound(game); // StartNewRound → StartGame → persistence
+        lock (game.SyncLock)
+        {
+            if (game.Status != GameStatus.Revealing) return null;
+
+            var results = game.Players
+                .Select(p => scoringService.EvaluateHand(p.Id, p.Name, p.Hand))
+                .OrderByDescending(r => r.HandRank)
+                .ToList();
+
+            for (int i = 0; i < results.Count; i++)
+                results[i].Rank = i + 1;
+
+            foreach (var result in results)
+            {
+                var player = game.Players.FirstOrDefault(p => p.Id == result.PlayerId);
+                if (player == null) continue;
+                int pos = results.Count(r => r.HandRank > result.HandRank) + 1;
+                if (pos == 1) player.Wins++;
+                else if (pos == 2) player.Seconds++;
+                else if (pos == 3) player.Thirds++;
+            }
+
+            // Los bots siempre siguen: asi el "x/y quieren continuar" cuenta
+            // solo lo que falta decidir, que es lo de los humanos.
+            foreach (var bot in game.Players.Where(p => p.IsBot))
+                bot.WantsToContinue = true;
+
+            game.LastResults = results;
+            game.Status = GameStatus.Finished;
+            game.LastActivityAt = DateTimeOffset.UtcNow;
+
+            if (game.TargetWins > 0 && game.Players.Any(p => p.Wins >= game.TargetWins))
+            {
+                game.GameOver = true;
+                logger.LogInformation("Game {GameId} over — target {Target} wins reached", gameId, game.TargetWins);
+            }
+
+            logger.LogInformation("Game {GameId} round {Round} finished. Winner: '{Winner}' ({Hand})",
+                gameId, game.RoundNumber, results[0].PlayerName, results[0].HandName);
+
+            _ = persistence.SaveAsync(game);
+            return results;
+        }
+    }
+
+    // Seguir o dejar la mesa al acabar la ronda. Dejarla saca al jugador en el
+    // acto: antes solo se marcaba y los demas esperaban los 5 minutos del
+    // temporizador de fin de ronda.
+    public bool SetContinue(Guid gameId, Guid playerId, bool wantsToContinue)
+    {
+        if (!_games.TryGetValue(gameId, out var game)) return false;
+
+        lock (game.SyncLock)
+        {
+            var player = game.Players.FirstOrDefault(p => p.Id == playerId);
+            if (player == null || player.IsBot || game.Status != GameStatus.Finished) return false;
+
+            game.LastActivityAt = DateTimeOffset.UtcNow;
+
+            if (!wantsToContinue)
+            {
+                logger.LogInformation("Player '{Player}' left game {GameId}", player.Name, gameId);
+                RemoveFromFinishedLocked(game, player);
+                return true;
+            }
+
+            player.WantsToContinue = true;
+            AfterContinueDecisionLocked(game);
+            return true;
+        }
+    }
+
+    // El temporizador de fin de ronda saca de una vez a todos los humanos que
+    // no han decidido y devuelve quienes eran, para avisarles. De uno en uno
+    // no vale: al sacar al primero la mesa podia volver a la sala de espera y
+    // el resto se quedaba dentro, avisado ya de que le habian sacado.
+    public List<(Guid Id, string? ConnectionId)> RemoveUndecidedPlayers(Guid gameId)
+    {
+        if (!_games.TryGetValue(gameId, out var game)) return [];
+
+        lock (game.SyncLock)
+        {
+            if (game.Status != GameStatus.Finished) return [];
+            var undecided = game.Players.Where(p => !p.IsBot && !p.WantsToContinue).ToList();
+            if (undecided.Count == 0) return [];
+
+            logger.LogInformation("Removing {Count} undecided player(s) from game {GameId}", undecided.Count, gameId);
+            RemoveFromFinishedLocked(game, undecided);
+            return undecided.Select(p => (p.Id, p.ConnectionId)).ToList();
+        }
+    }
+
+    private void RemoveFromFinishedLocked(GameState game, PlayerState player)
+        => RemoveFromFinishedLocked(game, [player]);
+
+    private void RemoveFromFinishedLocked(GameState game, List<PlayerState> leaving)
+    {
+        foreach (var p in leaving) game.Players.Remove(p);
+        game.LastActivityAt = DateTimeOffset.UtcNow;
+
+        if (!game.Players.Any(p => !p.IsBot))
+        {
+            _games.TryRemove(game.Id, out _);
+            _ = persistence.DeleteAsync(game.Id);
+            logger.LogInformation("Game {GameId} closed (no human players remaining)", game.Id);
+            return;
+        }
+
+        // El creador es quien puede añadir bots e iniciar si la mesa vuelve a
+        // la sala de espera; si se va, hereda el puesto el primer humano.
+        if (leaving.Any(p => p.Id == game.CreatorId))
+            game.CreatorId = game.Players.First(p => !p.IsBot).Id;
+
+        AfterContinueDecisionLocked(game);
+    }
+
+    private void AfterContinueDecisionLocked(GameState game)
+    {
+        if (game.GameOver)
+        {
+            _ = persistence.SaveAsync(game);
+            return;
+        }
+
+        // Con un solo jugador no hay partida: vuelve a la sala de espera, donde
+        // puede invitar a alguien o añadir bots. Antes repartia una ronda en
+        // solitario que ganaba siempre.
+        if (game.Players.Count < 2)
+        {
+            BackToWaitingLocked(game);
+            return;
+        }
+
+        if (game.Players.All(p => p.WantsToContinue))
+            StartNewRoundLocked(game);
         else
             _ = persistence.SaveAsync(game);
+    }
 
-        return true;
+    private void BackToWaitingLocked(GameState game)
+    {
+        game.Status = GameStatus.Waiting;
+        // La ronda siguiente lleva numero nuevo: RoundNumber es tambien el
+        // numero de rondas jugadas con que se calculan los porcentajes.
+        game.RoundNumber++;
+        game.LastResults = null;
+        game.CurrentTurnIndex = 0;
+        game.StartPlayerIndex = 0;
+        game.TurnDeadline = null;
+        foreach (var p in game.Players)
+        {
+            p.Hand = [];
+            p.Discarded = [];
+            p.TurnStatus = PlayerTurnStatus.Thinking;
+            p.WantsToContinue = false;
+            p.TurnTimedOut = false;
+        }
+        logger.LogInformation("Game {GameId} back to waiting room (not enough players)", game.Id);
+        _ = persistence.SaveAsync(game);
     }
 
     public GameState? AddBot(Guid gameId, Guid requesterId)
     {
         if (!_games.TryGetValue(gameId, out var game)) return null;
-        if (game.CreatorId != requesterId) return null;
-        if (game.Status != GameStatus.Waiting) return null;
-        if (game.Players.Count >= game.MaxPlayers) return null;
 
-        var (name, personality) = botService.PickBot(game.Players.Select(p => p.Name));
-        game.Players.Add(new PlayerState { Name = name, IsBot = true, Personality = personality });
-        logger.LogDebug("Bot '{Name}' ({Personality}) added to game {GameId}", name, personality, gameId);
-        _ = persistence.SaveAsync(game);
-        return game;
-    }
-
-    public bool RemovePlayerFromFinishedGame(Guid gameId, Guid playerId)
-    {
-        if (!_games.TryGetValue(gameId, out var game)) return false;
-        if (game.Status != GameStatus.Finished) return false;
-
-        var player = game.Players.FirstOrDefault(p => p.Id == playerId);
-        if (player == null) return false;
-
-        game.Players.Remove(player);
-        game.LastActivityAt = DateTimeOffset.UtcNow;
-
-        if (!game.Players.Any(p => !p.IsBot))
+        lock (game.SyncLock)
         {
-            _games.TryRemove(gameId, out _);
-            _ = persistence.DeleteAsync(gameId);
-            logger.LogInformation("Game {GameId} closed (no human players remaining)", gameId);
-            return true;
-        }
+            if (game.CreatorId != requesterId) return null;
+            if (game.Status != GameStatus.Waiting) return null;
+            if (game.Players.Count >= game.MaxPlayers) return null;
 
-        if (!game.GameOver && game.Players.All(p => p.WantsToContinue))
-            StartNewRound(game);
-        else
+            var (name, personality) = botService.PickBot(game.Players.Select(p => p.Name));
+            game.Players.Add(new PlayerState { Name = name, IsBot = true, Personality = personality });
+            game.LastActivityAt = DateTimeOffset.UtcNow;
+            logger.LogDebug("Bot '{Name}' ({Personality}) added to game {GameId}", name, personality, gameId);
             _ = persistence.SaveAsync(game);
-
-        return true;
+            return game;
+        }
     }
 
     public bool ProcessBotTurn(Guid gameId)
     {
         if (!_games.TryGetValue(gameId, out var game)) return false;
-        var player = game.CurrentTurnPlayer;
-        if (player == null || !player.IsBot || game.Status != GameStatus.Playing) return false;
 
-        var discardIds = botService.ChooseDiscards(player.Hand, player.Personality);
-        return SubmitDiscard(gameId, player.Id, discardIds);
+        lock (game.SyncLock)
+        {
+            var player = game.CurrentTurnPlayer;
+            if (player == null || !player.IsBot || game.Status != GameStatus.Playing) return false;
+
+            // Si la estrategia falla, el bot pasa: mejor eso que dejar la mesa
+            // parada para siempre en su turno.
+            List<Guid> discardIds;
+            try { discardIds = botService.ChooseDiscards(player.Hand, player.Personality); }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Bot '{Bot}' failed to choose discards in game {GameId}; passing", player.Name, gameId);
+                discardIds = [];
+            }
+            return SubmitDiscard(gameId, player.Id, discardIds);
+        }
     }
 
-    public void UpdateConnectionId(Guid gameId, Guid playerId, string connectionId)
-    {
-        var player = GetPlayer(gameId, playerId);
-        if (player != null) player.ConnectionId = connectionId;
-    }
+    // ── Espectadores ────────────────────────────────────────────────────────
 
-    public enum SpectateResult { Ok, NotFound, GameOver, WrongCode }
+    public enum SpectateResult { Ok, NotFound, GameOver, WrongCode, Full }
 
     public (SpectateResult result, GameState? game, SpectatorState? spectator) AddSpectator(Guid gameId, string name, string? accessCode)
     {
         if (!_games.TryGetValue(gameId, out var game)) return (SpectateResult.NotFound, null, null);
-        if (game.Status == GameStatus.Finished && game.GameOver) return (SpectateResult.GameOver, null, null);
-        if (game.IsPrivate && !string.Equals(game.AccessCode, accessCode?.Trim(), StringComparison.Ordinal))
-            return (SpectateResult.WrongCode, null, null);
 
-        var spectator = new SpectatorState { Name = string.IsNullOrWhiteSpace(name) ? "Espectador" : name };
-        game.Spectators.Add(spectator);
-        game.LastActivityAt = DateTimeOffset.UtcNow;
-        logger.LogInformation("Spectator '{Name}' joined game {GameId} (total spectators: {Count})",
-            spectator.Name, gameId, game.Spectators.Count);
-        return (SpectateResult.Ok, game, spectator);
-    }
+        lock (game.SyncLock)
+        {
+            if (game.Status == GameStatus.Finished && game.GameOver) return (SpectateResult.GameOver, null, null);
+            if (game.IsPrivate && !string.Equals(game.AccessCode, accessCode?.Trim(), StringComparison.Ordinal))
+                return (SpectateResult.WrongCode, null, null);
+            if (game.Spectators.Count >= Limites.EspectadoresMaximos) return (SpectateResult.Full, null, null);
 
-    public SpectatorState? GetSpectator(Guid gameId, Guid spectatorId)
-        => _games.GetValueOrDefault(gameId)?.Spectators.FirstOrDefault(s => s.Id == spectatorId);
-
-    public void UpdateSpectatorConnectionId(Guid gameId, Guid spectatorId, string connectionId)
-    {
-        var s = GetSpectator(gameId, spectatorId);
-        if (s != null) s.ConnectionId = connectionId;
+            var spectator = new SpectatorState { Name = name, Token = Limites.NuevoToken() };
+            game.Spectators.Add(spectator);
+            game.LastActivityAt = DateTimeOffset.UtcNow;
+            logger.LogInformation("Spectator '{Name}' joined game {GameId} (total spectators: {Count})",
+                spectator.Name, gameId, game.Spectators.Count);
+            return (SpectateResult.Ok, game, spectator);
+        }
     }
 
     public bool RemoveSpectator(Guid gameId, Guid spectatorId)
     {
         if (!_games.TryGetValue(gameId, out var game)) return false;
-        var s = game.Spectators.FirstOrDefault(x => x.Id == spectatorId);
-        if (s == null) return false;
-        game.Spectators.Remove(s);
-        logger.LogInformation("Spectator '{Name}' left game {GameId}", s.Name, gameId);
-        return true;
+
+        lock (game.SyncLock)
+        {
+            var s = game.Spectators.FirstOrDefault(x => x.Id == spectatorId);
+            if (s == null) return false;
+            game.Spectators.Remove(s);
+            logger.LogInformation("Spectator '{Name}' left game {GameId}", s.Name, gameId);
+            return true;
+        }
     }
 
-    public Guid? RemoveSpectatorByConnection(string connectionId)
+    // Solo si la conexion que se cae es la que tiene apuntada: con la
+    // reconexion automatica la nueva puede registrarse antes de que el
+    // servidor note que la vieja se cerro.
+    public Guid? MarkSpectatorDisconnected(string connectionId)
     {
         foreach (var game in _games.Values)
         {
-            var s = game.Spectators.FirstOrDefault(x => x.ConnectionId == connectionId);
-            if (s != null)
+            lock (game.SyncLock)
             {
-                game.Spectators.Remove(s);
-                logger.LogInformation("Spectator '{Name}' disconnected from game {GameId}", s.Name, game.Id);
+                var s = game.Spectators.FirstOrDefault(x => x.ConnectionId == connectionId);
+                if (s == null) continue;
+                s.ConnectionId = null;
+                s.DisconnectedAt = DateTimeOffset.UtcNow;
                 return game.Id;
             }
         }
         return null;
     }
+
+    // ── Reacciones ──────────────────────────────────────────────────────────
 
     public static readonly HashSet<string> AllowedReactionEmojis = new() { "👍", "❤️", "😂", "😮", "😢", "🎉" };
     private static readonly TimeSpan ReactionCooldown = TimeSpan.FromMilliseconds(1500);
@@ -300,31 +470,47 @@ public class GameService(
     public ChatReactionDto? SendReaction(Guid gameId, Guid playerId, string emoji)
     {
         if (!_games.TryGetValue(gameId, out var game)) return null;
-        var player = game.Players.FirstOrDefault(p => p.Id == playerId);
-        if (player == null) return null;
         if (!AllowedReactionEmojis.Contains(emoji)) return null;
 
-        var now = DateTimeOffset.UtcNow;
-        if (now - player.LastReactionAt < ReactionCooldown) return null;
-        player.LastReactionAt = now;
-
-        return new ChatReactionDto
+        lock (game.SyncLock)
         {
-            PlayerId = player.Id,
-            PlayerName = player.Name,
-            Emoji = emoji
-        };
+            var player = game.Players.FirstOrDefault(p => p.Id == playerId);
+            if (player == null) return null;
+
+            var now = DateTimeOffset.UtcNow;
+            if (now - player.LastReactionAt < ReactionCooldown) return null;
+            player.LastReactionAt = now;
+
+            return new ChatReactionDto
+            {
+                PlayerId = player.Id,
+                PlayerName = player.Name,
+                Emoji = emoji
+            };
+        }
     }
+
+    // ── Limpieza y persistencia ─────────────────────────────────────────────
+
+    private static bool IsStale(GameState g, DateTimeOffset now)
+        => g.Status == GameStatus.Finished
+            ? (now - g.LastActivityAt) > FinishedGameTtl
+            : (now - g.LastActivityAt) > ActiveGameTtl;
 
     public int CleanupStaleGames()
     {
         var now = DateTimeOffset.UtcNow;
-        var stale = _games.Values
-            .Where(g => g.Status == GameStatus.Finished
-                ? (now - g.LastActivityAt) > FinishedGameTtl
-                : (now - g.LastActivityAt) > ActiveGameTtl)
-            .Select(g => g.Id)
-            .ToList();
+        var stale = new List<Guid>();
+
+        foreach (var g in _games.Values)
+        {
+            lock (g.SyncLock)
+            {
+                if (IsStale(g, now)) { stale.Add(g.Id); continue; }
+                g.Spectators.RemoveAll(s => s.ConnectionId == null
+                    && s.DisconnectedAt is { } at && now - at > SpectatorGoneTtl);
+            }
+        }
 
         foreach (var id in stale)
             _games.TryRemove(id, out _);
@@ -335,78 +521,141 @@ public class GameService(
         return stale.Count;
     }
 
-    public async Task LoadFromPersistenceAsync()
+    // Devuelve las partidas restauradas para que InactivityService retome sus
+    // temporizadores y bots (ver Program.cs).
+    public async Task<IReadOnlyList<GameState>> LoadFromPersistenceAsync()
     {
         var games = await persistence.LoadAllAsync();
-        int loaded = 0;
+        var (restored, discarded) = RestoreGames(games, DateTimeOffset.UtcNow);
+
+        if (discarded.Count > 0)
+            await persistence.DeleteManyAsync(discarded);
+
+        if (restored.Count > 0 || discarded.Count > 0)
+            logger.LogInformation("Restored {Restored} game(s) from persistence, discarded {Discarded}",
+                restored.Count, discarded.Count);
+        return restored;
+    }
+
+    // Se restauran tambien las partidas en Finished: antes se tiraban, y cada
+    // despliegue cerraba las mesas que estaban entre dos rondas. Se descartan
+    // (y se borran de la base) las caducadas y las guardadas antes de que los
+    // jugadores tuvieran token, en las que ya nadie podria identificarse.
+    public (List<GameState> restored, List<Guid> discarded) RestoreGames(IEnumerable<GameState> games, DateTimeOffset now)
+    {
+        var restored = new List<GameState>();
+        var discarded = new List<Guid>();
+
         foreach (var game in games)
         {
-            if (game.Status == GameStatus.Finished || game.GameOver) continue;
+            var legacy = game.Players.Any(p => !p.IsBot && string.IsNullOrEmpty(p.Token));
+            if (IsStale(game, now) || legacy)
+            {
+                discarded.Add(game.Id);
+                continue;
+            }
 
-            // Connection IDs are ephemeral — clients will reconnect
+            // Las conexiones no sobreviven al reinicio: los clientes vuelven
+            // a entrar con GameHub.Entrar. Los espectadores, a pedir sitio.
             foreach (var p in game.Players) p.ConnectionId = null;
             game.Spectators.Clear();
-            // InactivityService will re-arm the timer on next turn
+            // InactivityService vuelve a armar el temporizador.
             game.TurnDeadline = null;
 
             _games[game.Id] = game;
-            loaded++;
+            restored.Add(game);
         }
 
-        if (loaded > 0)
-            logger.LogInformation("Restored {Count} active game(s) from persistence", loaded);
+        return (restored, discarded);
     }
+
+    // ── DTOs ────────────────────────────────────────────────────────────────
 
     public GameStateDto ToDto(GameState game, Guid? forPlayerId = null, bool isSpectator = false)
     {
-        return new GameStateDto
+        lock (game.SyncLock)
         {
-            Id = game.Id,
-            Name = game.Name,
-            Status = game.Status,
-            DeckSize = game.Deck.Count,
-            CurrentTurnIndex = game.CurrentTurnIndex % Math.Max(1, game.Players.Count),
-            CreatorId = game.CreatorId,
-            N = game.N,
-            RoundNumber = game.RoundNumber,
-            MyPlayerId = forPlayerId,
-            TurnDeadline = game.TurnDeadline,
-            TargetWins = game.TargetWins,
-            GameOver = game.GameOver,
-            IsPrivate = game.IsPrivate,
-            AccessCode = forPlayerId.HasValue && game.Players.Any(p => p.Id == forPlayerId.Value)
-                ? game.AccessCode
-                : null,
-            Spectators = game.Spectators.Select(s => new SpectatorDto { Id = s.Id, Name = s.Name }).ToList(),
-            IAmSpectator = isSpectator,
-            Players = game.Players.Select(p => new PlayerDto
+            return new GameStateDto
             {
-                Id = p.Id,
-                Name = p.Name,
-                HandSize = p.Hand.Count,
-                DiscardCount = p.Discarded.Count,
-                TurnStatus = p.TurnStatus,
-                IsCurrentTurn = game.Status == GameStatus.Playing && game.CurrentTurnPlayer?.Id == p.Id,
-                WantsToContinue = p.WantsToContinue,
-                IsBot = p.IsBot,
-                Wins = p.Wins,
-                Seconds = p.Seconds,
-                Thirds = p.Thirds,
-                TurnTimedOut = p.TurnTimedOut,
-                Hand = (forPlayerId == p.Id || game.Status == GameStatus.Revealing || game.Status == GameStatus.Finished)
-                    ? p.Hand.Select(c => new CardDto { Id = c.Id, Letter = c.Letter, Figure = c.Figure, Color = c.Color }).ToList()
-                    : [],
-                Play = (forPlayerId == p.Id && game.Status == GameStatus.Playing && p.Hand.Count > 0)
-                    ? scoringService.EvaluateHand(p.Id, p.Name, p.Hand)
-                    : null
-            }).ToList()
-        };
+                Id = game.Id,
+                Name = game.Name,
+                Status = game.Status,
+                DeckSize = game.Deck.Count,
+                CurrentTurnIndex = game.CurrentTurnIndex % Math.Max(1, game.Players.Count),
+                CreatorId = game.CreatorId,
+                N = game.N,
+                RoundNumber = game.RoundNumber,
+                MyPlayerId = forPlayerId,
+                TurnDeadline = game.TurnDeadline,
+                TargetWins = game.TargetWins,
+                GameOver = game.GameOver,
+                IsPrivate = game.IsPrivate,
+                AccessCode = forPlayerId.HasValue && game.Players.Any(p => p.Id == forPlayerId.Value)
+                    ? game.AccessCode
+                    : null,
+                Spectators = game.Spectators
+                    .Where(s => s.ConnectionId != null)
+                    .Select(s => new SpectatorDto { Id = s.Id, Name = s.Name }).ToList(),
+                IAmSpectator = isSpectator,
+                Results = game.Status == GameStatus.Finished ? game.LastResults : null,
+                Players = game.Players.Select(p => new PlayerDto
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    HandSize = p.Hand.Count,
+                    DiscardCount = p.Discarded.Count,
+                    TurnStatus = p.TurnStatus,
+                    IsCurrentTurn = game.Status == GameStatus.Playing && game.CurrentTurnPlayer?.Id == p.Id,
+                    WantsToContinue = p.WantsToContinue,
+                    IsBot = p.IsBot,
+                    Wins = p.Wins,
+                    Seconds = p.Seconds,
+                    Thirds = p.Thirds,
+                    TurnTimedOut = p.TurnTimedOut,
+                    Hand = (forPlayerId == p.Id || game.Status == GameStatus.Revealing || game.Status == GameStatus.Finished)
+                        ? p.Hand.Select(c => new CardDto { Id = c.Id, Letter = c.Letter, Figure = c.Figure, Color = c.Color }).ToList()
+                        : [],
+                    Play = (forPlayerId == p.Id && game.Status == GameStatus.Playing && p.Hand.Count > 0)
+                        ? scoringService.EvaluateHand(p.Id, p.Name, p.Hand)
+                        : null
+                }).ToList()
+            };
+        }
     }
 
-    private void StartGame(GameState game)
+    // Un estado por conexion, armado dentro del cerrojo: recorrer
+    // game.Players fuera de el podia romper si alguien entraba o salia a la vez.
+    public List<(string connectionId, GameStateDto state)> PersonalizedStates(GameState game)
+    {
+        lock (game.SyncLock)
+        {
+            var list = new List<(string, GameStateDto)>();
+            foreach (var p in game.Players)
+                if (p.ConnectionId != null)
+                    list.Add((p.ConnectionId, ToDto(game, p.Id)));
+
+            var watching = game.Spectators.Where(s => s.ConnectionId != null).ToList();
+            if (watching.Count > 0)
+            {
+                var dto = ToDto(game, forPlayerId: null, isSpectator: true);
+                foreach (var s in watching)
+                    list.Add((s.ConnectionId!, dto));
+            }
+            return list;
+        }
+    }
+
+    public string? ConnectionOf(GameState game, Guid playerId)
+    {
+        lock (game.SyncLock)
+            return game.Players.FirstOrDefault(p => p.Id == playerId)?.ConnectionId;
+    }
+
+    private void StartGameLocked(GameState game)
     {
         game.Deck = deckService.GenerateDeck(game.N);
         game.DiscardPile = [];
+        game.LastResults = null;
 
         foreach (var player in game.Players)
         {
@@ -429,11 +678,11 @@ public class GameService(
         _ = persistence.SaveAsync(game);
     }
 
-    private void StartNewRound(GameState game)
+    private void StartNewRoundLocked(GameState game)
     {
         game.StartPlayerIndex = (game.StartPlayerIndex + 1) % game.Players.Count;
         game.RoundNumber++;
-        StartGame(game);
+        StartGameLocked(game);
     }
 
     private static GameSummaryDto ToSummary(GameState g) => new()
@@ -443,7 +692,7 @@ public class GameService(
         Status = g.Status,
         PlayerCount = g.Players.Count,
         MaxPlayers = g.MaxPlayers,
-        CreatorName = g.Players.FirstOrDefault()?.Name ?? "",
+        CreatorName = g.Players.FirstOrDefault(p => p.Id == g.CreatorId)?.Name ?? g.Players.FirstOrDefault()?.Name ?? "",
         IsPrivate = g.IsPrivate
     };
 }

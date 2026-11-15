@@ -15,5 +15,6 @@ public class SpectateGameRequest
 public class SpectateResponse
 {
     public Guid SpectatorId { get; set; }
+    public string SpectatorToken { get; set; } = "";
     public GameStateDto GameState { get; set; } = null!;
 }

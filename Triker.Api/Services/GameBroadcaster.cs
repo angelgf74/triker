@@ -16,26 +16,12 @@ public class GameBroadcaster(GameService gameService, IHubContext<GameHub> hub)
 
     public async Task BroadcastPersonalized(GameState game)
     {
-        foreach (var player in game.Players)
-        {
-            if (player.ConnectionId != null)
-            {
-                var dto = gameService.ToDto(game, player.Id);
-                await hub.Clients.Client(player.ConnectionId).SendAsync("GameState", dto);
-            }
-        }
-
-        if (game.Spectators.Count > 0)
-        {
-            var spectatorDto = gameService.ToDto(game, forPlayerId: null, isSpectator: true);
-            foreach (var spectator in game.Spectators)
-            {
-                if (spectator.ConnectionId != null)
-                    await hub.Clients.Client(spectator.ConnectionId).SendAsync("GameState", spectatorDto);
-            }
-        }
+        foreach (var (connectionId, state) in gameService.PersonalizedStates(game))
+            await hub.Clients.Client(connectionId).SendAsync("GameState", state);
     }
 
+    // El grupo de la partida solo tiene conexiones que pasaron por
+    // GameHub.Entrar con su token: jugadores y espectadores de esa partida.
     public async Task SendHandsRevealed(Guid gameId, List<HandResultDto> results)
         => await hub.Clients.Group(gameId.ToString()).SendAsync("HandsRevealed", results);
 

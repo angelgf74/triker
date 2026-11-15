@@ -1,7 +1,7 @@
 @using Triker.Shared.Dtos
 
 <div class="ssp">
-    <span class="ssp-title">Sesión — @RoundNumber rondas</span>
+    <span class="ssp-title">Sesión — @RoundNumber @(RoundNumber == 1 ? "ronda" : "rondas")</span>
     <table class="ssp-table">
         <thead>
             <tr>

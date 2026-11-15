@@ -1,12 +1,23 @@
 @if (Visible)
 {
-    <div class="help-overlay" @onclick="Close">
-        <div class="help-modal" @onclick:stopPropagation>
-            <button class="help-close" @onclick="Close">✕</button>
-            <h1 class="game-title" style="text-align: center;" tabindex="-1">
+    <div class="help-overlay" @onclick="Close" @onkeydown="OnKey">
+        <div class="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title"
+             tabindex="-1" @ref="_dialogo" @onclick:stopPropagation>
+            <button class="help-close" @onclick="Close" aria-label="Cerrar la ayuda">✕</button>
+            <p class="game-title help-logo" aria-hidden="true">
                 TRI<span class="mirror-k game-title">K</span>KER
-            </h1>
-            <h2 class="help-title">¿Cómo se juega?</h2>
+            </p>
+            <h2 class="help-title" id="help-title">¿Cómo se juega?</h2>
+
+            @* Arriba y no al final: quien lo necesita no puede distinguir las
+               cartas hasta activarlo, y al final quedaba a 2.700 px en movil. *@
+            <label class="help-accessibility help-accessibility-top">
+                <input type="checkbox" checked="@A11y.ColorBlind" @onchange="ToggleColorBlind" />
+                <span>
+                    <strong>Modo daltónico</strong> — añade a cada carta el código de su color
+                    (RJ, VD, AZ, CY, MG, NG, NJ, MR), para no depender del tono.
+                </span>
+            </label>
 
             <!-- OBJETIVO -->
             <section class="help-section">
@@ -36,7 +47,7 @@
                             <span style="color:#e53935">■</span> Rojo <span class="cb-code">RJ</span> &nbsp;
                             <span style="color:#43A047">■</span> Verde <span class="cb-code">VD</span> &nbsp;
                             <span style="color:#1E88E5">■</span> Azul <span class="cb-code">AZ</span> &nbsp;
-                            <span style="color:#00ACC1">■</span> Cyan <span class="cb-code">CY</span> &nbsp;
+                            <span style="color:#0097A7">■</span> Cyan <span class="cb-code">CY</span> &nbsp;
                             <span style="color:#9C27B0">■</span> Magenta <span class="cb-code">MG</span> &nbsp;
                             <span style="color:#212121">■</span> Negro <span class="cb-code">NG</span> &nbsp;
                             <span style="color:#F57C00">■</span> Naranja <span class="cb-code">NJ</span> &nbsp;
@@ -144,18 +155,6 @@
                 </div>
             </section>
 
-            <!-- ACCESIBILIDAD -->
-            <section class="help-section">
-                <h3>Accesibilidad</h3>
-                <label class="help-accessibility">
-                    <input type="checkbox" checked="@A11y.ColorBlind" @onchange="ToggleColorBlind" />
-                    <span>
-                        <strong>Modo daltónico</strong> — añade a cada carta el código de su color
-                        (RJ, VD, AZ, CY, MG, NG, NJ, MR), para no depender del tono al comparar cartas.
-                    </span>
-                </label>
-            </section>
-
         </div>
     </div>
 }
@@ -166,7 +165,28 @@
 
     [Inject] private AccessibilityService A11y { get; set; } = default!;
 
+    private ElementReference _dialogo;
+    private bool _eraVisible;
+    private bool _enfocar;
+
     protected override async Task OnInitializedAsync() => await A11y.EnsureInitializedAsync();
+
+    // El foco entra en el dialogo al abrirlo: asi Escape lo cierra y el
+    // lector de pantalla anuncia el titulo.
+    protected override void OnParametersSet()
+    {
+        if (Visible && !_eraVisible) _enfocar = true;
+        _eraVisible = Visible;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_enfocar) return;
+        _enfocar = false;
+        try { await _dialogo.FocusAsync(); } catch { }
+    }
+
+    private Task OnKey(KeyboardEventArgs e) => e.Key == "Escape" ? Close() : Task.CompletedTask;
 
     private async Task ToggleColorBlind(ChangeEventArgs e)
         => await A11y.SetColorBlind(e.Value is true);

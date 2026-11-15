@@ -1,9 +1,18 @@
 @using Triker.Shared.Models
 @using Triker.Shared.Dtos
 
+@* Con Selectable la carta es un boton para el teclado y los lectores de
+   pantalla (Tab, Enter o Espacio, y "seleccionada" anunciado). Es un div con
+   role y no un <button> porque un boton no se puede arrastrar en Firefox, y
+   arrastrar es como se ordenan. index.html evita que Espacio haga scroll. *@
 <div class="card @ColorClass @(Selected ? "selected" : "") @(FaceDown ? "face-down" : "") @(Dragging ? "dragging" : "") @(DealIndex.HasValue ? "dealing" : "")"
      style="@(DealIndex.HasValue ? $"--deal-i:{DealIndex.Value}" : "")"
      @onclick="HandleClick"
+     @onkeydown="OnKeyDown"
+     role="@(Selectable ? "button" : null)"
+     tabindex="@(Selectable ? "0" : null)"
+     aria-pressed="@(Selectable ? (Selected ? "true" : "false") : null)"
+     aria-label="@(FaceDown ? "Carta boca abajo" : $"{LetterLabel}, {FigureLabel}, {ColorLabel}")"
      draggable="@(Draggable ? "true" : "false")"
      @ondragstart="OnDragStart"
      @ondragover:preventDefault="true"
@@ -39,6 +48,7 @@
     [Parameter] public EventCallback OnDragStarted { get; set; }
     [Parameter] public EventCallback OnDropped { get; set; }
     [Parameter] public int? DealIndex { get; set; }
+    [Parameter] public bool Selectable { get; set; }
 
     private string LetterLabel => Card?.Letter.ToString() ?? "";
     private string ColorLabel => Card?.Color switch
@@ -108,6 +118,12 @@
     };
 
     private async Task HandleClick() => await OnClick.InvokeAsync();
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (Selectable && (e.Key == "Enter" || e.Key == " "))
+            await OnClick.InvokeAsync();
+    }
     private async Task OnDragStart() => await OnDragStarted.InvokeAsync();
     private async Task OnDrop() => await OnDropped.InvokeAsync();
 }

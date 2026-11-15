@@ -14,22 +14,32 @@
 <div class="lobby">
     <div class="lobby-header">
         <div class="lobby-title-row">
-            <button class="btn-sug" @onclick="@(() => _sugVisible = true)" title="Enviar sugerencia">✉</button>
-            <h1 class="game-title">TRI<span class="mirror-k game-title">K</span>KER</h1>
-            <button class="btn-help" @onclick="@(() => _helpVisible = true)" title="Ayuda">?</button>
+            <button class="btn-sug" @onclick="@(() => _sugVisible = true)" title="Enviar sugerencia" aria-label="Enviar sugerencia">✉</button>
+            <h1 class="game-title" tabindex="-1">TRI<span class="mirror-k game-title">K</span>KER</h1>
+            <button class="btn-help" @onclick="@(() => _helpVisible = true)" title="Ayuda" aria-label="Cómo se juega">?</button>
         </div>
         <p class="game-subtitle">El juego de cartas</p>
     </div>
 
-    <div class="player-name-section">
-        <label>Tu nombre:</label>
-        <input class="name-input" value="@_playerName" @oninput="OnNameInput"
-               placeholder="Introduce tu nombre..." maxlength="20" />
+    @if (_aviso != null)
+    {
+        <div class="info-msg" role="status">@_aviso</div>
+    }
+
+    <div class="player-name-section @(_pideNombre ? "needs-name" : "")">
+        <label for="nombre-jugador">Tu nombre:</label>
+        <input id="nombre-jugador" class="name-input" value="@_playerName" @oninput="OnNameInput" @ref="_nombreInput"
+               placeholder="Escribe tu nombre" maxlength="20" autocomplete="nickname"
+               aria-describedby="@(_pideNombre ? "nombre-aviso" : null)" />
     </div>
+    @if (_pideNombre)
+    {
+        <p id="nombre-aviso" class="name-hint" role="alert">Escribe tu nombre para jugar.</p>
+    }
 
     @if (!string.IsNullOrWhiteSpace(_error))
     {
-        <div class="error-msg">@_error</div>
+        <div class="error-msg" role="alert">@_error</div>
     }
 
     @if (InvitedGame is { } invited)
@@ -37,11 +47,7 @@
         <div class="invite-banner">
             <span class="invite-banner-title">🎴 Te han invitado a «@invited.Name»</span>
             <div class="invite-banner-actions">
-                @if (string.IsNullOrWhiteSpace(_playerName))
-                {
-                    <span class="invite-banner-hint">Escribe tu nombre arriba para entrar.</span>
-                }
-                else if (invited.Status == Triker.Shared.Models.GameStatus.Waiting)
+                @if (invited.Status == Triker.Shared.Models.GameStatus.Waiting)
                 {
                     <button class="btn-primary" @onclick="() => AcceptInvite(invited.Id)">Entrar en la partida</button>
                 }
@@ -56,18 +62,18 @@
     }
 
     <div class="lobby-actions">
-        <button class="btn-primary" @onclick="ShowCreateForm" disabled="@(string.IsNullOrWhiteSpace(_playerName))">
-            + Nueva partida
-        </button>
+        <button class="btn-primary" @onclick="ShowCreateForm">+ Nueva partida</button>
     </div>
 
     @if (_showCreateForm)
     {
         <div class="create-form">
-            <input class="name-input" @bind="_gameName" placeholder="Nombre de la partida..." maxlength="30" />
+            <label class="sr-only" for="nombre-partida">Nombre de la partida</label>
+            <input id="nombre-partida" class="name-input" @bind="_gameName" @bind:event="oninput"
+                   placeholder="Nombre de la partida" maxlength="30" />
             <div class="create-form-row">
-                <label class="create-form-label">Meta</label>
-                <select class="create-form-select" @bind="_targetWins">
+                <label class="create-form-label" for="meta-partida">Meta</label>
+                <select id="meta-partida" class="create-form-select" @bind="_targetWins">
                     <option value="0">Sin límite</option>
                     <option value="3">3 victorias</option>
                     <option value="5">5 victorias</option>
@@ -79,7 +85,7 @@
                 <input type="checkbox" @bind="_isPrivate" />
                 <span>🔒 Partida privada (con código)</span>
             </label>
-            <button class="btn-primary" @onclick="CreateGame">Crear</button>
+            <button class="btn-primary" @onclick="CreateGame" disabled="@(_enviando || string.IsNullOrWhiteSpace(_gameName))">Crear</button>
             <button class="btn-secondary" @onclick="() => _showCreateForm = false">Cancelar</button>
         </div>
     }
@@ -87,12 +93,19 @@
     <div class="games-section">
         <div class="section-header">
             <h2>Partidas disponibles</h2>
-            <button class="btn-refresh" @onclick="LoadGames" title="Actualizar">↻</button>
+            <button class="btn-refresh" @onclick="LoadGames" title="Actualizar" aria-label="Actualizar la lista">↻</button>
         </div>
 
         @if (_loading)
         {
-            <div class="loading">Cargando partidas...</div>
+            <div class="loading" role="status">Cargando partidas...</div>
+        }
+        else if (_sinConexion)
+        {
+            <div class="empty-list" role="alert">
+                <p>No se puede conectar con el servidor. Comprueba tu conexión.</p>
+                <button class="btn-secondary" @onclick="LoadGames">Reintentar</button>
+            </div>
         }
         else if (_games.Count == 0)
         {
@@ -115,16 +128,20 @@
                         @if (_joiningGameId == game.Id && game.IsPrivate)
                         {
                             <div class="join-code-row">
-                                <input class="name-input" @bind="_joinCode" placeholder="Código (4 dígitos)" maxlength="4" />
+                                <label class="sr-only" for="codigo-@game.Id">Código de la partida</label>
+                                @* oninput y no onchange: con onchange el boton seguia apagado
+                                   hasta salir del campo y el primer toque en "Entrar" se perdia. *@
+                                <input id="codigo-@game.Id" class="name-input" @bind="_joinCode" @bind:event="oninput"
+                                       placeholder="Código" maxlength="6" inputmode="numeric" autocomplete="off" />
                                 @if (game.Status == Triker.Shared.Models.GameStatus.Waiting)
                                 {
                                     <button class="btn-join" @onclick="() => JoinGame(game.Id, true)"
-                                            disabled="@(string.IsNullOrWhiteSpace(_playerName) || string.IsNullOrWhiteSpace(_joinCode))">
+                                            disabled="@(_enviando || string.IsNullOrWhiteSpace(_joinCode))">
                                         Entrar
                                     </button>
                                 }
                                 <button class="btn-spectate" @onclick="() => Spectate(game.Id, true)"
-                                        disabled="@(string.IsNullOrWhiteSpace(_playerName) || string.IsNullOrWhiteSpace(_joinCode))">
+                                        disabled="@(_enviando || string.IsNullOrWhiteSpace(_joinCode))">
                                     👁 Ver
                                 </button>
                                 <button class="btn-secondary" @onclick="() => { _joiningGameId = null; _joinCode = string.Empty; }">Cancelar</button>
@@ -135,15 +152,13 @@
                             <div class="game-actions">
                                 @if (game.Status == Triker.Shared.Models.GameStatus.Waiting)
                                 {
-                                    <button class="btn-join" @onclick="() => JoinGame(game.Id)"
-                                            disabled="@(string.IsNullOrWhiteSpace(_playerName))">
+                                    <button class="btn-join" @onclick="() => JoinGame(game.Id)" disabled="@_enviando">
                                         @(game.IsPrivate ? "🔒 Unirse" : "Unirse")
                                     </button>
                                 }
                                 @if (game.Status == Triker.Shared.Models.GameStatus.Waiting || game.Status == Triker.Shared.Models.GameStatus.Playing)
                                 {
-                                    <button class="btn-spectate" @onclick="() => Spectate(game.Id)"
-                                            disabled="@(string.IsNullOrWhiteSpace(_playerName))">
+                                    <button class="btn-spectate" @onclick="() => Spectate(game.Id)" disabled="@_enviando">
                                         👁 Ver
                                     </button>
                                 }
@@ -162,22 +177,34 @@
     private int _targetWins = 0;
     private bool _isPrivate = false;
     private string _error = "";
+    private string? _aviso;
     private bool _loading = true;
+    private bool _sinConexion = false;
+    private bool _enviando = false;
     private bool _showCreateForm = false;
     private bool _helpVisible = false;
     private bool _sugVisible = false;
+    private bool _pideNombre = false;
     private Guid? _joiningGameId = null;
     private string _joinCode = "";
     private Guid? _invitedGameId = null;
-    private List<Triker.Shared.Dtos.GameSummaryDto> _games = [];
+    private List<GameSummaryDto> _games = [];
     private HubConnection? _hubConnection;
+    private ElementReference _nombreInput;
 
-    private Triker.Shared.Dtos.GameSummaryDto? InvitedGame
+    private GameSummaryDto? InvitedGame
         => _invitedGameId is Guid id ? _games.FirstOrDefault(g => g.Id == id) : null;
 
     protected override async Task OnInitializedAsync()
     {
         _playerName = await Session.GetPlayerName() ?? "";
+
+        if (ParseParam(Nav.Uri, "aviso") == "fuera")
+        {
+            _aviso = "Te sacamos de la mesa porque no decidiste a tiempo si seguías jugando.";
+            await LimpiarUrl();
+        }
+
         await LoadGames();
         await HandleInvite();
 
@@ -192,10 +219,14 @@
         {
             _games = games;
             _loading = false;
+            _sinConexion = false;
             InvokeAsync(StateHasChanged);
         });
 
-        await _hubConnection.StartAsync();
+        // Sin tiempo real la lista se puede actualizar a mano; no es motivo
+        // para tumbar la pagina.
+        try { await _hubConnection.StartAsync(); }
+        catch { }
     }
 
     // Enlace de invitacion: /?join=<gameId>&code=<codigo> (lo genera InviteLink
@@ -204,14 +235,26 @@
     private async Task HandleInvite()
     {
         _invitedGameId = ParseGuidParam(Nav.Uri, "join");
-        if (_invitedGameId == null) return;
+        if (_invitedGameId is not Guid gameId) return;
 
         _joinCode = ParseParam(Nav.Uri, "code") ?? "";
+
+        // Ya tienes sitio en esa partida (te reenviaste la invitacion, o
+        // volviste desde "No formas parte de esta partida" en otra pestaña).
+        var asiento = await Session.BuscarAsiento(gameId, null, espectador: false);
+        if (asiento != null)
+        {
+            await LimpiarUrl();
+            Nav.NavigateTo($"game/{gameId}?playerId={asiento.Id}");
+            return;
+        }
 
         var game = InvitedGame;
         if (game == null)
         {
-            _error = "La partida de la invitación ya no está disponible.";
+            _error = _sinConexion
+                ? ApiService.SinConexion
+                : "La partida de la invitación ya no está disponible.";
             _invitedGameId = null;
             return;
         }
@@ -226,10 +269,14 @@
         // Con replaceState y no con NavigateTo: estamos dentro de la
         // inicializacion, y encadenar dos navegaciones del router aqui se come
         // la segunda -- la que lleva a la partida -- y te deja en el lobby.
-        try { await JS.InvokeVoidAsync("history.replaceState", null, "", Nav.BaseUri); }
-        catch { /* sin JS no se limpia la URL, pero se entra igual */ }
-
+        await LimpiarUrl();
         await AcceptInvite(game.Id);
+    }
+
+    private async Task LimpiarUrl()
+    {
+        try { await JS.InvokeVoidAsync("history.replaceState", null, "", Nav.BaseUri); }
+        catch { /* sin JS no se limpia la URL, pero se sigue igual */ }
     }
 
     // Si el codigo que venia en el enlace no vale, no tiene sentido dejar un
@@ -249,7 +296,7 @@
         _invitedGameId = null;
         _joinCode = "";
         _error = "";
-        Nav.NavigateTo("/", replace: true);
+        Nav.NavigateTo("", replace: true);
     }
 
     private static Guid? ParseGuidParam(string url, string name)
@@ -270,40 +317,63 @@
     private async Task OnNameInput(ChangeEventArgs e)
     {
         _playerName = e.Value?.ToString() ?? "";
+        if (!string.IsNullOrWhiteSpace(_playerName)) _pideNombre = false;
         if (_playerName.Length > 0)
             await Session.SetPlayerName(_playerName);
+    }
+
+    // Los botones no se apagan sin decir por que: si falta el nombre, se
+    // explica y se lleva al campo.
+    private async Task<bool> NombreListo()
+    {
+        if (!string.IsNullOrWhiteSpace(_playerName)) return true;
+        _pideNombre = true;
+        StateHasChanged();
+        try { await _nombreInput.FocusAsync(); } catch { }
+        return false;
     }
 
     private async Task LoadGames()
     {
         _loading = true;
-        try { _games = await Api.ListGames() ?? []; }
-        catch { _games = []; }
+        var games = await Api.ListGames();
+        _sinConexion = games == null;
+        _games = games ?? [];
         _loading = false;
         StateHasChanged();
     }
 
-    private void ShowCreateForm()
+    private async Task ShowCreateForm()
     {
-        _gameName = $"Partida de {_playerName}";
+        if (!await NombreListo()) return;
+        _gameName = $"Partida de {_playerName.Trim()}";
+        if (_gameName.Length > 30) _gameName = _gameName[..30];
         _showCreateForm = true;
     }
 
     private async Task CreateGame()
     {
-        if (string.IsNullOrWhiteSpace(_playerName) || string.IsNullOrWhiteSpace(_gameName)) return;
+        if (!await NombreListo() || string.IsNullOrWhiteSpace(_gameName) || _enviando) return;
         _error = "";
-        await Session.SetPlayerName(_playerName);
-        var result = await Api.CreateGame(new() { PlayerName = _playerName, GameName = _gameName, TargetWins = _targetWins, IsPrivate = _isPrivate });
-        if (result != null)
+        _enviando = true;
+        try
+        {
+            await Session.SetPlayerName(_playerName);
+            var (result, error) = await Api.CreateGame(new() { PlayerName = _playerName, GameName = _gameName, TargetWins = _targetWins, IsPrivate = _isPrivate });
+            if (result == null)
+            {
+                _error = error ?? "No se pudo crear la partida";
+                return;
+            }
+            await Session.GuardarAsiento(new Asiento(result.GameState.Id, result.PlayerId, result.PlayerToken, false));
             Nav.NavigateTo($"game/{result.GameState.Id}?playerId={result.PlayerId}");
-        else
-            _error = "No se pudo crear la partida";
+        }
+        finally { _enviando = false; }
     }
 
     private async Task JoinGame(Guid gameId, bool withCode = false)
     {
-        if (string.IsNullOrWhiteSpace(_playerName)) return;
+        if (!await NombreListo() || _enviando) return;
         var target = _games.FirstOrDefault(g => g.Id == gameId);
         if (target == null) return;
 
@@ -317,21 +387,29 @@
         }
 
         _error = "";
-        await Session.SetPlayerName(_playerName);
-        var (response, error) = await Api.JoinGame(gameId, new()
+        _enviando = true;
+        try
         {
-            PlayerName = _playerName,
-            AccessCode = target.IsPrivate ? _joinCode : null
-        });
-        if (response != null)
+            await Session.SetPlayerName(_playerName);
+            var (response, error) = await Api.JoinGame(gameId, new()
+            {
+                PlayerName = _playerName,
+                AccessCode = target.IsPrivate ? _joinCode : null
+            });
+            if (response == null)
+            {
+                _error = error ?? "No se pudo unir a la partida";
+                return;
+            }
+            await Session.GuardarAsiento(new Asiento(response.GameState.Id, response.PlayerId, response.PlayerToken, false));
             Nav.NavigateTo($"game/{response.GameState.Id}?playerId={response.PlayerId}");
-        else
-            _error = error ?? "No se pudo unir a la partida";
+        }
+        finally { _enviando = false; }
     }
 
     private async Task Spectate(Guid gameId, bool withCode = false)
     {
-        if (string.IsNullOrWhiteSpace(_playerName)) return;
+        if (!await NombreListo() || _enviando) return;
         var target = _games.FirstOrDefault(g => g.Id == gameId);
         if (target == null) return;
 
@@ -344,16 +422,24 @@
         }
 
         _error = "";
-        await Session.SetPlayerName(_playerName);
-        var (response, error) = await Api.Spectate(gameId, new()
+        _enviando = true;
+        try
         {
-            PlayerName = _playerName,
-            AccessCode = target.IsPrivate ? _joinCode : null
-        });
-        if (response != null)
+            await Session.SetPlayerName(_playerName);
+            var (response, error) = await Api.Spectate(gameId, new()
+            {
+                PlayerName = _playerName,
+                AccessCode = target.IsPrivate ? _joinCode : null
+            });
+            if (response == null)
+            {
+                _error = error ?? "No se pudo ver la partida";
+                return;
+            }
+            await Session.GuardarAsiento(new Asiento(response.GameState.Id, response.SpectatorId, response.SpectatorToken, true));
             Nav.NavigateTo($"game/{response.GameState.Id}?spectatorId={response.SpectatorId}");
-        else
-            _error = error ?? "No se pudo ver la partida";
+        }
+        finally { _enviando = false; }
     }
 
     private static string StatusLabel(Triker.Shared.Models.GameStatus s) => s switch

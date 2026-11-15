@@ -22,8 +22,12 @@ Tests (`Triker.Tests`, xUnit) cover the game rules: `ScoringService` (the 16 han
 ranks, the group scoring formula, and the fact that rank — not points — decides
 the winner), `BotService` (roster integrity, discard validity) and `DeckService`.
 They build hands from the rule definitions rather than from the implementation,
-so they fail when the rules change. There is no coverage of the HTTP/SignalR
-layer or the frontend; for those, `.claude/skills/run-triker` drives the real app.
+so they fail when the rules change. `GameServiceTests` and `LimitesTests` cover
+the game lifecycle: seat tokens, results in the state, leaving the table,
+concurrent requests, restore after a restart and input limits (they run without
+PostgreSQL: saves fail and are logged, as in the API without a database). There
+is no coverage of the HTTP/SignalR wiring or the frontend; for those,
+`.claude/skills/run-triker` drives the real app.
 
 ## Architecture
 
@@ -35,7 +39,9 @@ Three-project .NET 10 solution: a Blazor WebAssembly frontend (`Triker.Web`), an
 
 **Frontend → Backend flow:** `Triker.Web/Services/ApiService` makes HTTP calls; `HubService` manages the SignalR connection and fires events that Blazor components subscribe to. `SessionService` holds the current player/game session.
 
-**Backend state:** The in-memory `GameState` in `Triker.Api` is the source of truth; each game is also mirrored to PostgreSQL as a JSON snapshot (see Key Design Decisions). `GameService` owns the game lifecycle and state-to-DTO conversion. `ScoringService` evaluates hands and scores. `InactivityService` drives the turn timer — it auto-plays bot moves and broadcasts updates to all connected clients via `GameHub`.
+**Backend state:** The in-memory `GameState` in `Triker.Api` is the source of truth; each game is also mirrored to PostgreSQL as a JSON snapshot (see Key Design Decisions). `GameService` owns the game lifecycle and state-to-DTO conversion; every read or change of a game happens inside `lock (game.SyncLock)` (HTTP requests, timers and the hub arrive on different threads). `ScoringService` evaluates hands and scores. `InactivityService` drives the turn timer — it auto-plays bot moves and broadcasts updates to all connected clients via `GameHub`.
+
+**Identity:** player and spectator ids are public (every client sees them in the state). What proves a seat is yours is its secret token, returned only by create/join/spectate (`JoinResponse.PlayerToken`, `SpectateResponse.SpectatorToken`) and never put in a DTO. REST calls send it in the `X-Triker-Token` header (`ApiHeaders.Token`); a wrong or missing token answers 404, same as a missing game. The hub is joined with `GameHub.Entrar(gameId, id, token, espectador)` — the connection URL only carries `?gameId=` — and the client calls it again after every automatic reconnect. The web stores seats in `localStorage` (`SessionService`), never in the URL. Bots have no token, so nobody can act for them from outside.
 
 ## Domain Model
 
@@ -51,9 +57,13 @@ There are 16 hand ranks (`HandRank` enum, values 0–15), ordered worst to best 
 ## Key Design Decisions
 
 - Game state lives in-process in memory as the source of truth, but each game is also persisted to PostgreSQL as a JSON snapshot (`jsonb`) via EF Core — `GamePersistenceService` serializes `GameState` (enums as strings via `JsonStringEnumConverter`) into the `game_snapshots` table (`AppDbContext`), keyed by game id. Snapshots are written on every state change and reloaded on API startup (`LoadAllAsync` / `EnsureCreatedAsync`), so active games survive restarts.
+- Snapshot writes are ordered per game (`GamePersistenceService`): the JSON is serialized while the caller holds the game lock, older versions are skipped, and a deleted game is never written again. On startup `GameService.RestoreGames` brings back every non-expired game, including those between rounds, and `InactivityService.ResumeRestoredGames` re-arms timers and bots. Games saved before tokens existed are discarded: nobody could identify in them.
+- While a round is `Finished` its results travel in the state (`GameStateDto.Results`), not only in the `HandsRevealed` event, so a reload on the results screen gets them back. Leaving the table removes the player at once; if fewer than 2 players remain, the table goes back to the waiting room and the first human inherits the creator role.
+- Input limits live in `Limites` (names 20/30 chars, 500 open games, 30 spectators per game, 16 KB bodies) and rate limits in `RateLimits` (per IP and minute: 10 creates, 30 join/spectate, 600 overall). The IP is the real client's only because `UseForwardedHeaders` trusts the nginx in front (loopback); remove it and every request shares 127.0.0.1's limit.
 - `Triker.Shared` contains only DTOs and enums used as the API contract; internal game state (`GameState`, `PlayerState`) lives only in `Triker.Api/State/`.
 - `BotService` scores each possible discard combination and picks the best move; it uses the same `ScoringService` as player evaluation.
 - The Web project has a `PostPublish.ps1` that fingerprints CSS filenames for cache-busting after `dotnet publish`. This runs automatically on publish.
+- The published `service-worker.js` is the development one, which caches nothing: the csproj declares no `ServiceWorker` item, so `service-worker.published.js` is shipped but never used. That is fine for a game that needs the API anyway, and it means a deploy reaches every client on reload. Enabling it would need the `index.html` hash fixed after `PostPublish.ps1` and the `srv` base-href step, or its precache fails.
 - The Web `wwwroot/appsettings.json` sets `ApiBaseUrl`; `appsettings.Production.json` overrides this for deployment.
 
 ## Deployment

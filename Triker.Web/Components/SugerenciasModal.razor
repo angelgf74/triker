@@ -2,10 +2,11 @@
 
 @if (Visible)
 {
-    <div class="help-overlay" @onclick="Close">
-        <div class="help-modal sug-modal" @onclick:stopPropagation>
-            <button class="help-close" @onclick="Close">✕</button>
-            <h2 class="help-title">Enviar sugerencia</h2>
+    <div class="help-overlay" @onclick="Close" @onkeydown="OnKey">
+        <div class="help-modal sug-modal" role="dialog" aria-modal="true" aria-labelledby="sug-title"
+             tabindex="-1" @ref="_dialogo" @onclick:stopPropagation>
+            <button class="help-close" @onclick="Close" aria-label="Cerrar">✕</button>
+            <h2 class="help-title" id="sug-title">Enviar sugerencia</h2>
 
             @if (_enviado)
             {
@@ -23,14 +24,14 @@
 
                 <div class="sug-form">
                     <div class="sug-field">
-                        <label class="sug-label">Tu email</label>
-                        <input class="name-input" type="email" @bind="_email" @bind:event="oninput"
-                               placeholder="tu@email.com" maxlength="200" />
+                        <label class="sug-label" for="sug-email">Tu email</label>
+                        <input id="sug-email" class="name-input" type="email" @bind="_email" @bind:event="oninput"
+                               placeholder="tu@email.com" maxlength="200" autocomplete="email" />
                     </div>
 
                     <div class="sug-field">
-                        <label class="sug-label">Tipo</label>
-                        <select class="sug-select" @bind="_tipo">
+                        <label class="sug-label" for="sug-tipo">Tipo</label>
+                        <select id="sug-tipo" class="sug-select" @bind="_tipo">
                             @foreach (var tipo in _tipos)
                             {
                                 <option value="@tipo.Value">@tipo.Label</option>
@@ -39,8 +40,8 @@
                     </div>
 
                     <div class="sug-field">
-                        <label class="sug-label">Tu sugerencia</label>
-                        <textarea class="name-input sug-textarea" @bind="_texto" @bind:event="oninput"
+                        <label class="sug-label" for="sug-texto">Tu sugerencia</label>
+                        <textarea id="sug-texto" class="name-input sug-textarea" @bind="_texto" @bind:event="oninput"
                                   placeholder="Cuéntanos..." maxlength="2000" rows="5"></textarea>
                         <span class="sug-chars">@_texto.Length / 2000</span>
                     </div>
@@ -86,6 +87,25 @@
         ("PreguntaSoporte", "Pregunta de soporte"),
         ("OtraConsulta", "Otra consulta"),
     ];
+
+    private ElementReference _dialogo;
+    private bool _eraVisible;
+    private bool _enfocar;
+
+    protected override void OnParametersSet()
+    {
+        if (Visible && !_eraVisible) _enfocar = true;
+        _eraVisible = Visible;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_enfocar) return;
+        _enfocar = false;
+        try { await _dialogo.FocusAsync(); } catch { }
+    }
+
+    private Task OnKey(KeyboardEventArgs e) => e.Key == "Escape" && !_enviando ? Close() : Task.CompletedTask;
 
     private bool PuedeEnviar =>
         !string.IsNullOrWhiteSpace(_email) &&

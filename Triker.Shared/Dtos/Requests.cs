@@ -27,5 +27,7 @@ public class ContinueRequest
 public class JoinResponse
 {
     public Guid PlayerId { get; set; }
+    // Secreto del asiento: solo lo recibe quien crea o se une (ver ApiHeaders).
+    public string PlayerToken { get; set; } = "";
     public GameStateDto GameState { get; set; } = null!;
 }

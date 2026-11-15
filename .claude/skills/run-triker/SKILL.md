@@ -78,7 +78,7 @@ node .claude/skills/run-triker/driver.mjs shot . lobby-check
 
 | command | what it does |
 |---|---|
-| `api` | Creates a game, opens a SignalR connection, adds 2 bots, starts, discards 2 cards, prints the revealed hands + winner, sends a reaction, continues into round 2. Pure backend — no browser. ~10 s. |
+| `api` | Creates a game, opens a SignalR connection and calls `Entrar`, adds 2 bots, starts, discards 2 cards, prints the revealed hands + winner, checks the results also come in the state, sends a reaction, continues into round 2. Pure backend — no browser. ~10 s. |
 | `ui` | Playwright + headless Chrome: lobby → create game → add 2 bots → start → select 2 cards → discard → results screen → round 2. Six screenshots. ~30 s. |
 | `shot <route> [name]` | Screenshot any route. Route is relative to `/triker/`, takes **no leading slash**, and is `.` for the lobby (`shot "game/<id>?playerId=<pid>" mygame`). |
 
@@ -131,8 +131,10 @@ assets** (see Gotchas). Use the agent-path command instead.
 
 ## Test
 
-There are no automated tests in this repository. `driver.mjs api` + `ui` are
-the smoke suite.
+`dotnet test Triker.Tests` covers the rules and the game lifecycle in
+`GameService` (tokens, results in state, leaving the table, concurrency,
+restore after restart). Nothing covers the HTTP/SignalR wiring or the
+frontend: `driver.mjs api` + `ui` are the smoke suite for those.
 
 ## Gotchas
 
@@ -144,13 +146,27 @@ the smoke suite.
   `-- --pathbase=/triker` and browse `https://localhost:7164/triker/`.
   Don't edit `index.html`'s base — that step looks for exactly `<base href="/triker/" />`.
 
-- **`HandsRevealed` never arrives over REST.** Round results go only to the
-  SignalR group named after the gameId (`GameBroadcaster.SendHandsRevealed`),
-  which you join by connecting to `/gamehub?gameId=…&playerId=…`. Likewise
-  `BroadcastPersonalized` skips players with no `ConnectionId`. A REST-only
-  client sees `status: "Revealing"` and nothing else — `players[].play` is
-  populated only for *your own* hand and only while status is `Playing`.
-  Connect the hub *before* discarding or the reveal is missed entirely.
+- **Every seat needs its token.** Create/join return `playerId` + `playerToken`
+  (spectate: `spectatorId` + `spectatorToken`). Per-seat REST calls send it in
+  the `X-Triker-Token` header; a missing or wrong token answers **404**, same
+  as a game that does not exist. The web keeps seats in `localStorage`
+  (`triker_asientos`), so `driver.mjs shot "game/<id>?playerId=<pid>"` from a
+  fresh browser shows "No formas parte de esta partida" — drive the game
+  through the UI (`ui`) instead.
+
+- **The hub needs `Entrar`, not a URL.** Connect to `/gamehub?gameId=…` and
+  invoke `Entrar(gameId, id, token, espectador)`; only then does the
+  connection join the game group and get a `ConnectionId`. Round results
+  (`HandsRevealed`) go only to that group, and `BroadcastPersonalized` skips
+  players with no `ConnectionId`. After an automatic reconnect the client must
+  call `Entrar` again. Connect *before* discarding or the reveal event is
+  missed — although while the round is `Finished` the results also come in
+  `GET /api/games/{id}` (`results`).
+
+- **Rate limits apply to you too.** Per IP and minute: 10 creates, 30
+  join/spectate, 600 requests overall (`Triker.Api/RateLimits.cs`). Running
+  `ui`, `api` and ad-hoc scripts back to back can earn a 429 on create; wait a
+  minute.
 
 - **`HandResultDto` has three rank-ish fields.** `rank` is the 1-based
   placement (winner = 1), `handRank` is the `HandRank` enum as a string,

@@ -21,4 +21,10 @@ public class GameStateDto
     public string? AccessCode { get; set; }
     public List<SpectatorDto> Spectators { get; set; } = [];
     public bool IAmSpectator { get; set; }
+
+    // Resultados de la ronda, mientras la partida esta en Finished. Antes solo
+    // llegaban en el evento HandsRevealed: quien recargaba o reconectaba en esa
+    // pantalla se quedaba sin ellos y sin botones hasta que le echaba el
+    // temporizador de 5 minutos.
+    public List<HandResultDto>? Results { get; set; }
 }

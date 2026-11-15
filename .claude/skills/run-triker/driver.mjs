@@ -29,10 +29,16 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const log = (...a) => console.log(...a);
 
-async function api(method, path, body) {
+// `token` is the seat secret returned by create/join/spectate (playerToken /
+// spectatorToken). Every per-seat endpoint needs it in X-Triker-Token; a wrong
+// or missing token answers 404, same as a game that does not exist.
+async function api(method, path, body, token) {
+  const headers = {};
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (token) headers['X-Triker-Token'] = token;
   const res = await fetch(`${API}${path}`, {
     method,
-    headers: body === undefined ? {} : { 'Content-Type': 'application/json' },
+    headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await res.text();
@@ -44,13 +50,16 @@ async function api(method, path, body) {
 
 // Connect to /gamehub as a real player. This is mandatory, not optional:
 // - the "HandsRevealed" payload is sent ONLY to the SignalR group named after
-//   the gameId, which you join by connecting with ?gameId=&playerId=;
+//   the gameId;
 // - GameBroadcaster.BroadcastPersonalized only pushes to players that have a
-//   ConnectionId, which is registered in GameHub.OnConnectedAsync.
+//   ConnectionId.
+// Both happen in the hub method Entrar(gameId, id, token, espectador), which
+// the client must invoke after start (and again after every reconnect). The
+// connection URL only carries ?gameId= so it does not land in the lobby group.
 // A REST-only client never sees round results.
-async function connectHub(gameId, playerId, sink) {
+async function connectHub(gameId, playerId, token, sink) {
   const conn = new signalR.HubConnectionBuilder()
-    .withUrl(`${API}/gamehub?gameId=${gameId}&playerId=${playerId}`, {
+    .withUrl(`${API}/gamehub?gameId=${gameId}`, {
       // Node has no browser TLS store; force ws transport with lax certs.
       withCredentials: false,
     })
@@ -60,6 +69,8 @@ async function connectHub(gameId, playerId, sink) {
   conn.on('GamesUpdated', (games) => sink.lobby.push(games));
   conn.on('Reaction', (r) => sink.reactions.push(r));
   await conn.start();
+  if (!(await conn.invoke('Entrar', gameId, playerId, token, false)))
+    throw new Error('hub rejected Entrar (wrong seat or token)');
   return conn;
 }
 
@@ -84,18 +95,19 @@ async function runApi() {
   });
   const gameId = created.gameState.id;
   const me = created.playerId;
+  const token = created.playerToken;
   log(`created game ${gameId} as ${me}`);
 
   const sink = { states: [], revealed: [], lobby: [], reactions: [] };
-  const hub = await connectHub(gameId, me, sink);
+  const hub = await connectHub(gameId, me, token, sink);
   log('hub connected');
 
-  await api('POST', `/api/games/${gameId}/addbot?playerId=${me}`);
-  await api('POST', `/api/games/${gameId}/addbot?playerId=${me}`);
+  await api('POST', `/api/games/${gameId}/addbot?playerId=${me}`, undefined, token);
+  await api('POST', `/api/games/${gameId}/addbot?playerId=${me}`, undefined, token);
   log('added 2 bots');
 
-  await api('POST', `/api/games/${gameId}/start?playerId=${me}`);
-  let state = await api('GET', `/api/games/${gameId}?playerId=${me}`);
+  await api('POST', `/api/games/${gameId}/start?playerId=${me}`, undefined, token);
+  let state = await api('GET', `/api/games/${gameId}?playerId=${me}`, undefined, token);
   const mine = state.players.find((p) => p.id === me);
   log(`status=${state.status} round=${state.roundNumber} deck=${state.deckSize} hand=${mine.hand.length}`);
   log(`my current play: ${mine.play ? `${mine.play.handName} [${mine.play.handRank}] ${mine.play.totalScore} pts` : '—'}`);
@@ -104,7 +116,7 @@ async function runApi() {
   // our turn by now. Discard the 2 first cards.
   if (mine.hand.length !== 5) throw new Error(`expected 5 cards, got ${mine.hand.length}`);
   const toss = mine.hand.slice(0, 2).map((c) => c.id);
-  await api('POST', `/api/games/${gameId}/discard?playerId=${me}`, { cardIds: toss });
+  await api('POST', `/api/games/${gameId}/discard?playerId=${me}`, { cardIds: toss }, token);
   log('discarded 2 cards');
 
   const results = await waitFor(() => sink.revealed[0], 'HandsRevealed over SignalR');
@@ -120,11 +132,18 @@ async function runApi() {
   const winner = results.find((r) => r.rank === 1);
   log(`winner: ${winner ? winner.playerName : '(none)'}`);
 
-  await api('POST', `/api/games/${gameId}/react?playerId=${me}`, { emoji: '🎉' });
+  // Results also travel inside the state while the round is Finished, so a
+  // client that reloads on the results screen gets them back.
+  const finished = await api('GET', `/api/games/${gameId}?playerId=${me}`, undefined, token);
+  if (finished.status !== 'Finished' || finished.results?.length !== 3)
+    throw new Error(`expected Finished state with 3 results, got ${finished.status} / ${finished.results?.length}`);
+  log('finished state carries the results');
+
+  await api('POST', `/api/games/${gameId}/react?playerId=${me}`, { emoji: '🎉' }, token);
   await waitFor(() => sink.reactions[0], 'Reaction echo');
   log(`reaction echoed: ${sink.reactions[0].emoji}`);
 
-  await api('POST', `/api/games/${gameId}/continue?playerId=${me}`, { wantsToContinue: true });
+  await api('POST', `/api/games/${gameId}/continue?playerId=${me}`, { wantsToContinue: true }, token);
   const next = await waitFor(
     () => sink.states.find((s) => s.roundNumber === 2 && s.status === 'Playing'),
     'round 2 to start',
@@ -235,7 +254,7 @@ async function runUi() {
     if (entries.length !== 3) throw new Error(`expected 3 result entries, got ${entries.length}`);
     await shot(page, '05-results');
 
-    // Round 2: press "Próxima partida" and confirm fresh cards are dealt.
+    // Round 2: press "Siguiente ronda" and confirm fresh cards are dealt.
     await page.click('.continue-buttons .btn-primary');
     await page.waitForSelector('.round-badge:has-text("Ronda 2")', { timeout: 60_000 });
     // The badge flips before the deal animation finishes.
