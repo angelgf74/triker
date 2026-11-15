@@ -9,39 +9,87 @@
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
+<PageTitle>@(EsMiTurno ? "¡Tu turno! · Triker" : "Triker")</PageTitle>
+
+@* Lo que solo se ve (turno, resultados) se anuncia tambien a los lectores de pantalla. *@
+<div class="sr-only" aria-live="polite">@_anuncio</div>
+
 <div class="game-room">
     @if (_reconnecting)
     {
-        <div class="reconnect-banner reconnect-warn">⟳ Reconectando...</div>
+        <div class="reconnect-banner reconnect-warn" role="status">⟳ Reconectando...</div>
     }
     else if (_connectionClosed)
     {
-        <div class="reconnect-banner reconnect-error">
+        <div class="reconnect-banner reconnect-error" role="alert">
             Conexión perdida. <button class="btn-reload" @onclick="Reload">Recargar</button>
         </div>
     }
 
     @if (_turnTimedOut)
     {
-        <div class="reconnect-banner timeout-banner">
+        <div class="reconnect-banner timeout-banner" role="alert">
             ⏱ Se acabó tu tiempo: pasaste sin descartar.
-            <button class="btn-dismiss" @onclick="() => _turnTimedOut = false" title="Cerrar">✕</button>
+            <button class="btn-dismiss" @onclick="() => _turnTimedOut = false" title="Cerrar" aria-label="Cerrar aviso">✕</button>
         </div>
     }
 
-    @if (_state == null)
+    @if (_fallo != Fallo.Ninguno)
     {
-        <div class="loading">Conectando a la partida...</div>
+        <div class="room-problem">
+            @switch (_fallo)
+            {
+                case Fallo.SinAsiento:
+                    <h1 class="room-problem-title" tabindex="-1">No formas parte de esta partida</h1>
+                    <p>Puede que la abrieras en otro dispositivo o navegador. Si aún está esperando jugadores, puedes unirte.</p>
+                    <div class="room-problem-actions">
+                        <button class="btn-primary" @onclick="JoinFromLobby">Unirme a la partida</button>
+                        <button class="btn-secondary" @onclick="GoToLobby">Volver al inicio</button>
+                    </div>
+                    break;
+                case Fallo.NoExiste:
+                    <h1 class="room-problem-title" tabindex="-1">Esta partida ya no existe</h1>
+                    <p>Las partidas se cierran cuando se van todos los jugadores o tras un rato sin actividad.</p>
+                    <div class="room-problem-actions">
+                        <button class="btn-primary" @onclick="GoToLobby">Volver al inicio</button>
+                    </div>
+                    break;
+                case Fallo.AsientoPerdido:
+                    <h1 class="room-problem-title" tabindex="-1">Ya no estás en esta partida</h1>
+                    <p>Saliste de la mesa o se cerró mientras estabas desconectado.</p>
+                    <div class="room-problem-actions">
+                        <button class="btn-primary" @onclick="GoToLobby">Volver al inicio</button>
+                    </div>
+                    break;
+                default:
+                    <h1 class="room-problem-title" tabindex="-1">No se puede conectar con el servidor</h1>
+                    <p>Comprueba tu conexión a internet.</p>
+                    <div class="room-problem-actions">
+                        <button class="btn-primary" @onclick="Conectar">Reintentar</button>
+                        <button class="btn-secondary" @onclick="GoToLobby">Volver al inicio</button>
+                    </div>
+                    break;
+            }
+        </div>
     }
-    else if (_state.Status == GameStatus.Finished && _results != null)
+    else if (_state == null)
     {
-        <ResultsView Results="_results" GameName="@_state.Name" RoundNumber="_state.RoundNumber"
+        <div class="loading" role="status">Conectando a la partida...</div>
+    }
+    else if (_results != null && (_state.Status == GameStatus.Finished || _state.Status == GameStatus.Revealing))
+    {
+        <ResultsView Results="_results" GameName="@_state.Name" RoundNumber="_resultsRound"
                      MyPlayerId="_myPlayerId"
                      OnContinue="HandleContinue"
                      Players="_state.Players"
                      TargetWins="_state.TargetWins"
                      GameOver="_state.GameOver"
-                     IsSpectator="IsSpectator" />
+                     IsSpectator="IsSpectator"
+                     Decided="@(_deciding || Me?.WantsToContinue == true)" />
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <div class="error-msg" role="alert">@_error</div>
+        }
     }
     else
     {
@@ -50,7 +98,7 @@
            izquierda crece y trunca el titulo; los controles nunca se parten. *@
         <div class="game-header">
             <div class="game-header-main">
-                <span class="game-title-small" title="@_state.Name">@_state.Name</span>
+                <h1 class="game-title-small" title="@_state.Name" tabindex="-1">@_state.Name</h1>
                 @* Ronda y mazo no significan nada antes de repartir. *@
                 @if (_state.Status != GameStatus.Waiting)
                 {
@@ -77,10 +125,11 @@
                     <DeckView DeckSize="_state.DeckSize" />
                 }
                 <button class="btn-mute" @onclick="@(() => Audio.Enabled = !Audio.Enabled)"
-                        title="@(Audio.Enabled ? "Silenciar" : "Activar sonido")">
+                        title="@(Audio.Enabled ? "Silenciar" : "Activar sonido")"
+                        aria-label="@(Audio.Enabled ? "Silenciar" : "Activar sonido")">
                     @(Audio.Enabled ? "🔊" : "🔇")
                 </button>
-                <button class="btn-help" @onclick="@(() => _helpVisible = true)" title="Ayuda">?</button>
+                <button class="btn-help" @onclick="@(() => _helpVisible = true)" title="Ayuda" aria-label="Cómo se juega">?</button>
                 @if (IsSpectator)
                 {
                     <button class="btn-secondary btn-leave-spectate" @onclick="LeaveSpectate">Salir</button>
@@ -97,6 +146,7 @@
                     <div class="private-code-banner">
                         <span class="private-code-label">🔒 Código privado</span>
                         <button class="private-code-value btn-copy-code" title="Copiar el código"
+                                aria-label="Copiar el código @_state.AccessCode"
                                 @onclick="CopyCode">@_state.AccessCode 📋</button>
                         <span class="private-code-hint">Compártelo con tus amigos para que puedan unirse</span>
                     </div>
@@ -109,7 +159,7 @@
                         </button>
                         @if (_inviteNotice != null)
                         {
-                            <span class="share-notice">@_inviteNotice</span>
+                            <span class="share-notice" role="status">@_inviteNotice</span>
                         }
                     </div>
                 }
@@ -127,6 +177,10 @@
                         <button class="btn-primary btn-start" @onclick="StartGame"
                                 disabled="@(_state.Players.Count < 2)">▶ Iniciar partida</button>
                     </div>
+                    @if (_state.Players.Count < 2)
+                    {
+                        <p class="waiting-msg">Añade un bot o invita a alguien para empezar.</p>
+                    }
                 }
                 else
                 {
@@ -136,7 +190,7 @@
                     @foreach (var p in _state.Players)
                     {
                         <div class="waiting-player">
-                            <span class="player-dot">@(p.IsBot ? "○" : "●")</span>
+                            <span class="player-dot" aria-hidden="true">@(p.IsBot ? "○" : "●")</span>
                             <span>@p.Name</span>
                             @if (p.Id == _state.CreatorId)
                             {
@@ -171,7 +225,7 @@
                 </div>
             }
 
-                var me = IsSpectator ? null : _state.Players.FirstOrDefault(p => p.Id == _myPlayerId);
+            var me = Me;
 
             @if (me != null)
             {
@@ -185,9 +239,9 @@
                         @if (me.Wins > 0 || me.Seconds > 0 || me.Thirds > 0)
                         {
                             <span class="player-medals">
-                                @if (me.Wins > 0)    { <span>🥇@me.Wins</span> }
-                                @if (me.Seconds > 0) { <span>🥈@me.Seconds</span> }
-                                @if (me.Thirds > 0)  { <span>🥉@me.Thirds</span> }
+                                @if (me.Wins > 0)    { <span title="Primeros puestos">🥇@me.Wins</span> }
+                                @if (me.Seconds > 0) { <span title="Segundos puestos">🥈@me.Seconds</span> }
+                                @if (me.Thirds > 0)  { <span title="Terceros puestos">🥉@me.Thirds</span> }
                             </span>
                         }
                         @if (_state.Status == GameStatus.Playing)
@@ -203,7 +257,7 @@
                                 {
                                     <div class="turn-countdown">
                                         <span class="countdown-secs">@_turnSecondsLeft s</span>
-                                        <div class="countdown-bar">
+                                        <div class="countdown-bar" aria-hidden="true">
                                             <div class="countdown-fill @CountdownClass"
                                                  style="width:@(_turnSecondsLeft / 60.0 * 100)%"></div>
                                         </div>
@@ -240,7 +294,7 @@
                         {
                             <div class="discard-section">
                                 <span class="discard-section-label">Descartaste @me.DiscardCount</span>
-                                <div class="discard-pile-row">
+                                <div class="discard-pile-row" aria-hidden="true">
                                     @for (int i = 0; i < me.DiscardCount; i++)
                                     {
                                         <CardView FaceDown="true" />
@@ -260,10 +314,11 @@
 
             @if (!IsSpectator)
             {
-                <div class="reaction-toolbar">
+                <div class="reaction-toolbar" role="group" aria-label="Reacciones">
                     @foreach (var emoji in _emojis)
                     {
-                        <button class="reaction-btn" @onclick="() => SendReaction(emoji)" title="Reaccionar @emoji">@emoji</button>
+                        <button class="reaction-btn" @onclick="() => SendReaction(emoji)"
+                                title="Reaccionar @emoji" aria-label="Reaccionar @emoji">@emoji</button>
                     }
                 </div>
             }
@@ -271,7 +326,7 @@
 
         @if (!string.IsNullOrEmpty(_error))
         {
-            <div class="error-msg">@_error</div>
+            <div class="error-msg" role="alert">@_error</div>
         }
     }
 </div>
@@ -279,21 +334,28 @@
 @code {
     [Parameter] public Guid GameId { get; set; }
 
+    private enum Fallo { Ninguno, SinAsiento, NoExiste, SinConexion, AsientoPerdido }
+
+    private Asiento? _asiento;
+    private Fallo _fallo = Fallo.Ninguno;
     private GameStateDto? _state;
     private List<HandResultDto>? _results;
+    private int _resultsRound;
     private List<HandResultDto>? _lastRoundResults;
     private int _lastRoundNumber;
     private bool _historyVisible = true;
     private bool _wasMyTurn = false;
     private Guid _myPlayerId;
-    private Guid? _spectatorId;
-    private bool IsSpectator => _spectatorId.HasValue;
+    private bool IsSpectator => _asiento?.Espectador == true;
     private bool _discarded = false;
+    private bool _deciding = false;
     private bool _helpVisible = false;
     private bool _reconnecting = false;
     private bool _turnTimedOut = false;
     private bool _connectionClosed = false;
+    private bool _subscribed = false;
     private string _error = "";
+    private string _anuncio = "";
     private int _turnSecondsLeft;
     private CancellationTokenSource? _countdownCts;
 
@@ -304,18 +366,29 @@
 
     private string? _inviteNotice;
 
+    private PlayerDto? Me => IsSpectator || _state == null ? null : _state.Players.FirstOrDefault(p => p.Id == _myPlayerId);
+    private bool EsMiTurno => _state?.Status == GameStatus.Playing && Me?.IsCurrentTurn == true && !_discarded;
+
     private int MaxPlayers => _state != null ? Math.Min(16, (int)Math.Floor((double)(_state.N * _state.N) / 2)) : 0;
     private string CountdownClass => _turnSecondsLeft switch { <= 10 => "countdown-danger", <= 20 => "countdown-warn", _ => "countdown-ok" };
 
     protected override async Task OnInitializedAsync()
     {
         await Audio.EnsureInitializedAsync();
-        _spectatorId = ParseGuidParamFromUrl(Nav.Uri, "spectatorId");
-        if (!_spectatorId.HasValue)
+
+        // El asiento (id + token) sale de localStorage; la URL solo dice cual.
+        // Sin ?playerId ni ?spectatorId vale el que tengas en esta partida.
+        var spectatorId = ParseGuidParamFromUrl(Nav.Uri, "spectatorId");
+        _asiento = spectatorId is Guid sid
+            ? await Session.BuscarAsiento(GameId, sid, espectador: true)
+            : await Session.BuscarAsiento(GameId, ParseGuidParamFromUrl(Nav.Uri, "playerId"), espectador: false);
+
+        if (_asiento == null)
         {
-            _myPlayerId = ParseGuidParamFromUrl(Nav.Uri, "playerId")
-                ?? await Session.GetOrCreatePlayerId();
+            _fallo = Fallo.SinAsiento;
+            return;
         }
+        _myPlayerId = _asiento.Espectador ? Guid.Empty : _asiento.Id;
 
         Hub.OnChange += OnHubChange;
         Hub.OnHandsRevealed += OnHandsRevealed;
@@ -324,44 +397,77 @@
         Hub.OnReconnecting += OnHubReconnecting;
         Hub.OnReconnected += OnHubReconnected;
         Hub.OnConnectionClosed += OnHubConnectionClosed;
+        Hub.OnSeatLost += OnSeatLost;
         Hub.OnReaction += OnReaction;
+        _subscribed = true;
 
-        var apiBase = GetApiBase();
-        var id = _spectatorId ?? _myPlayerId;
-        await Hub.Connect(apiBase, GameId, id, asSpectator: IsSpectator);
+        await Conectar();
+    }
 
-        if (_state == null && !IsSpectator)
+    // Primero el estado por REST (dice si la partida existe y el asiento vale)
+    // y luego el hub. Antes, una partida inexistente dejaba "Conectando..."
+    // para siempre con la barra roja generica de Blazor.
+    private async Task Conectar()
+    {
+        if (_asiento == null) return;
+        _fallo = Fallo.Ninguno;
+        _connectionClosed = false;
+
+        var (state, resultado) = await Api.GetGameState(_asiento);
+        if (resultado == ResultadoEstado.NoEncontrada)
         {
-            _state = await Api.GetGameState(GameId, _myPlayerId);
-            StateHasChanged();
+            await Session.OlvidarAsiento(_asiento.GameId, _asiento.Id);
+            _fallo = Fallo.NoExiste;
+            return;
         }
+        if (resultado != ResultadoEstado.Ok || state == null)
+        {
+            _fallo = Fallo.SinConexion;
+            return;
+        }
+
+        ApplyState(state);
+        StateHasChanged();
+
+        if (!await Hub.Connect(GetApiBase(), _asiento))
+            _connectionClosed = true;
     }
 
     private void OnHubChange()
     {
-        _state = Hub.GameState;
+        if (Hub.GameState == null) return;
         _reconnecting = false;
-        if (_state?.Status == GameStatus.Playing)
+        ApplyState(Hub.GameState);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ApplyState(GameStateDto state)
+    {
+        _state = state;
+        SyncResults();
+
+        var me = Me;
+        if (_state.Status == GameStatus.Playing && me != null)
         {
-            var me = _state.Players.FirstOrDefault(p => p.Id == _myPlayerId);
-            if (me != null)
+            if (me.TurnStatus == PlayerTurnStatus.Thinking || !me.IsCurrentTurn)
+                _discarded = false;
+
+            // El aviso lo enciende el evento del hub y lo apaga el estado:
+            // el servidor reinicia TurnTimedOut al repartir la ronda nueva.
+            if (!me.TurnTimedOut) _turnTimedOut = false;
+
+            if (me.IsCurrentTurn && !_discarded && _state.TurnDeadline.HasValue)
+                StartCountdown(_state.TurnDeadline.Value);
+            else
+                StopCountdown();
+
+            var myTurn = me.IsCurrentTurn && !_discarded;
+            if (myTurn && !_wasMyTurn)
             {
-                if (me.TurnStatus == PlayerTurnStatus.Thinking || !me.IsCurrentTurn)
-                    _discarded = false;
-
-                // El aviso lo enciende el evento del hub y lo apaga el estado:
-                // el servidor reinicia TurnTimedOut al repartir la ronda nueva.
-                if (!me.TurnTimedOut) _turnTimedOut = false;
-
-                if (me.IsCurrentTurn && !_discarded && _state.TurnDeadline.HasValue)
-                    StartCountdown(_state.TurnDeadline.Value);
-                else
-                    StopCountdown();
-
-                if (me.IsCurrentTurn && !_discarded && !_wasMyTurn)
-                    InvokeAsync(Audio.PlayYourTurn);
-                _wasMyTurn = me.IsCurrentTurn && !_discarded;
+                InvokeAsync(Audio.PlayYourTurn);
+                _anuncio = $"Es tu turno (ronda {_state.RoundNumber})";
             }
+            _wasMyTurn = myTurn;
         }
         else
         {
@@ -369,7 +475,42 @@
             _discarded = false;
             _wasMyTurn = false;
         }
-        InvokeAsync(StateHasChanged);
+
+        if (_state.Status != GameStatus.Finished) _deciding = false;
+    }
+
+    // Los resultados llegan por el evento HandsRevealed o, si se recarga o
+    // reconecta en esa pantalla, en el propio estado. Al repartir la ronda
+    // siguiente pasan al panel de historial.
+    private void SyncResults()
+    {
+        if (_state == null) return;
+        switch (_state.Status)
+        {
+            case GameStatus.Finished:
+                if (_state.Results != null && (_results == null || _resultsRound != _state.RoundNumber))
+                {
+                    _results = _state.Results;
+                    _resultsRound = _state.RoundNumber;
+                }
+                break;
+            case GameStatus.Playing:
+                if (_results != null)
+                {
+                    _lastRoundResults = _results;
+                    _lastRoundNumber = _resultsRound;
+                    _historyVisible = true;
+                    _results = null;
+                }
+                break;
+            case GameStatus.Waiting:
+                // La mesa volvio a la sala de espera: lo de antes ya no aplica.
+                _results = null;
+                _lastRoundResults = null;
+                break;
+            // Revealing: se conserva lo que haya. Un estado Revealing rezagado
+            // puede llegar justo despues de los resultados.
+        }
     }
 
     private void OnHubReconnecting()
@@ -390,6 +531,14 @@
     {
         _reconnecting = false;
         _connectionClosed = true;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnSeatLost()
+    {
+        _reconnecting = false;
+        _fallo = Fallo.AsientoPerdido;
+        if (_asiento != null) _ = Session.OlvidarAsiento(_asiento.GameId, _asiento.Id);
         InvokeAsync(StateHasChanged);
     }
 
@@ -475,11 +624,15 @@
     {
         _lastRoundResults = null;
         _results = results;
+        _resultsRound = _state?.RoundNumber ?? 0;
 
         var myResult = results.FirstOrDefault(r => r.PlayerId == _myPlayerId);
         if (myResult != null)
         {
-            bool iWon = results.Count(r => r.HandRank > myResult.HandRank) == 0;
+            var position = results.Count(r => r.HandRank > myResult.HandRank) + 1;
+            _anuncio = $"Ronda {_resultsRound} terminada: quedas {position}º de {results.Count} con {myResult.HandName}";
+
+            bool iWon = position == 1;
             if (_state?.GameOver == true && iWon)
                 InvokeAsync(Audio.PlayChampion);
             else if (iWon)
@@ -507,12 +660,18 @@
     // de dejar (el boton de Android hace webView.goBack, ver MainActivity.kt).
     private void GoToLobby() => Nav.NavigateTo("", replace: true);
 
+    // El lobby con esta partida elegida: si aun espera jugadores, entra.
+    private void JoinFromLobby() => Nav.NavigateTo($"?join={GameId}", replace: true);
+
     private void OnAutoLeft()
-        => InvokeAsync(GoToLobby);
+    {
+        if (_asiento != null) _ = Session.OlvidarAsiento(_asiento.GameId, _asiento.Id);
+        InvokeAsync(() => Nav.NavigateTo("?aviso=fuera", replace: true));
+    }
 
     // No se cierra solo: si el turno se agoto es porque el jugador no estaba
     // mirando, y un aviso que se desvanece es justo el que se pierde. Se quita
-    // al empezar la ronda siguiente (ver el reparto en OnStateChanged).
+    // al empezar la ronda siguiente (ver el reparto en ApplyState).
     private void OnTurnTimedOut()
     {
         _turnTimedOut = true;
@@ -521,31 +680,42 @@
 
     private async Task AddBot()
     {
-        var ok = await Api.AddBot(GameId, _myPlayerId);
-        if (!ok) _error = "No se pudo añadir el bot";
+        if (_asiento == null) return;
+        _error = await Api.AddBot(_asiento) ? "" : "No se pudo añadir el bot";
     }
 
     private async Task StartGame()
     {
-        var ok = await Api.StartGame(GameId, _myPlayerId);
-        if (!ok) _error = "No se pudo iniciar la partida";
+        if (_asiento == null) return;
+        _error = await Api.StartGame(_asiento) ? "" : "No se pudo iniciar la partida";
     }
 
     private async Task HandleDiscard(List<Guid> cardIds)
     {
+        if (_asiento == null) return;
         _discarded = true;
+        _error = "";
         StopCountdown();
-        var ok = await Api.Discard(GameId, _myPlayerId, new() { CardIds = cardIds });
-        if (!ok) { _error = "Error al descartar"; _discarded = false; }
+        if (!await Api.Discard(_asiento, new() { CardIds = cardIds }))
+        {
+            _error = "No se pudo enviar el descarte. Comprueba la conexión y vuelve a intentarlo.";
+            _discarded = false;
+            if (_state?.TurnDeadline is { } deadline) StartCountdown(deadline);
+        }
     }
 
     private async Task SendReaction(string emoji)
-        => await Api.SendReaction(GameId, _myPlayerId, emoji);
+    {
+        if (_asiento != null) await Api.SendReaction(_asiento, emoji);
+    }
 
     private async Task LeaveSpectate()
     {
-        if (_spectatorId.HasValue)
-            await Api.LeaveSpectate(GameId, _spectatorId.Value);
+        if (_asiento != null)
+        {
+            await Api.LeaveSpectate(_asiento);
+            await Session.OlvidarAsiento(_asiento.GameId, _asiento.Id);
+        }
         GoToLobby();
     }
 
@@ -574,17 +744,24 @@
             await LeaveSpectate();
             return;
         }
+        if (_asiento == null) return;
+        _error = "";
 
-        if (wantsToContinue && _results != null)
+        if (!wantsToContinue)
         {
-            _lastRoundResults = _results;
-            _lastRoundNumber = _state?.RoundNumber ?? 0;
-            _historyVisible = true;
+            // Si falla, el temporizador de fin de ronda le saca igualmente.
+            await Api.Continue(_asiento, new() { WantsToContinue = false });
+            await Session.OlvidarAsiento(_asiento.GameId, _asiento.Id);
+            GoToLobby();
+            return;
         }
-        _results = null;
-        _discarded = false;
-        await Api.Continue(GameId, _myPlayerId, new() { WantsToContinue = wantsToContinue });
-        if (!wantsToContinue) GoToLobby();
+
+        _deciding = true;
+        if (!await Api.Continue(_asiento, new() { WantsToContinue = true }))
+        {
+            _deciding = false;
+            _error = "No se pudo enviar tu decisión. Comprueba la conexión y vuelve a intentarlo.";
+        }
     }
 
     private string GetApiBase()
@@ -606,14 +783,18 @@
     public async ValueTask DisposeAsync()
     {
         StopCountdown();
-        Hub.OnChange -= OnHubChange;
-        Hub.OnHandsRevealed -= OnHandsRevealed;
-        Hub.OnAutoLeft -= OnAutoLeft;
-        Hub.OnTurnTimedOut -= OnTurnTimedOut;
-        Hub.OnReconnecting -= OnHubReconnecting;
-        Hub.OnReconnected -= OnHubReconnected;
-        Hub.OnConnectionClosed -= OnHubConnectionClosed;
-        Hub.OnReaction -= OnReaction;
+        if (_subscribed)
+        {
+            Hub.OnChange -= OnHubChange;
+            Hub.OnHandsRevealed -= OnHandsRevealed;
+            Hub.OnAutoLeft -= OnAutoLeft;
+            Hub.OnTurnTimedOut -= OnTurnTimedOut;
+            Hub.OnReconnecting -= OnHubReconnecting;
+            Hub.OnReconnected -= OnHubReconnected;
+            Hub.OnConnectionClosed -= OnHubConnectionClosed;
+            Hub.OnSeatLost -= OnSeatLost;
+            Hub.OnReaction -= OnReaction;
+        }
         await Hub.DisposeAsync();
     }
 }

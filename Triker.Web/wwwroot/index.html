@@ -16,7 +16,7 @@
     <!-- PWA -->
     <link rel="manifest" href="manifest.json" />
     <link rel="apple-touch-icon" href="icon.svg" />
-    <meta name="theme-color" content="#f0c040" />
+    <meta name="theme-color" content="#1a1a2e" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -34,6 +34,13 @@
         if (localStorage.getItem('triker_colorblind') === '1') {
             document.body.classList.add('colorblind');
         }
+        // Las cartas son role="button" (CardView): Espacio las selecciona y no
+        // debe hacer scroll. Blazor no puede cancelar solo una tecla.
+        document.addEventListener('keydown', function (e) {
+            if (e.key === ' ' && e.target && e.target.getAttribute && e.target.getAttribute('role') === 'button') {
+                e.preventDefault();
+            }
+        });
     </script>
     <div id="app">
         <div class="loading-screen">

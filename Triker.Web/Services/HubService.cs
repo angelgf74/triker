@@ -2,15 +2,15 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Triker.Shared.Dtos;
-using Triker.Shared.Models;
 
 namespace Triker.Web.Services;
 
 public class HubService : IAsyncDisposable
 {
     private HubConnection? _hub;
+    private Asiento? _asiento;
+
     public GameStateDto? GameState { get; private set; }
-    public List<HandResultDto>? LastResults { get; private set; }
 
     public event Action? OnChange;
     public event Action<List<HandResultDto>>? OnHandsRevealed;
@@ -19,17 +19,21 @@ public class HubService : IAsyncDisposable
     public event Action? OnReconnecting;
     public event Action? OnReconnected;
     public event Action? OnConnectionClosed;
+    // El servidor ya no reconoce el asiento (partida cerrada o te sacaron).
+    public event Action? OnSeatLost;
     public event Action<ChatReactionDto>? OnReaction;
 
     public bool IsConnected => _hub?.State == HubConnectionState.Connected;
 
-    public async Task Connect(string apiBaseUrl, Guid gameId, Guid id, bool asSpectator = false)
+    // Conecta y se identifica con GameHub.Entrar. False si no se pudo conectar
+    // o el asiento no vale.
+    public async Task<bool> Connect(string apiBaseUrl, Asiento asiento)
     {
         if (_hub != null) await DisposeAsync();
+        _asiento = asiento;
 
-        var idParam = asSpectator ? $"spectatorId={id}" : $"playerId={id}";
         _hub = new HubConnectionBuilder()
-            .WithUrl($"{apiBaseUrl}/gamehub?gameId={gameId}&{idParam}")
+            .WithUrl($"{apiBaseUrl.TrimEnd('/')}/gamehub?gameId={asiento.GameId}")
             .WithAutomaticReconnect()
             .AddJsonProtocol(options =>
             {
@@ -37,27 +41,14 @@ public class HubService : IAsyncDisposable
             })
             .Build();
 
-        // Personalized state: always apply (includes the player's own hand)
         _hub.On<GameStateDto>("GameState", state =>
         {
             GameState = state;
             OnChange?.Invoke();
         });
 
-        // Public state (no hand data): only use it during waiting room or initial load.
-        // During Playing/Revealing/Finished the personalized "GameState" is authoritative.
-        _hub.On<GameStateDto>("GameStatePublic", state =>
-        {
-            if (state.Status == GameStatus.Waiting || GameState == null)
-            {
-                GameState = state;
-                OnChange?.Invoke();
-            }
-        });
-
         _hub.On<List<HandResultDto>>("HandsRevealed", results =>
         {
-            LastResults = results;
             OnHandsRevealed?.Invoke(results);
             OnChange?.Invoke();
         });
@@ -68,11 +59,37 @@ public class HubService : IAsyncDisposable
 
         _hub.On<ChatReactionDto>("Reaction", r => OnReaction?.Invoke(r));
 
-        _hub.Reconnecting  += _ => { OnReconnecting?.Invoke();     return Task.CompletedTask; };
-        _hub.Reconnected   += _ => { OnReconnected?.Invoke();      return Task.CompletedTask; };
-        _hub.Closed        += _ => { OnConnectionClosed?.Invoke(); return Task.CompletedTask; };
+        _hub.Reconnecting += _ => { OnReconnecting?.Invoke(); return Task.CompletedTask; };
+        // La conexion nueva tiene otro id: hay que volver a entrar en la partida.
+        _hub.Reconnected += async _ =>
+        {
+            if (await Entrar()) OnReconnected?.Invoke();
+            else OnSeatLost?.Invoke();
+        };
+        _hub.Closed += _ => { OnConnectionClosed?.Invoke(); return Task.CompletedTask; };
 
-        await _hub.StartAsync();
+        try
+        {
+            await _hub.StartAsync();
+        }
+        catch
+        {
+            return false;
+        }
+        return await Entrar();
+    }
+
+    private async Task<bool> Entrar()
+    {
+        if (_hub == null || _asiento == null) return false;
+        try
+        {
+            return await _hub.InvokeAsync<bool>("Entrar", _asiento.GameId, _asiento.Id, _asiento.Token, _asiento.Espectador);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     public async ValueTask DisposeAsync()

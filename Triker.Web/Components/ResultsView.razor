@@ -3,13 +3,17 @@
 @inject IJSRuntime JS
 
 <div class="results-view">
-    @if (GameOver)
+    @if (GameOver && Players.Count > 0)
     {
-        var champ = Players.OrderByDescending(p => p.Wins).First();
+        @* Pueden llegar dos a la meta en la misma ronda: se nombra a todos. *@
+        var maxWins = Players.Max(p => p.Wins);
+        var champs = Players.Where(p => p.Wins == maxWins).Select(p => p.Name).ToList();
         <div class="champion-banner">
             <span class="champion-icon">🏆</span>
-            <span class="champion-name">@champ.Name</span>
-            <span class="champion-sub">¡Campeón con @champ.Wins victorias en @RoundNumber rondas!</span>
+            <span class="champion-name">@string.Join(" y ", champs)</span>
+            <span class="champion-sub">
+                ¡@(champs.Count == 1 ? "Campeón" : "Campeones") con @Plural(maxWins, "victoria", "victorias") en @Plural(RoundNumber, "ronda", "rondas")!
+            </span>
         </div>
     }
 
@@ -52,7 +56,7 @@
                             @HandLadder.Position(mine.HandRank)/@HandLadder.Total
                         </span>
                     </span>
-                    <span class="rs-score">@mine.TotalScore pts</span>
+                    @* Sin puntos: justo encima pone que no deciden nada. *@
                 </div>
             }
             @if (winner != null)
@@ -83,31 +87,31 @@
             }
             else
             {
-                <p class="waiting-others">
+                <p class="waiting-others" role="status">
                     Esperando a los jugadores…
-                    (@Players.Count(p => p.WantsToContinue) / @Players.Count quieren continuar)
+                    (@Players.Count(p => p.WantsToContinue) / @Players.Count quieren seguir)
                 </p>
             }
-            <button class="btn-secondary" @onclick="() => Decide(false)">Dejar de ver</button>
+            <button class="btn-secondary" @onclick="() => OnContinue.InvokeAsync(false)">Dejar de ver</button>
         }
         else if (GameOver)
         {
             <p class="continue-prompt">La partida ha terminado.</p>
-            <button class="btn-primary" @onclick="() => Decide(false)">Ir a sala de espera</button>
+            <button class="btn-primary" @onclick="() => OnContinue.InvokeAsync(false)">Volver al inicio</button>
         }
-        else if (!_decided)
+        else if (!Decided)
         {
-            <p class="continue-prompt">¿Quieres jugar otra partida?</p>
+            <p class="continue-prompt">¿Otra ronda?</p>
             <div class="continue-buttons">
-                <button class="btn-primary" @onclick="() => Decide(true)">Próxima partida</button>
-                <button class="btn-secondary" @onclick="() => Decide(false)">Abandonar mesa</button>
+                <button class="btn-primary" @onclick="() => OnContinue.InvokeAsync(true)">Siguiente ronda</button>
+                <button class="btn-secondary" @onclick="() => OnContinue.InvokeAsync(false)">Salir de la mesa</button>
             </div>
         }
         else
         {
-            <p class="waiting-others">
+            <p class="waiting-others" role="status">
                 Esperando a los demás jugadores…
-                (@Players.Count(p => p.WantsToContinue) / @Players.Count quieren continuar)
+                (@Players.Count(p => p.WantsToContinue) / @Players.Count quieren seguir)
             </p>
         }
     </div>
@@ -115,7 +119,7 @@
     @if (RoundNumber > 1)
     {
         <div class="session-stats">
-            <h3 class="session-stats-title">Sesión — @RoundNumber rondas</h3>
+            <h3 class="session-stats-title">Sesión — @Plural(RoundNumber, "ronda", "rondas")</h3>
             <div class="stats-table-wrap">
             <table class="stats-table">
                 <thead>
@@ -245,15 +249,14 @@
     [Parameter] public int TargetWins { get; set; }
     [Parameter] public bool GameOver { get; set; }
     [Parameter] public bool IsSpectator { get; set; }
+    // Lo decide GameRoom con el estado del servidor (WantsToContinue) y lo que
+    // esta enviando: asi sobrevive a una recarga y, si el envio falla, vuelven
+    // a salir los botones.
+    [Parameter] public bool Decided { get; set; }
 
-    private bool _decided = false;
     private string? _shareNotice;
 
-    private async Task Decide(bool wantsToContinue)
-    {
-        _decided = true;
-        await OnContinue.InvokeAsync(wantsToContinue);
-    }
+    private static string Plural(int n, string uno, string varios) => $"{n} {(n == 1 ? uno : varios)}";
 
     private async Task ShareResult(HandResultDto result)
     {

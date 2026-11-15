@@ -27,7 +27,7 @@ public static class CardVisuals
         CardColor.Blue => "#1E88E5",
         CardColor.Black => "#212121",
         CardColor.Magenta => "#9C27B0",
-        CardColor.Cyan => "#00ACC1",
+        CardColor.Cyan => "#0097A7",
         CardColor.Orange => "#F57C00",
         CardColor.Brown => "#795548",
         _ => "#888888"
