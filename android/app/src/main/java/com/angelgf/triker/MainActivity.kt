@@ -1,8 +1,12 @@
 package com.angelgf.triker
 
 import android.annotation.SuppressLint
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -36,8 +40,24 @@ class MainActivity : ComponentActivity() {
                 cacheMode = WebSettings.LOAD_DEFAULT
                 mediaPlaybackRequiresUserGesture = false  // permite los sonidos del juego
             }
-            // Mantiene la navegación dentro del WebView (no abre el navegador externo).
-            webViewClient = WebViewClient()
+            // Solo la web de Triker se abre dentro del WebView. Cualquier otra
+            // dirección va al navegador: dentro de la app tendría a su alcance
+            // window.AndroidAds y window.AndroidShare, que se exponen a la
+            // página que esté cargada, sea cual sea.
+            val appHost = Uri.parse(getString(R.string.app_url)).host
+            webViewClient = object : WebViewClient() {
+                override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+                    if (!request.isForMainFrame) return false
+                    val url = request.url
+                    if (url.scheme == "https" && url.host == appHost) return false
+                    try {
+                        startActivity(Intent(Intent.ACTION_VIEW, url))
+                    } catch (_: ActivityNotFoundException) {
+                        // Nada que la abra: mejor no navegar que abrirla aquí.
+                    }
+                    return true
+                }
+            }
             webChromeClient = WebChromeClient()
             // Expone window.AndroidAds y window.AndroidShare a la web.
             addJavascriptInterface(AdsBridge(this@MainActivity, ads), "AndroidAds")
