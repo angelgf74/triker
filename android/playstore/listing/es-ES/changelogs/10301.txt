@@ -1,0 +1,8 @@
+Novedades:
+• Partidas más seguras: nadie puede jugar en tu lugar ni ver tus cartas.
+• Si pierdes la conexión en los resultados, vuelves a ellos al entrar.
+• Si alguien deja la mesa, los demás siguen sin esperarle.
+• Cartas que no se cortan en el móvil y colores con más contraste.
+• Se puede jugar con teclado y con lector de pantalla.
+• Los enlaces de fuera de Triker se abren en el navegador.
+¡Gracias por jugar! Cuéntanos qué te parece.
