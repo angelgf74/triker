@@ -28,6 +28,9 @@ public class PlayerState
     // El turno se jugo solo al agotarse el tiempo. Se reinicia cada ronda en
     // StartGame; sin esto el jugador ve "paso" y no sabe que no fue cosa suya.
     public bool TurnTimedOut { get; set; } = false;
+    // Salio a mitad de ronda (GameService.LeaveGame): sigue en la lista hasta
+    // revelar para no mover el orden de turnos, pero ya no es su asiento.
+    public bool HasLeft { get; set; } = false;
 }
 
 public class SpectatorState

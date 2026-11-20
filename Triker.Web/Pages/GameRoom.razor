@@ -134,8 +134,26 @@
                 {
                     <button class="btn-secondary btn-leave-spectate" @onclick="LeaveSpectate">Salir</button>
                 }
+                else
+                {
+                    @* En la sala de espera sale sin mas; con cartas repartidas
+                       pregunta antes, porque pierde el sitio y la mano. *@
+                    <button class="btn-secondary btn-leave" disabled="@_leaving"
+                            @onclick="@(() => _state.Status == GameStatus.Waiting ? LeaveGame() : AskLeave())">Salir</button>
+                }
             </div>
         </div>
+
+        @if (_confirmLeave)
+        {
+            <div class="leave-confirm" role="alertdialog" aria-labelledby="leave-pregunta">
+                <p id="leave-pregunta">¿Salir de la partida? Pierdes tu sitio y tu mano de esta ronda no cuenta.</p>
+                <div class="leave-confirm-actions">
+                    <button class="btn-secondary" @onclick="@(() => _confirmLeave = false)" disabled="@_leaving">Seguir jugando</button>
+                    <button class="btn-danger" @onclick="LeaveGame" disabled="@_leaving">Salir</button>
+                </div>
+            </div>
+        }
 
         @if (_state.Status == GameStatus.Waiting)
         {
@@ -349,6 +367,8 @@
     private bool IsSpectator => _asiento?.Espectador == true;
     private bool _discarded = false;
     private bool _deciding = false;
+    private bool _confirmLeave = false;
+    private bool _leaving = false;
     private bool _helpVisible = false;
     private bool _reconnecting = false;
     private bool _turnTimedOut = false;
@@ -477,6 +497,9 @@
         }
 
         if (_state.Status != GameStatus.Finished) _deciding = false;
+        // La pregunta era sobre la ronda en curso: si ya no hay cartas en
+        // juego, sobra (en resultados se sale con su propio boton).
+        if (_state.Status is GameStatus.Waiting or GameStatus.Finished) _confirmLeave = false;
     }
 
     // Los resultados llegan por el evento HandsRevealed o, si se recarga o
@@ -707,6 +730,30 @@
     private async Task SendReaction(string emoji)
     {
         if (_asiento != null) await Api.SendReaction(_asiento, emoji);
+    }
+
+    private Task AskLeave()
+    {
+        _confirmLeave = true;
+        return Task.CompletedTask;
+    }
+
+    // Salir de la mesa en cualquier momento (sala de espera o a mitad de
+    // ronda). Con la ronda terminada se sale desde los resultados.
+    private async Task LeaveGame()
+    {
+        if (_asiento == null || _leaving) return;
+        _leaving = true;
+        _error = "";
+        if (await Api.Leave(_asiento))
+        {
+            await Session.OlvidarAsiento(_asiento.GameId, _asiento.Id);
+            GoToLobby();
+            return;
+        }
+        _leaving = false;
+        _confirmLeave = false;
+        _error = "No se pudo salir de la partida. Comprueba la conexión y vuelve a intentarlo.";
     }
 
     private async Task LeaveSpectate()

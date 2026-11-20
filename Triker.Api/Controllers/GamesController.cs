@@ -132,6 +132,21 @@ public class GamesController(GameService gameService, InactivityService inactivi
         return Ok();
     }
 
+    // Salir de la mesa en cualquier momento (ver GameService.LeaveGame). Responde
+    // en cuanto el jugador esta fuera; lo que venga despues (bots, revelar,
+    // avisar a los demas) sigue en segundo plano.
+    [HttpPost("{gameId}/leave")]
+    public ActionResult Leave(Guid gameId, [FromQuery] Guid playerId)
+    {
+        if (GameForPlayer(gameId, playerId) == null) return NotFound();
+        if (!gameService.LeaveGame(gameId, playerId)) return BadRequest("No se puede salir ahora");
+
+        // Si era su turno, el temporizador que le vigilaba ya no hace falta.
+        inactivity.CancelTurnTimer(gameId, playerId);
+        inactivity.ProcessBotsAndBroadcastInBackground(gameId);
+        return Ok();
+    }
+
     [HttpPost("{gameId}/react")]
     public async Task<ActionResult> React(Guid gameId, [FromQuery] Guid playerId, [FromBody] SendReactionRequest req)
     {

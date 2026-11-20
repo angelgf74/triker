@@ -93,11 +93,7 @@ public class InactivityService(GameService gameService, GameBroadcaster broadcas
             {
                 case GameStatus.Playing:
                 case GameStatus.Revealing:
-                    _ = Task.Run(async () =>
-                    {
-                        try { await ProcessBotsAndBroadcast(game.Id); }
-                        catch (Exception ex) { logger.LogError(ex, "Resume failed for game {GameId}", game.Id); }
-                    });
+                    ProcessBotsAndBroadcastInBackground(game.Id);
                     break;
                 case GameStatus.Finished:
                     StartFinishTimer(game.Id);
@@ -213,6 +209,16 @@ public class InactivityService(GameService gameService, GameBroadcaster broadcas
         await broadcaster.BroadcastPersonalized(game);
         await broadcaster.BroadcastLobbyUpdate();
     }
+
+    // Lo mismo sin hacer esperar a quien llama: al restaurar tras un reinicio
+    // y al salir de la mesa (quien se va no tiene por que aguantar la peticion
+    // mientras juegan los bots).
+    public void ProcessBotsAndBroadcastInBackground(Guid gameId)
+        => _ = Task.Run(async () =>
+        {
+            try { await ProcessBotsAndBroadcast(gameId); }
+            catch (Exception ex) { logger.LogError(ex, "Background processing failed for game {GameId}", gameId); }
+        });
 
     // Convenience broadcast without bot processing (used for Waiting-phase events)
     public async Task BroadcastState(Guid gameId)

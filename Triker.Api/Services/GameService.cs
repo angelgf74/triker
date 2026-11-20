@@ -122,7 +122,7 @@ public class GameService(
         lock (game.SyncLock)
         {
             var p = game.Players.FirstOrDefault(x => x.Id == playerId);
-            return p is { IsBot: false } && Limites.MismoToken(p.Token, token);
+            return p is { IsBot: false, HasLeft: false } && Limites.MismoToken(p.Token, token);
         }
     }
 
@@ -180,12 +180,18 @@ public class GameService(
 
             player.TurnStatus = PlayerTurnStatus.Ready;
             game.CurrentTurnIndex++;
+            // Quien salio a mitad de ronda no juega: su turno se pasa solo.
+            while (!RoundCompleteLocked(game) && game.CurrentTurnPlayer is { HasLeft: true } gone)
+            {
+                gone.TurnStatus = PlayerTurnStatus.Ready;
+                game.CurrentTurnIndex++;
+            }
             game.LastActivityAt = DateTimeOffset.UtcNow;
 
             logger.LogDebug("Player '{Player}' discarded {Count} cards in game {GameId}",
                 player.Name, player.Discarded.Count, gameId);
 
-            if (game.CurrentTurnIndex >= game.StartPlayerIndex + game.Players.Count)
+            if (RoundCompleteLocked(game))
             {
                 game.Status = GameStatus.Revealing;
                 logger.LogInformation("Game {GameId} round {Round} revealing hands", gameId, game.RoundNumber);
@@ -206,6 +212,11 @@ public class GameService(
         lock (game.SyncLock)
         {
             if (game.Status != GameStatus.Revealing) return null;
+
+            // Quien salio a mitad de ronda sale ahora de la lista: su mano no
+            // cuenta ni se lleva medalla.
+            if (game.Players.RemoveAll(p => p.HasLeft) > 0)
+                InheritCreatorLocked(game);
 
             var results = game.Players
                 .Select(p => scoringService.EvaluateHand(p.Id, p.Name, p.Hand))
@@ -303,20 +314,33 @@ public class GameService(
         foreach (var p in leaving) game.Players.Remove(p);
         game.LastActivityAt = DateTimeOffset.UtcNow;
 
-        if (!game.Players.Any(p => !p.IsBot))
-        {
-            _games.TryRemove(game.Id, out _);
-            _ = persistence.DeleteAsync(game.Id);
-            logger.LogInformation("Game {GameId} closed (no human players remaining)", game.Id);
-            return;
-        }
-
-        // El creador es quien puede añadir bots e iniciar si la mesa vuelve a
-        // la sala de espera; si se va, hereda el puesto el primer humano.
-        if (leaving.Any(p => p.Id == game.CreatorId))
-            game.CreatorId = game.Players.First(p => !p.IsBot).Id;
-
+        if (CloseIfNoHumansLocked(game)) return;
+        InheritCreatorLocked(game);
         AfterContinueDecisionLocked(game);
+    }
+
+    private static bool RoundCompleteLocked(GameState game)
+        => game.CurrentTurnIndex >= game.StartPlayerIndex + game.Players.Count;
+
+    // Sin humanos (los que han salido a mitad de ronda no cuentan) no hay
+    // partida: se cierra y se borra su snapshot.
+    private bool CloseIfNoHumansLocked(GameState game)
+    {
+        if (game.Players.Any(p => !p.IsBot && !p.HasLeft)) return false;
+
+        _games.TryRemove(game.Id, out _);
+        _ = persistence.DeleteAsync(game.Id);
+        logger.LogInformation("Game {GameId} closed (no human players remaining)", game.Id);
+        return true;
+    }
+
+    // El creador es quien puede añadir bots e iniciar si la mesa vuelve a la
+    // sala de espera; si ya no esta, hereda el puesto el primer humano.
+    private static void InheritCreatorLocked(GameState game)
+    {
+        if (game.Players.Any(p => p.Id == game.CreatorId && !p.HasLeft)) return;
+        var heir = game.Players.FirstOrDefault(p => !p.IsBot && !p.HasLeft);
+        if (heir != null) game.CreatorId = heir.Id;
     }
 
     private void AfterContinueDecisionLocked(GameState game)
@@ -362,6 +386,50 @@ public class GameService(
         }
         logger.LogInformation("Game {GameId} back to waiting room (not enough players)", game.Id);
         _ = persistence.SaveAsync(game);
+    }
+
+    // Salir de la mesa en cualquier momento.
+    //   - Sala de espera o ronda terminada: sale de la lista en el acto.
+    //   - A mitad de ronda: queda marcado (HasLeft) y sigue en la lista hasta
+    //     revelar. El turno es un contador sobre esa lista (CurrentTurnIndex)
+    //     y quitarle cambiaria a quien le toca. Su asiento deja de valer, su
+    //     turno se pasa solo y su mano no cuenta.
+    public bool LeaveGame(Guid gameId, Guid playerId)
+    {
+        if (!_games.TryGetValue(gameId, out var game)) return false;
+
+        lock (game.SyncLock)
+        {
+            var player = game.Players.FirstOrDefault(p => p.Id == playerId);
+            if (player is null or { IsBot: true } or { HasLeft: true }) return false;
+
+            logger.LogInformation("Player '{Player}' left game {GameId} ({Status})", player.Name, gameId, game.Status);
+            game.LastActivityAt = DateTimeOffset.UtcNow;
+
+            switch (game.Status)
+            {
+                case GameStatus.Waiting:
+                    game.Players.Remove(player);
+                    if (CloseIfNoHumansLocked(game)) return true;
+                    InheritCreatorLocked(game);
+                    _ = persistence.SaveAsync(game);
+                    return true;
+
+                case GameStatus.Finished:
+                    RemoveFromFinishedLocked(game, player);
+                    return true;
+
+                default: // Playing o Revealing
+                    player.HasLeft = true;
+                    player.ConnectionId = null;   // ya no recibe el estado (lleva su mano)
+                    if (CloseIfNoHumansLocked(game)) return true;
+                    if (game.Status == GameStatus.Playing && game.CurrentTurnPlayer?.Id == playerId)
+                        SubmitDiscard(gameId, playerId, []);   // pasa y guarda
+                    else
+                        _ = persistence.SaveAsync(game);
+                    return true;
+            }
+        }
     }
 
     public GameState? AddBot(Guid gameId, Guid requesterId)
@@ -612,6 +680,7 @@ public class GameService(
                     Seconds = p.Seconds,
                     Thirds = p.Thirds,
                     TurnTimedOut = p.TurnTimedOut,
+                    HasLeft = p.HasLeft,
                     Hand = (forPlayerId == p.Id || game.Status == GameStatus.Revealing || game.Status == GameStatus.Finished)
                         ? p.Hand.Select(c => new CardDto { Id = c.Id, Letter = c.Letter, Figure = c.Figure, Color = c.Color }).ToList()
                         : [],
