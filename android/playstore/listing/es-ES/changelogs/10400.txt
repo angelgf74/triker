@@ -1,0 +1,9 @@
+Novedades:
+• Sal de la mesa cuando quieras con el botón «Salir».
+• Si cerraste el juego, vuelve a tu partida desde la pantalla principal.
+• Las salas sin nadie dentro ya no aparecen en la lista.
+• Sin conexión verás un aviso claro con «Reintentar».
+• La cabecera ya no queda tapada por la barra de estado.
+• La barra del tiempo de turno vuelve a bajar.
+• Tú decides sobre la privacidad de los anuncios.
+¡Gracias por jugar! Cuéntanos qué te parece.

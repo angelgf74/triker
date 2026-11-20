@@ -88,6 +88,22 @@ creates its table on startup (`EnsureCreated`).
 - The API is built with `InvariantGlobalization` (the pre-srv unit set
   `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1`).
 
+## Android app
+
+`android/` is a single-activity Kotlin shell (`MainActivity`) around a WebView that loads the
+published web; game changes reach it through `srv`, without a new app version.
+
+- Ads: nothing from AdMob runs until `AdsConsent` (Google UMP) says ads can be requested. The
+  consent form is the one configured in the AdMob console for the app; where it is mandatory the
+  web shows «Privacidad de los anuncios» in the lobby (`js/ads.js`, `window.AndroidAds`).
+- AdMob ids are per build type (`src/debug` has Google's test ids, `src/release` the real ones)
+  and debug builds install as `com.angelgf.triker.debug`, next to the Play one.
+- The debug WebView accepts remote debugging: `adb forward tcp:9333
+  localabstract:webview_devtools_remote_<pid>` and drive it over CDP. That is how offline start,
+  renderer crashes and the consent form were checked on the emulator.
+- Native fallbacks: an error screen with «Reintentar» when the page cannot load, and
+  `onRenderProcessGone` replaces a dead WebView instead of letting the app close.
+
 ## Publishing to Google Play
 
 Same flow as every Android project, with `gplay` (skill `google-play`), from `android/`:

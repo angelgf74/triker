@@ -22,6 +22,12 @@ class InterstitialAdManager(
     private var loading = false
     private var lastShownAt = 0L
 
+    /**
+     * Apagado hasta que hay consentimiento (ver AdsConsent): mientras tanto ni
+     * se carga ni se muestra nada, aunque la web lo pida.
+     */
+    var enabled = false
+
     companion object {
         private const val TAG = "TrikerAds"
         private const val MIN_INTERVAL_MS = 60_000L
@@ -29,7 +35,7 @@ class InterstitialAdManager(
 
     /** Precarga un intersticial si no hay uno listo ni una carga en curso. */
     fun preload() {
-        if (loading || ad != null) return
+        if (!enabled || loading || ad != null) return
         loading = true
         InterstitialAd.load(
             activity,
@@ -52,6 +58,7 @@ class InterstitialAdManager(
 
     /** Muestra el intersticial si está listo y ha pasado el cooldown. Hilo de UI. */
     fun show() {
+        if (!enabled) return
         val now = SystemClock.elapsedRealtime()
         if (lastShownAt != 0L && now - lastShownAt < MIN_INTERVAL_MS) return
 
