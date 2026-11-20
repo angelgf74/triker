@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- IDs de PRUEBA oficiales de Google para las compilaciones de debug: no
+         generan ingresos ni cuentan como tráfico de la app real. Los de verdad
+         están en src/release/res/values/ads.xml. -->
+    <string name="admob_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>
+    <string name="admob_interstitial_id" translatable="false">ca-app-pub-3940256099942544/1033173712</string>
+</resources>

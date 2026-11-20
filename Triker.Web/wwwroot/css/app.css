@@ -1114,6 +1114,15 @@ body.colorblind .hmc-cb { display: block; }
     margin-left: auto;
 }
 
+/* ===== PRIVACIDAD DE LOS ANUNCIOS (solo en la app Android) ===== */
+.lobby-footer { text-align: center; }
+.lobby-footer[hidden] { display: none; }
+.link-button {
+    background: none; border: none; color: #9aa0b8; font-size: 0.85rem;
+    text-decoration: underline; padding: 0.6rem 1rem; min-height: 44px; cursor: pointer;
+}
+.link-button:hover { color: #e0e0e0; }
+
 /* ===== VOLVER A TU PARTIDA ===== */
 .resume-banner {
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.6rem;

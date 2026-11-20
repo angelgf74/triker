@@ -1,4 +1,5 @@
 {
+  "paquete": "com.angelgf.triker",
   "firma": {
     "keystore": "triker-release.jks",
     "alias": "triker",

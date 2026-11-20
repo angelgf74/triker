@@ -14,11 +14,16 @@ android {
         applicationId = "com.angelgf.triker"
         minSdk = 26
         targetSdk = 37
-        versionCode = 10301
-        versionName = "1.3.1"
+        versionCode = 10400
+        versionName = "1.4.0"
     }
 
     buildTypes {
+        debug {
+            // Otro paquete: la de debug convive con la de Play en el mismo
+            // dispositivo y no comparte sus datos ni sus IDs de AdMob.
+            applicationIdSuffix = ".debug"
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -47,6 +52,9 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.13.0")
     implementation("androidx.webkit:webkit:1.16.0")
     implementation("com.google.android.gms:play-services-ads:25.4.0")
+    // Consentimiento de anuncios (AdsConsent). Ya venía dentro de
+    // play-services-ads; se declara porque ahora se usa directamente.
+    implementation("com.google.android.ump:user-messaging-platform:4.0.0")
     // play-services-ads arrastra androidx.fragment:1.1.0 (obsoleto, señalado por
     // Play Console); se fuerza la última versión estable.
     implementation("androidx.fragment:fragment:1.8.9")

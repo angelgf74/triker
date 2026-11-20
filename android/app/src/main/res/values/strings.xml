@@ -6,9 +6,12 @@
          Si la web se sirve en una subruta, ajústala (p. ej. .../triker/). -->
     <string name="app_url">https://triker-app.angelgf.com.es/</string>
 
-    <!-- ===== AdMob =====
-         IDs de PRUEBA oficiales de Google. NO generan ingresos y son seguros para desarrollo.
-         Sustitúyelos por los reales de tu cuenta AdMob antes de publicar en Google Play. -->
-    <string name="admob_app_id">ca-app-pub-8600791204816041~8807021310</string>
-    <string name="admob_interstitial_id">ca-app-pub-8600791204816041/2565468056</string>
+    <!-- Aviso nativo cuando la web no carga (MainActivity). -->
+    <string name="error_title">No se puede abrir Triker</string>
+    <string name="error_message">Comprueba tu conexión a internet y vuelve a intentarlo.</string>
+    <string name="error_crash_message">Algo ha fallado y hay que volver a cargar el juego.</string>
+    <string name="error_retry">Reintentar</string>
+
+    <!-- Los IDs de AdMob (admob_app_id, admob_interstitial_id) no están aquí:
+         van por tipo de compilación, en src/debug y src/release (ads.xml). -->
 </resources>

@@ -184,6 +184,13 @@
             </div>
         }
     </div>
+
+    @* Solo en la app Android y solo donde el consentimiento de anuncios es
+       obligatorio: lo enseña ads.js (TrikerAds.refreshPrivacyLink), no Blazor,
+       porque el estado llega de la app despues de pintar el lobby. *@
+    <footer class="lobby-footer" data-ads-privacy hidden>
+        <button class="link-button" @onclick="AbrirPrivacidadDeAnuncios">Privacidad de los anuncios</button>
+    </footer>
 </div>
 
 @code {
@@ -302,6 +309,19 @@
         // la segunda -- la que lleva a la partida -- y te deja en el lobby.
         await LimpiarUrl();
         await AcceptInvite(game.Id);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try { await JS.InvokeVoidAsync("TrikerAds.refreshPrivacyLink"); }
+        catch { /* sin el puente de anuncios no hay enlace que enseñar */ }
+    }
+
+    private async Task AbrirPrivacidadDeAnuncios()
+    {
+        try { await JS.InvokeVoidAsync("TrikerAds.showPrivacyOptions"); }
+        catch { }
     }
 
     private record MiPartida(Asiento Asiento, string Nombre);
