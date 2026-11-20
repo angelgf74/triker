@@ -1114,6 +1114,15 @@ body.colorblind .hmc-cb { display: block; }
     margin-left: auto;
 }
 
+/* ===== VOLVER A TU PARTIDA ===== */
+.resume-banner {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.6rem;
+    background: linear-gradient(135deg, rgba(240,192,64,0.16), rgba(240,192,64,0.05));
+    border: 1.5px solid rgba(240,192,64,0.5); border-radius: 12px;
+    padding: 0.75rem 1rem;
+}
+.resume-banner-title { font-size: 1rem; font-weight: 700; color: #f5d98a; overflow-wrap: anywhere; }
+
 /* ===== SALIR DE LA MESA ===== */
 /* Compacto: comparte cabecera con el mazo, el sonido y la ayuda. */
 .btn-leave { padding: 0.4rem 0.7rem; font-size: 0.85rem; min-height: 44px; flex: none; }

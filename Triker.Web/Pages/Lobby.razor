@@ -26,6 +26,14 @@
         <div class="info-msg" role="status">@_aviso</div>
     }
 
+    @foreach (var mia in _misPartidas)
+    {
+        <div class="resume-banner" role="status">
+            <span class="resume-banner-title">Sigues en «@mia.Nombre»</span>
+            <button class="btn-primary" @onclick="() => Volver(mia.Asiento)">Volver a tu partida</button>
+        </div>
+    }
+
     <div class="player-name-section @(_pideNombre ? "needs-name" : "")">
         <label for="nombre-jugador">Tu nombre:</label>
         <input id="nombre-jugador" class="name-input" value="@_playerName" @oninput="OnNameInput" @ref="_nombreInput"
@@ -125,7 +133,14 @@
                             <span class="player-count">@game.PlayerCount / @game.MaxPlayers jugadores</span>
                             <span class="game-status @game.Status.ToString().ToLower()">@StatusLabel(game.Status)</span>
                         </div>
-                        @if (_joiningGameId == game.Id && game.IsPrivate)
+                        @if (_asientos.TryGetValue(game.Id, out var mio))
+                        {
+                            @* Ya tienes sitio: "Unirse" te sentaria por segunda vez. *@
+                            <div class="game-actions">
+                                <button class="btn-join btn-resume" @onclick="() => Volver(mio)">Volver</button>
+                            </div>
+                        }
+                        else if (_joiningGameId == game.Id && game.IsPrivate)
                         {
                             <div class="join-code-row">
                                 <label class="sr-only" for="codigo-@game.Id">Código de la partida</label>
@@ -189,6 +204,11 @@
     private string _joinCode = "";
     private Guid? _invitedGameId = null;
     private List<GameSummaryDto> _games = [];
+    // Tus asientos de jugador por partida, tal como estan guardados, y los que
+    // la API ha confirmado que siguen valiendo (con el nombre de la partida).
+    private Dictionary<Guid, Asiento> _asientos = [];
+    private List<MiPartida> _misPartidas = [];
+    private bool _cerrado;
     private HubConnection? _hubConnection;
     private ElementReference _nombreInput;
 
@@ -205,8 +225,12 @@
             await LimpiarUrl();
         }
 
+        var guardados = await Session.AsientosDeJugador();
+        _asientos = guardados.ToDictionary(a => a.GameId);
+
         await LoadGames();
         await HandleInvite();
+        await ComprobarMisPartidas(guardados);
 
         var apiBase = (Config["ApiBaseUrl"] ?? "https://localhost:7077").TrimEnd('/');
         _hubConnection = new HubConnectionBuilder()
@@ -272,6 +296,36 @@
         await LimpiarUrl();
         await AcceptInvite(game.Id);
     }
+
+    private record MiPartida(Asiento Asiento, string Nombre);
+
+    // Quien vuelve al lobby (o abre la app, que siempre empieza aqui) sigue
+    // sentado en su partida, pero la lista no bastaba para volver: no decia
+    // cual era la suya y entre rondas ni la muestra. Se pregunta a la API por
+    // cada asiento guardado: un 404 es que ya no vale (la partida se cerro o
+    // te sacaron) y se olvida; sin conexion no se sabe, asi que se deja.
+    private async Task ComprobarMisPartidas(List<Asiento> guardados)
+    {
+        foreach (var asiento in guardados)
+        {
+            var (state, resultado) = await Api.GetGameState(asiento);
+            if (_cerrado) return; // la invitacion ya te llevo a la partida
+            if (resultado == ResultadoEstado.NoEncontrada)
+            {
+                await Session.OlvidarAsiento(asiento.GameId, asiento.Id);
+                _asientos.Remove(asiento.GameId);
+            }
+            else if (state != null)
+            {
+                _misPartidas.Add(new(asiento, state.Name));
+            }
+            else continue;
+            StateHasChanged();
+        }
+    }
+
+    private void Volver(Asiento asiento)
+        => Nav.NavigateTo($"game/{asiento.GameId}?playerId={asiento.Id}");
 
     private async Task LimpiarUrl()
     {
@@ -453,6 +507,7 @@
 
     public async ValueTask DisposeAsync()
     {
+        _cerrado = true;
         if (_hubConnection != null)
             await _hubConnection.DisposeAsync();
     }
