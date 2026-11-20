@@ -115,14 +115,14 @@
                 <button class="btn-secondary" @onclick="LoadGames">Reintentar</button>
             </div>
         }
-        else if (_games.Count == 0)
+        else if (!Listadas.Any())
         {
             <div class="empty-list">No hay partidas disponibles. ¡Crea una!</div>
         }
         else
         {
             <div class="games-list">
-                @foreach (var game in _games)
+                @foreach (var game in Listadas)
                 {
                     <div class="game-card">
                         <div class="game-info">
@@ -212,8 +212,15 @@
     private HubConnection? _hubConnection;
     private ElementReference _nombreInput;
 
+    // La invitacion busca en todas: una sala sin nadie conectado sigue viva y
+    // se puede entrar con su enlace, aunque no se liste.
     private GameSummaryDto? InvitedGame
         => _invitedGameId is Guid id ? _games.FirstOrDefault(g => g.Id == id) : null;
+
+    // Las salas de espera que llevan un rato sin nadie conectado no se
+    // ofrecen a desconocidos; la tuya si, que por eso estas fuera de ella.
+    private IEnumerable<GameSummaryDto> Listadas
+        => _games.Where(g => !g.Unattended || _asientos.ContainsKey(g.Id));
 
     protected override async Task OnInitializedAsync()
     {

@@ -11,4 +11,8 @@ public class GameSummaryDto
     public int MaxPlayers { get; set; }
     public string CreatorName { get; set; } = "";
     public bool IsPrivate { get; set; }
+    // Sala de espera que lleva un rato sin ningun jugador conectado. Sigue
+    // viva (la invitacion y el asiento valen), pero el lobby no la lista: quien
+    // entrara esperaria a un creador que quiza no vuelva.
+    public bool Unattended { get; set; }
 }

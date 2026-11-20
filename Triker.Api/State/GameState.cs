@@ -62,6 +62,11 @@ public class GameState
 
     public DateTimeOffset? TurnDeadline { get; set; }
     public DateTimeOffset LastActivityAt { get; set; } = DateTimeOffset.UtcNow;
+    // Desde cuando no hay ningun jugador humano conectado al hub; null mientras
+    // haya alguno. Una sala de espera asi deja de listarse y acaba cerrandose
+    // (GameService.CleanupStaleGames). No va al snapshot: las conexiones no
+    // sobreviven a un reinicio y se cuenta desde el arranque.
+    [JsonIgnore] public DateTimeOffset? EmptySince { get; set; } = DateTimeOffset.UtcNow;
     public int TargetWins { get; set; } = 0;
     public bool GameOver { get; set; } = false;
     public bool IsPrivate { get; set; } = false;

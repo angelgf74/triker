@@ -31,10 +31,15 @@ public class GameHub(GameService gameService, GameBroadcaster broadcaster) : Hub
         var game = gameService.GetGame(gameId);
         if (game is null) return false;
 
+        // Una sala sin nadie conectado deja de listarse (GameService.IsUnattended):
+        // si vuelve un jugador, el lobby tiene que enterarse.
+        var vuelveAlLobby = !espectador && gameService.IsUnattended(game);
+
         var ok = espectador
             ? gameService.ConnectSpectator(game, id, token, Context.ConnectionId)
             : gameService.ConnectPlayer(game, id, token, Context.ConnectionId);
         if (!ok) return false;
+        if (vuelveAlLobby) await broadcaster.BroadcastLobbyUpdate();
 
         await Groups.AddToGroupAsync(Context.ConnectionId, gameId.ToString());
         await Clients.Caller.SendAsync("GameState", espectador
@@ -48,6 +53,7 @@ public class GameHub(GameService gameService, GameBroadcaster broadcaster) : Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
+        gameService.MarkPlayerDisconnected(Context.ConnectionId);
         var gameId = gameService.MarkSpectatorDisconnected(Context.ConnectionId);
         if (gameId.HasValue)
             await broadcaster.BroadcastState(gameId.Value);
