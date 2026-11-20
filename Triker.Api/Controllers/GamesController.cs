@@ -35,12 +35,17 @@ public class GamesController(GameService gameService, InactivityService inactivi
         if (playerName == null || gameName == null)
             return BadRequest($"Nombre no válido: hasta {Limites.NombreJugador} caracteres el tuyo y {Limites.NombrePartida} el de la partida");
 
-        var created = gameService.CreateGame(gameName, playerName, req.TargetWins, req.IsPrivate);
+        var created = gameService.CreateGame(gameName, playerName, req.TargetWins, req.IsPrivate, req.Bots);
         if (created is null)
             return StatusCode(StatusCodes.Status503ServiceUnavailable, "Hay demasiadas partidas abiertas. Prueba dentro de un rato.");
         var (game, player) = created.Value;
 
-        await broadcaster.BroadcastLobbyUpdate();
+        // Creada con bots ya esta en juego: hace falta lo mismo que tras
+        // /start (temporizador del turno, que es del creador, y difundir).
+        if (game.Status == GameStatus.Playing)
+            await inactivity.ProcessBotsAndBroadcast(game.Id);
+        else
+            await broadcaster.BroadcastLobbyUpdate();
         return new JoinResponse { PlayerId = player.Id, PlayerToken = player.Token!, GameState = gameService.ToDto(game, player.Id) };
     }
 

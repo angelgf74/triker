@@ -69,8 +69,11 @@
         </div>
     }
 
+    @* Un solo boton principal: jugar ya. Crear una mesa para invitar a otros
+       es el camino largo y va de secundario. *@
     <div class="lobby-actions">
-        <button class="btn-primary" @onclick="ShowCreateForm">+ Nueva partida</button>
+        <button class="btn-primary btn-play-now" @onclick="JugarAhora" disabled="@_enviando">▶ Jugar contra bots</button>
+        <button class="btn-secondary btn-new-game" @onclick="ShowCreateForm">+ Nueva partida</button>
     </div>
 
     @if (_showCreateForm)
@@ -430,6 +433,34 @@
         _gameName = $"Partida de {_playerName.Trim()}";
         if (_gameName.Length > 30) _gameName = _gameName[..30];
         _showCreateForm = true;
+    }
+
+    // Con cuatro en la mesa el podio de tres medallas tiene sentido y los bots
+    // tardan unos seis segundos por ronda.
+    private const int BotsParaJugarAhora = 3;
+
+    // Un toque: la API crea la mesa con los bots y reparte (ver
+    // CreateGameRequest.Bots); se entra directamente en tu turno.
+    private async Task JugarAhora()
+    {
+        if (!await NombreListo() || _enviando) return;
+        _error = "";
+        _enviando = true;
+        try
+        {
+            await Session.SetPlayerName(_playerName);
+            var nombre = $"Partida de {_playerName.Trim()}";
+            if (nombre.Length > 30) nombre = nombre[..30];
+            var (result, error) = await Api.CreateGame(new() { PlayerName = _playerName, GameName = nombre, Bots = BotsParaJugarAhora });
+            if (result == null)
+            {
+                _error = error ?? "No se pudo crear la partida";
+                return;
+            }
+            await Session.GuardarAsiento(new Asiento(result.GameState.Id, result.PlayerId, result.PlayerToken, false));
+            Nav.NavigateTo($"game/{result.GameState.Id}?playerId={result.PlayerId}");
+        }
+        finally { _enviando = false; }
     }
 
     private async Task CreateGame()

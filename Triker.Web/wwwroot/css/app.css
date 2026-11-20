@@ -137,7 +137,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
     background: rgba(100,181,246,0.12); border: 1px solid rgba(100,181,246,0.35);
     border-radius: 8px; padding: 0.6rem 1rem; color: #bbdefb; font-size: 0.9rem;
 }
-.lobby-actions { display: flex; gap: 1rem; }
+.lobby-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+.lobby-actions .btn-secondary { padding: 0.6rem 1.2rem; }
 .create-form {
     display: flex; gap: 0.8rem; align-items: center;
     background: rgba(255,255,255,0.05); border-radius: 12px; padding: 1rem 1.5rem;
