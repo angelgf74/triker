@@ -534,6 +534,47 @@ public class GameServiceTests
         }
     }
 
+    // ── Jugar ahora contra bots ─────────────────────────────────────────────
+    // Para jugar solo hacian falta seis pasos (nombre, nueva partida, crear,
+    // añadir bots uno a uno, iniciar). La creacion acepta los bots y arranca.
+
+    [Fact]
+    public void Crear_con_bots_reparte_y_empieza_en_el_turno_del_creador()
+    {
+        var svc = Nuevo();
+        var (game, ana) = svc.CreateGame("mesa", "Ana", bots: 3)!.Value;
+
+        Assert.Equal(4, game.Players.Count);
+        Assert.Equal(3, game.Players.Count(p => p.IsBot));
+        Assert.Equal(GameStatus.Playing, game.Status);
+        Assert.Equal(ana.Id, game.CurrentTurnPlayer!.Id);
+        Assert.All(game.Players, p => Assert.Equal(5, p.Hand.Count));
+        Assert.Equal(3, game.Players.Where(p => p.IsBot).Select(p => p.Name).Distinct().Count());
+    }
+
+    [Fact]
+    public void Crear_sin_bots_se_queda_en_la_sala_de_espera()
+    {
+        var svc = Nuevo();
+        var (game, _) = svc.CreateGame("mesa", "Ana")!.Value;
+
+        Assert.Single(game.Players);
+        Assert.Equal(GameStatus.Waiting, game.Status);
+    }
+
+    [Theory]
+    [InlineData(-3, 1)]
+    [InlineData(1000, 16)]
+    public void Los_bots_pedidos_se_ajustan_a_lo_que_cabe_en_la_mesa(int pedidos, int jugadores)
+    {
+        var svc = Nuevo();
+        var (game, _) = svc.CreateGame("mesa", "Ana", bots: pedidos)!.Value;
+
+        Assert.Equal(jugadores, game.Players.Count);
+        Assert.Equal(game.MaxPlayers >= jugadores, true);
+        Assert.Equal(jugadores > 1 ? GameStatus.Playing : GameStatus.Waiting, game.Status);
+    }
+
     // ── Salas de espera sin nadie conectado ─────────────────────────────────
     // La API no sabia cuando un jugador cerraba la pestaña: su sala seguia en
     // el lobby dos horas y quien entraba esperaba a un creador que no volvia.

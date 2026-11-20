@@ -211,7 +211,7 @@ async function runUi() {
     await shot(page, '01-lobby');
 
     await page.fill('.name-input', 'DriverAna');
-    await page.click('.lobby-actions .btn-primary'); // + Nueva partida
+    await page.click('.lobby-actions .btn-new-game'); // + Nueva partida
     await page.waitForSelector('.create-form');
     await page.fill('.create-form .name-input', `ui-${Date.now()}`);
     await page.click('.create-form .btn-primary'); // Crear

@@ -45,7 +45,7 @@ public class GameService(
     }
 
     // Null si ya hay demasiadas partidas abiertas (el controlador responde 503).
-    public (GameState game, PlayerState player)? CreateGame(string gameName, string playerName, int targetWins = 0, bool isPrivate = false)
+    public (GameState game, PlayerState player)? CreateGame(string gameName, string playerName, int targetWins = 0, bool isPrivate = false, int bots = 0)
     {
         if (_games.Count >= Limites.PartidasMaximas) return null;
 
@@ -60,10 +60,20 @@ public class GameService(
         game.CreatorId = player.Id;
         game.Players.Add(player);
 
+        // "Jugar ahora": con bots la mesa no pasa por la sala de espera, se
+        // reparte en el acto y empieza el creador.
+        var conBots = Math.Clamp(bots, 0, game.MaxPlayers - 1);
+        for (int i = 0; i < conBots; i++)
+        {
+            var (name, personality) = botService.PickBot(game.Players.Select(p => p.Name));
+            game.Players.Add(new PlayerState { Name = name, IsBot = true, Personality = personality });
+        }
+
         lock (game.SyncLock)
         {
             _games[game.Id] = game;
-            _ = persistence.SaveAsync(game);
+            if (conBots > 0) StartGameLocked(game);   // guarda al terminar
+            else _ = persistence.SaveAsync(game);
         }
         logger.LogInformation("Game created: {GameId} '{GameName}' by '{Player}' (target={Target}, private={Private})",
             game.Id, gameName, playerName, game.TargetWins == 0 ? "∞" : game.TargetWins.ToString(), isPrivate);

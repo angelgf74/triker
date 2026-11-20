@@ -6,6 +6,9 @@ public class CreateGameRequest
     public string GameName { get; set; } = "";
     public int TargetWins { get; set; } = 0;
     public bool IsPrivate { get; set; } = false;
+    // Bots con los que empezar ya ("Jugar ahora"): con alguno la partida no
+    // pasa por la sala de espera. La API lo ajusta a lo que cabe en la mesa.
+    public int Bots { get; set; } = 0;
 }
 
 public class JoinGameRequest
