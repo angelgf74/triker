@@ -277,7 +277,7 @@
                                         <span class="countdown-secs">@_turnSecondsLeft s</span>
                                         <div class="countdown-bar" aria-hidden="true">
                                             <div class="countdown-fill @CountdownClass"
-                                                 style="width:@(_turnSecondsLeft / 60.0 * 100)%"></div>
+                                                 style="width:@(CountdownPercent)%"></div>
                                         </div>
                                     </div>
                                 }
@@ -390,7 +390,12 @@
     private bool EsMiTurno => _state?.Status == GameStatus.Playing && Me?.IsCurrentTurn == true && !_discarded;
 
     private int MaxPlayers => _state != null ? Math.Min(16, (int)Math.Floor((double)(_state.N * _state.N) / 2)) : 0;
-    private string CountdownClass => _turnSecondsLeft switch { <= 10 => "countdown-danger", <= 20 => "countdown-warn", _ => "countdown-ok" };
+    // Entero a proposito: un decimal se escribe con la cultura del navegador y
+    // en español sale "93,33%", que no es CSS valido (la barra se quedaba
+    // siempre llena). El tope cubre un reloj del dispositivo atrasado.
+    private int CountdownPercent => Math.Clamp(_turnSecondsLeft * 100 / TurnSeconds, 0, 100);
+    private const int TurnSeconds = 60; // InactivityService.TurnTimeout en la API
+    private string CountdownClass =>_turnSecondsLeft switch { <= 10 => "countdown-danger", <= 20 => "countdown-warn", _ => "countdown-ok" };
 
     protected override async Task OnInitializedAsync()
     {

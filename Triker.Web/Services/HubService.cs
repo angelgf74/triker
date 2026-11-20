@@ -47,11 +47,12 @@ public class HubService : IAsyncDisposable
             OnChange?.Invoke();
         });
 
-        _hub.On<List<HandResultDto>>("HandsRevealed", results =>
-        {
-            OnHandsRevealed?.Invoke(results);
-            OnChange?.Invoke();
-        });
+        // Sin OnChange: aqui no llega ningun estado nuevo. Lanzarlo hacia que
+        // la sala reaplicara el ultimo que tenia, que si la ronda la cerro un
+        // humano es anterior a su jugada (aun "en juego"), y eso apagaba el
+        // aviso de turno agotado recien encendido. El estado ya revelado
+        // llega justo despues por GameState.
+        _hub.On<List<HandResultDto>>("HandsRevealed", results => OnHandsRevealed?.Invoke(results));
 
         _hub.On<bool>("AutoLeft", _ => OnAutoLeft?.Invoke());
 
