@@ -17,6 +17,8 @@ public class PlayerDto
     public int Thirds { get; set; }
     // El turno se paso solo al agotarse el tiempo, no lo decidio el jugador.
     public bool TurnTimedOut { get; set; }
+    // Salio de la mesa a mitad de ronda: ya no juega y al revelar desaparece.
+    public bool HasLeft { get; set; }
     public List<CardDto> Hand { get; set; } = [];
 
     // Jugada evaluada de la mano. El servidor solo la rellena para el propio

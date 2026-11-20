@@ -28,6 +28,9 @@ public class PlayerState
     // El turno se jugo solo al agotarse el tiempo. Se reinicia cada ronda en
     // StartGame; sin esto el jugador ve "paso" y no sabe que no fue cosa suya.
     public bool TurnTimedOut { get; set; } = false;
+    // Salio a mitad de ronda (GameService.LeaveGame): sigue en la lista hasta
+    // revelar para no mover el orden de turnos, pero ya no es su asiento.
+    public bool HasLeft { get; set; } = false;
 }
 
 public class SpectatorState
@@ -59,6 +62,11 @@ public class GameState
 
     public DateTimeOffset? TurnDeadline { get; set; }
     public DateTimeOffset LastActivityAt { get; set; } = DateTimeOffset.UtcNow;
+    // Desde cuando no hay ningun jugador humano conectado al hub; null mientras
+    // haya alguno. Una sala de espera asi deja de listarse y acaba cerrandose
+    // (GameService.CleanupStaleGames). No va al snapshot: las conexiones no
+    // sobreviven a un reinicio y se cuenta desde el arranque.
+    [JsonIgnore] public DateTimeOffset? EmptySince { get; set; } = DateTimeOffset.UtcNow;
     public int TargetWins { get; set; } = 0;
     public bool GameOver { get; set; } = false;
     public bool IsPrivate { get; set; } = false;

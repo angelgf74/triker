@@ -52,6 +52,14 @@ public class ApiService(HttpClient http, JsonSerializerOptions json)
     public Task<bool> Continue(Asiento a, ContinueRequest req)
         => Ok(Peticion(HttpMethod.Post, $"api/games/{a.GameId}/continue?playerId={a.Id}", a, req));
 
+    // Un 404 tambien cuenta como fuera: el asiento ya no existe (la peticion
+    // anterior llego aunque su respuesta se perdiera, o la partida se cerro).
+    public async Task<bool> Leave(Asiento a)
+    {
+        var res = await Enviar(Peticion(HttpMethod.Post, $"api/games/{a.GameId}/leave?playerId={a.Id}", a));
+        return res is { IsSuccessStatusCode: true } or { StatusCode: HttpStatusCode.NotFound };
+    }
+
     public Task<bool> SendReaction(Asiento a, string emoji)
         => Ok(Peticion(HttpMethod.Post, $"api/games/{a.GameId}/react?playerId={a.Id}", a, new SendReactionRequest { Emoji = emoji }));
 

@@ -288,6 +288,216 @@ public class GameServiceTests
         Assert.Contains(game.Players, p => p.Id == bot.Id);
     }
 
+    // ── Salir de la mesa ────────────────────────────────────────────────────
+    // Antes solo se podia salir con la ronda terminada. Quien queria irse de
+    // la sala de espera o a mitad de ronda cerraba la pestaña: la sala quedaba
+    // huerfana y, en juego, los demas pagaban 60 segundos por cada turno suyo.
+
+    private static void PasarTodos(GameService svc, GameState game)
+    {
+        while (game.Status == GameStatus.Playing)
+            Assert.True(svc.SubmitDiscard(game.Id, game.CurrentTurnPlayer!.Id, []));
+    }
+
+    [Fact]
+    public void Salir_de_la_sala_de_espera_quita_al_jugador()
+    {
+        var (svc, game, ana, berto) = Mesa();
+
+        Assert.True(svc.LeaveGame(game.Id, berto.Id));
+
+        Assert.Equal(ana.Id, Assert.Single(game.Players).Id);
+        Assert.False(svc.IsPlayer(game, berto.Id, berto.Token));
+        Assert.Equal(GameStatus.Waiting, game.Status);
+    }
+
+    [Fact]
+    public void Si_sale_el_creador_de_la_sala_de_espera_hereda_el_primer_humano()
+    {
+        var svc = Nuevo();
+        var (game, ana) = svc.CreateGame("mesa", "Ana")!.Value;
+        svc.AddBot(game.Id, ana.Id);                       // el bot va antes que Berto
+        var berto = svc.JoinGame(game.Id, "Berto").player!;
+
+        Assert.True(svc.LeaveGame(game.Id, ana.Id));
+
+        Assert.Equal(berto.Id, game.CreatorId);
+        Assert.NotNull(svc.AddBot(game.Id, berto.Id));     // puede seguir montando la mesa
+    }
+
+    [Fact]
+    public void Si_sale_el_ultimo_humano_de_la_sala_de_espera_la_partida_se_cierra()
+    {
+        var svc = Nuevo();
+        var (game, ana) = svc.CreateGame("mesa", "Ana")!.Value;
+        svc.AddBot(game.Id, ana.Id);
+
+        Assert.True(svc.LeaveGame(game.Id, ana.Id));
+
+        Assert.Null(svc.GetGame(game.Id));
+        Assert.Empty(svc.ListGames());
+    }
+
+    [Fact]
+    public void Salir_en_tu_turno_pasa_en_el_acto_y_el_asiento_deja_de_valer()
+    {
+        var (svc, game, ana, berto) = Mesa(bots: 1);
+        svc.StartGame(game.Id, ana.Id);
+        Assert.Equal(ana.Id, game.CurrentTurnPlayer!.Id);
+
+        Assert.True(svc.LeaveGame(game.Id, ana.Id));
+
+        Assert.Equal(GameStatus.Playing, game.Status);
+        Assert.Equal(berto.Id, game.CurrentTurnPlayer!.Id);   // nadie espera su turno
+        Assert.False(svc.IsPlayer(game, ana.Id, ana.Token));
+        Assert.False(svc.ConnectPlayer(game, ana.Id, ana.Token, "conn-vuelve"));
+    }
+
+    // Sigue en la lista hasta revelar, pero ya no debe recibir el estado
+    // (que para un jugador incluye su mano).
+    [Fact]
+    public void Quien_sale_a_mitad_de_ronda_deja_de_recibir_el_estado()
+    {
+        var (svc, game, ana, berto) = Mesa(bots: 1);
+        svc.ConnectPlayer(game, ana.Id, ana.Token, "conn-ana");
+        svc.ConnectPlayer(game, berto.Id, berto.Token, "conn-berto");
+        svc.StartGame(game.Id, ana.Id);
+
+        svc.LeaveGame(game.Id, berto.Id);
+
+        Assert.Equal(["conn-ana"], svc.PersonalizedStates(game).Select(s => s.connectionId));
+    }
+
+    [Fact]
+    public void El_turno_salta_a_quien_salio_antes_de_que_le_tocara()
+    {
+        var (svc, game, ana, berto) = Mesa(bots: 1);          // orden: Ana, Berto, bot
+        var bot = game.Players.Single(p => p.IsBot);
+        svc.StartGame(game.Id, ana.Id);
+
+        Assert.True(svc.LeaveGame(game.Id, berto.Id));
+        Assert.Equal(ana.Id, game.CurrentTurnPlayer!.Id);     // sigue siendo el turno de Ana
+
+        Assert.True(svc.SubmitDiscard(game.Id, ana.Id, []));
+
+        Assert.Equal(GameStatus.Playing, game.Status);
+        Assert.Equal(bot.Id, game.CurrentTurnPlayer!.Id);
+    }
+
+    [Fact]
+    public void Si_quien_salio_era_el_ultimo_del_orden_la_ronda_se_revela_sin_esperarle()
+    {
+        var svc = Nuevo();
+        var (game, ana) = svc.CreateGame("mesa", "Ana")!.Value;
+        svc.AddBot(game.Id, ana.Id);
+        var berto = svc.JoinGame(game.Id, "Berto").player!;   // orden: Ana, bot, Berto
+        svc.StartGame(game.Id, ana.Id);
+        svc.LeaveGame(game.Id, berto.Id);
+
+        Assert.True(svc.SubmitDiscard(game.Id, ana.Id, []));
+        Assert.True(svc.ProcessBotTurn(game.Id));
+
+        Assert.Equal(GameStatus.Revealing, game.Status);
+    }
+
+    [Fact]
+    public void La_mano_de_quien_salio_no_cuenta_al_revelar()
+    {
+        var (svc, game, ana, berto) = Mesa(bots: 1);
+        svc.StartGame(game.Id, ana.Id);
+        svc.LeaveGame(game.Id, berto.Id);
+        PasarTodos(svc, game);
+
+        var resultados = svc.GetRevealedHands(game.Id);
+
+        Assert.NotNull(resultados);
+        Assert.Equal(2, resultados.Count);
+        Assert.DoesNotContain(resultados, r => r.PlayerId == berto.Id);
+        Assert.DoesNotContain(game.Players, p => p.Id == berto.Id);
+        Assert.Equal(GameStatus.Finished, game.Status);
+    }
+
+    [Fact]
+    public void Si_el_creador_salio_en_juego_al_revelar_hereda_el_primer_humano()
+    {
+        var (svc, game, ana, berto) = Mesa(bots: 1);
+        svc.StartGame(game.Id, ana.Id);
+        svc.LeaveGame(game.Id, ana.Id);
+        PasarTodos(svc, game);
+
+        Assert.NotNull(svc.GetRevealedHands(game.Id));
+
+        Assert.Equal(berto.Id, game.CreatorId);
+    }
+
+    // Dos jugadores y uno se va: el otro termina la ronda y, como ya no hay
+    // con quien jugar, la mesa vuelve a la sala de espera al pedir otra.
+    [Fact]
+    public void Si_se_va_el_unico_rival_la_ronda_termina_y_la_mesa_vuelve_a_la_sala_de_espera()
+    {
+        var (svc, game, ana, berto) = Mesa();
+        svc.StartGame(game.Id, ana.Id);
+
+        svc.LeaveGame(game.Id, ana.Id);
+        Assert.True(svc.SubmitDiscard(game.Id, berto.Id, []));
+        Assert.Equal(berto.Id, Assert.Single(svc.GetRevealedHands(game.Id)!).PlayerId);
+
+        Assert.True(svc.SetContinue(game.Id, berto.Id, true));
+        Assert.Equal(GameStatus.Waiting, game.Status);
+        Assert.Equal(berto.Id, game.CreatorId);
+    }
+
+    [Fact]
+    public void Si_salen_todos_los_humanos_en_juego_la_partida_se_cierra()
+    {
+        var (svc, game, ana, berto) = Mesa(bots: 2);
+        svc.StartGame(game.Id, ana.Id);
+
+        Assert.True(svc.LeaveGame(game.Id, ana.Id));
+        Assert.True(svc.LeaveGame(game.Id, berto.Id));
+
+        Assert.Null(svc.GetGame(game.Id));
+    }
+
+    [Fact]
+    public void Salir_con_la_ronda_terminada_es_dejar_la_mesa()
+    {
+        var (svc, game, ana, berto) = RondaTerminada(bots: 1);
+
+        Assert.True(svc.LeaveGame(game.Id, berto.Id));
+        Assert.DoesNotContain(game.Players, p => p.Id == berto.Id);
+
+        Assert.True(svc.SetContinue(game.Id, ana.Id, true));
+        Assert.Equal(GameStatus.Playing, game.Status);
+    }
+
+    [Fact]
+    public void Ni_un_bot_ni_quien_ya_salio_pueden_salir()
+    {
+        var (svc, game, ana, berto) = Mesa(bots: 1);
+        var bot = game.Players.Single(p => p.IsBot);
+        svc.StartGame(game.Id, ana.Id);
+
+        Assert.False(svc.LeaveGame(game.Id, bot.Id));
+        Assert.False(svc.LeaveGame(game.Id, Guid.NewGuid()));
+        Assert.True(svc.LeaveGame(game.Id, berto.Id));
+        Assert.False(svc.LeaveGame(game.Id, berto.Id));
+        Assert.Equal(3, game.Players.Count);   // sigue en la lista hasta revelar: el orden de turnos no se toca
+    }
+
+    [Fact]
+    public void El_estado_dice_a_los_demas_quien_ha_salido()
+    {
+        var (svc, game, ana, berto) = Mesa(bots: 1);
+        svc.StartGame(game.Id, ana.Id);
+        svc.LeaveGame(game.Id, berto.Id);
+
+        var estado = svc.ToDto(game, ana.Id);
+
+        Assert.True(estado.Players.Single(p => p.Id == berto.Id).HasLeft);
+        Assert.False(estado.Players.Single(p => p.Id == ana.Id).HasLeft);
+    }
+
     // ── Concurrencia ────────────────────────────────────────────────────────
 
     // En la API real 4 de cada 40 mesas saltaban de la ronda 1 a la 3.
@@ -322,6 +532,153 @@ public class GameServiceTests
             Assert.Equal(game.MaxPlayers, game.Players.Count);
             Assert.Equal(GameStatus.Playing, game.Status); // al llenarse arranca sola
         }
+    }
+
+    // ── Salas de espera sin nadie conectado ─────────────────────────────────
+    // La API no sabia cuando un jugador cerraba la pestaña: su sala seguia en
+    // el lobby dos horas y quien entraba esperaba a un creador que no volvia.
+
+    private static readonly TimeSpan UnPoco = TimeSpan.FromSeconds(5);
+
+    private static bool SeOculta(GameService svc, GameState game)
+        => svc.ListGames().Single(g => g.Id == game.Id).Unattended;
+
+    [Fact]
+    public void Una_sala_recien_creada_cuenta_desde_que_se_crea_y_aun_se_lista()
+    {
+        var svc = Nuevo();
+        var (game, _) = svc.CreateGame("mesa", "Ana")!.Value;
+
+        Assert.NotNull(game.EmptySince);
+        Assert.False(SeOculta(svc, game));
+    }
+
+    [Fact]
+    public void Una_sala_de_espera_sin_nadie_conectado_un_rato_deja_de_listarse()
+    {
+        var svc = Nuevo();
+        var (game, _) = svc.CreateGame("mesa", "Ana")!.Value;
+        game.EmptySince = DateTimeOffset.UtcNow - GameService.EmptyRoomGrace - UnPoco;
+
+        Assert.True(SeOculta(svc, game));
+    }
+
+    [Fact]
+    public void Al_conectar_un_jugador_la_sala_vuelve_a_listarse()
+    {
+        var svc = Nuevo();
+        var (game, ana) = svc.CreateGame("mesa", "Ana")!.Value;
+        game.EmptySince = DateTimeOffset.UtcNow - GameService.EmptyRoomGrace - UnPoco;
+
+        Assert.True(svc.ConnectPlayer(game, ana.Id, ana.Token, "conn-ana"));
+
+        Assert.Null(game.EmptySince);
+        Assert.False(SeOculta(svc, game));
+    }
+
+    [Fact]
+    public void Cuando_se_cae_la_conexion_del_ultimo_humano_empieza_a_contar()
+    {
+        var (svc, game, ana, berto) = Mesa(bots: 1);
+        svc.ConnectPlayer(game, ana.Id, ana.Token, "conn-ana");
+        svc.ConnectPlayer(game, berto.Id, berto.Token, "conn-berto");
+
+        svc.MarkPlayerDisconnected("conn-ana");
+        Assert.Null(ana.ConnectionId);
+        Assert.Null(game.EmptySince);      // Berto sigue dentro
+
+        svc.MarkPlayerDisconnected("conn-berto");
+        Assert.NotNull(game.EmptySince);   // el bot no cuenta
+    }
+
+    // Con la reconexion automatica la conexion nueva puede registrarse antes
+    // de que el servidor note que la vieja se cerro.
+    [Fact]
+    public void Una_conexion_vieja_que_se_cae_no_desconecta_a_quien_ya_reconecto()
+    {
+        var svc = Nuevo();
+        var (game, ana) = svc.CreateGame("mesa", "Ana")!.Value;
+        svc.ConnectPlayer(game, ana.Id, ana.Token, "conn-1");
+        svc.ConnectPlayer(game, ana.Id, ana.Token, "conn-2");
+
+        svc.MarkPlayerDisconnected("conn-1");
+
+        Assert.Equal("conn-2", ana.ConnectionId);
+        Assert.Null(game.EmptySince);
+    }
+
+    [Fact]
+    public void Si_sale_el_unico_conectado_y_queda_un_humano_sin_conexion_empieza_a_contar()
+    {
+        var (svc, game, ana, _) = Mesa();
+        svc.ConnectPlayer(game, ana.Id, ana.Token, "conn-ana");
+
+        Assert.True(svc.LeaveGame(game.Id, ana.Id));
+
+        Assert.NotNull(svc.GetGame(game.Id));
+        Assert.NotNull(game.EmptySince);
+    }
+
+    [Fact]
+    public void La_limpieza_cierra_la_sala_de_espera_que_lleva_media_hora_sin_nadie()
+    {
+        var svc = Nuevo();
+        var (game, _) = svc.CreateGame("mesa", "Ana")!.Value;
+        var ahora = DateTimeOffset.UtcNow;
+        game.EmptySince = ahora - GameService.EmptyRoomTtl - UnPoco;
+
+        var (cerradas, cambiaElLobby) = svc.CleanupStaleGames(ahora);
+
+        Assert.Equal(1, cerradas);
+        Assert.True(cambiaElLobby);
+        Assert.Null(svc.GetGame(game.Id));
+    }
+
+    [Fact]
+    public void La_limpieza_respeta_la_sala_con_alguien_conectado_y_la_partida_en_juego()
+    {
+        var (svc, enJuego, ana, _) = Mesa();
+        Assert.True(svc.StartGame(enJuego.Id, ana.Id));
+        var (sala, carla) = svc.CreateGame("sala", "Carla")!.Value;
+        svc.ConnectPlayer(sala, carla.Id, carla.Token, "conn-carla");
+        var ahora = DateTimeOffset.UtcNow;
+        // En juego sin nadie conectado: de eso se ocupan los temporizadores de
+        // turno y de fin de ronda, no esta limpieza.
+        enJuego.EmptySince = ahora - GameService.EmptyRoomTtl - UnPoco;
+
+        var (cerradas, _) = svc.CleanupStaleGames(ahora);
+
+        Assert.Equal(0, cerradas);
+        Assert.NotNull(svc.GetGame(enJuego.Id));
+        Assert.NotNull(svc.GetGame(sala.Id));
+        Assert.False(SeOculta(svc, enJuego));
+    }
+
+    // Nadie hace nada cuando una sala cruza el margen: es la limpieza la que
+    // tiene que avisar al lobby, y una sola vez.
+    [Fact]
+    public void La_limpieza_avisa_al_lobby_una_vez_cuando_una_sala_deja_de_listarse()
+    {
+        var svc = Nuevo();
+        var (game, _) = svc.CreateGame("mesa", "Ana")!.Value;
+        var ahora = DateTimeOffset.UtcNow;
+        game.EmptySince = ahora - GameService.EmptyRoomGrace - UnPoco;
+
+        Assert.Equal((0, true), svc.CleanupStaleGames(ahora));
+        Assert.Equal((0, false), svc.CleanupStaleGames(ahora + TimeSpan.FromMinutes(1)));
+    }
+
+    [Fact]
+    public void Tras_un_reinicio_las_salas_cuentan_desde_el_arranque()
+    {
+        var svc = Nuevo();
+        var esperando = Guardada(GameStatus.Waiting, TimeSpan.FromMinutes(5));
+        esperando.EmptySince = null; // como si alguien siguiera conectado
+        var ahora = DateTimeOffset.UtcNow;
+
+        svc.RestoreGames([esperando], ahora);
+
+        Assert.Equal(ahora, esperando.EmptySince);
     }
 
     // ── Limites ─────────────────────────────────────────────────────────────

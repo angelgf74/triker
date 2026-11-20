@@ -1,15 +1,30 @@
 namespace Triker.Api.Services;
 
-public class GameCleanupService(GameService gameService, ILogger<GameCleanupService> logger) : BackgroundService
+// Cada minuto y no cada cuarto de hora: las salas de espera sin nadie
+// conectado dejan de listarse a los dos minutos (GameService.EmptyRoomGrace) y
+// eso no lo dispara ninguna peticion; solo se ve si alguien pasa a mirar.
+public class GameCleanupService(GameService gameService, GameBroadcaster broadcaster, ILogger<GameCleanupService> logger) : BackgroundService
 {
+    private static readonly TimeSpan Interval = TimeSpan.FromMinutes(1);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            await Task.Delay(TimeSpan.FromMinutes(15), stoppingToken);
-            var removed = gameService.CleanupStaleGames();
-            if (removed > 0)
-                logger.LogInformation("Cleaned up {Count} stale game(s)", removed);
+            await Task.Delay(Interval, stoppingToken);
+            try
+            {
+                var (removed, lobbyChanged) = gameService.CleanupStaleGames(DateTimeOffset.UtcNow);
+                if (removed > 0)
+                    logger.LogInformation("Cleaned up {Count} stale game(s)", removed);
+                if (lobbyChanged)
+                    await broadcaster.BroadcastLobbyUpdate();
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // Una pasada que falla no puede parar la limpieza para siempre.
+                logger.LogError(ex, "Game cleanup failed");
+            }
         }
     }
 }

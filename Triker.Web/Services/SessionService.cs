@@ -43,6 +43,15 @@ public class SessionService(IJSRuntime js)
             ?? lista.LastOrDefault(a => a.GameId == gameId);
     }
 
+    // Los asientos de jugador que hay guardados, del mas reciente al mas
+    // antiguo y uno por partida. Que sigan valiendo solo lo sabe la API.
+    public async Task<List<Asiento>> AsientosDeJugador()
+    {
+        var lista = await Leer();
+        lista.Reverse();
+        return lista.Where(a => !a.Espectador).DistinctBy(a => a.GameId).ToList();
+    }
+
     public async Task OlvidarAsiento(Guid gameId, Guid id)
     {
         var lista = await Leer();

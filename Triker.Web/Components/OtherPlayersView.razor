@@ -14,15 +14,16 @@
         .SkipWhile(p => p.Id != MyPlayerId).Skip(1)
         .Concat(Players.TakeWhile(p => p.Id != MyPlayerId)))
     {
-        var ready = player.TurnStatus == PlayerTurnStatus.Ready;
+        // Quien salio a mitad de ronda sigue en la lista hasta revelar.
+        var ready = player.TurnStatus == PlayerTurnStatus.Ready && !player.HasLeft;
 
-        <div class="other-player @(player.IsCurrentTurn ? "active-turn" : "") @(ready ? "is-ready" : "")">
+        <div class="other-player @(player.IsCurrentTurn ? "active-turn" : "") @(ready ? "is-ready" : "") @(player.HasLeft ? "has-left" : "")">
             @if (Reactions != null && Reactions.TryGetValue(player.Id, out var rx))
             {
                 <span class="reaction-bubble" @key="rx.Seq">@rx.Emoji</span>
             }
 
-            <span class="op-mark" aria-hidden="true">@(player.IsCurrentTurn ? "▶" : ready ? "✓" : "•")</span>
+            <span class="op-mark" aria-hidden="true">@(player.HasLeft ? "✕" : player.IsCurrentTurn ? "▶" : ready ? "✓" : "•")</span>
 
             <span class="other-player-name">@player.Name</span>
 
@@ -41,7 +42,11 @@
             }
 
             <span class="op-state">
-                @if (player.IsCurrentTurn)
+                @if (player.HasLeft)
+                {
+                    <span class="left-badge" title="Salió de la mesa: su mano no cuenta en esta ronda">salió</span>
+                }
+                else if (player.IsCurrentTurn)
                 {
                     <span class="turn-badge">su turno</span>
                 }

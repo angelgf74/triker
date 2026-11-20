@@ -1114,6 +1114,49 @@ body.colorblind .hmc-cb { display: block; }
     margin-left: auto;
 }
 
+/* ===== VOLVER A TU PARTIDA ===== */
+.resume-banner {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.6rem;
+    background: linear-gradient(135deg, rgba(240,192,64,0.16), rgba(240,192,64,0.05));
+    border: 1.5px solid rgba(240,192,64,0.5); border-radius: 12px;
+    padding: 0.75rem 1rem;
+}
+.resume-banner-title { font-size: 1rem; font-weight: 700; color: #f5d98a; overflow-wrap: anywhere; }
+
+/* ===== SALIR DE LA MESA ===== */
+/* Compacto: comparte cabecera con el mazo, el sonido y la ayuda. */
+.btn-leave { padding: 0.4rem 0.7rem; font-size: 0.85rem; min-height: 44px; flex: none; }
+/* A 360 px el boton le quitaba sitio al titulo ("Partida de Ana" quedaba en
+   "Partida ..."): se recupera apretando huecos, no quitando nada. */
+@media (max-width: 560px) {
+    .game-header { gap: 0.5rem; padding: 0.6rem 0.7rem; }
+    .game-header-actions { gap: 0.3rem; }
+    .btn-leave { padding: 0.4rem 0.55rem; }
+}
+/* Mismo rojo que .btn-discard, con clase propia: audio.js hace sonar un
+   descarte en cualquier .btn-discard. */
+.btn-danger {
+    background: linear-gradient(135deg, #d32f2f, #b71c1c);
+    color: white; padding: 0.6rem 1.5rem; min-height: 44px;
+}
+.btn-danger:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(229,57,53,0.4); }
+.leave-confirm {
+    background: rgba(229,57,53,0.12); border: 1px solid rgba(229,57,53,0.35);
+    border-radius: 12px; padding: 0.8rem 1rem;
+    display: flex; flex-direction: column; align-items: center; gap: 0.7rem;
+    text-align: center; font-size: 0.95rem;
+}
+.leave-confirm-actions { display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; }
+.leave-confirm-actions button { min-height: 44px; }
+
+/* Rival que salio a mitad de ronda: sigue en la lista hasta revelar. */
+.other-player.has-left { opacity: 0.55; }
+.other-player.has-left .other-player-name { text-decoration: line-through; }
+.left-badge {
+    background: rgba(229,57,53,0.18); color: #EF9A9A; border-radius: 20px;
+    padding: 0.1rem 0.5rem; font-size: 0.75rem; font-weight: 700; white-space: nowrap;
+}
+
 /* ===== TOOLBAR REACCIONES ===== */
 .reaction-toolbar {
     position: sticky; bottom: 0.6rem;
