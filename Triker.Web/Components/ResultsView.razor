@@ -172,8 +172,33 @@
     }
 
     <div class="results-list">
+        @{ var orden = 0; }
         @foreach (var result in Results.OrderBy(r => r.Rank))
         {
+            // En una mesa grande, de la cuarta mano en adelante van plegadas
+            // en una linea (salvo la del jugador): con 16 jugadores la pantalla
+            // media casi cinco pantallas de movil.
+            var plegada = Plegable && orden++ >= AbiertasSiempre
+                          && result.PlayerId != MyPlayerId && !_abiertas.Contains(result.PlayerId);
+            if (plegada)
+            {
+                var abrir = result.PlayerId;
+                <button type="button" class="result-entry result-collapsed rank-@result.Rank"
+                        aria-expanded="false" title="Ver la mano de @result.PlayerName"
+                        @onclick="() => _abiertas.Add(abrir)">
+                    <span class="rank-medal">@MedalLabel(result)</span>
+                    <span class="result-player-name">@result.PlayerName</span>
+                    <span class="rc-hand">
+                        @result.HandName
+                        <span class="grp-ladder" title="@HandLadder.Label(result.HandRank)">
+                            @HandLadder.Position(result.HandRank)/@HandLadder.Total
+                        </span>
+                    </span>
+                    <span class="rc-caret" aria-hidden="true">▾</span>
+                </button>
+                continue;
+            }
+
             // Map cardId → group index (only groups with 2+ cards)
             var cardGroup = new Dictionary<Guid, int>();
             for (int gi = 0; gi < result.Groups.Count; gi++)
@@ -229,7 +254,7 @@
                     {
                         var inGroup = cardGroup.TryGetValue(card.Id, out var gi);
                         var color = inGroup ? GroupColors[gi % GroupColors.Length] : null;
-                        <div class="rc-slot @(inGroup ? "rc-grouped" : "")"
+                        <div class="rc-slot @(inGroup ? $"rc-grouped rc-g{gi % GroupColors.Length}" : "")"
                              style="@(color != null ? $"--gc:{color}" : "")">
                             <CardView Card="card" FaceDown="false" />
                         </div>
@@ -251,13 +276,37 @@
 
             </div>
         }
+        @if (Plegable && HayPlegadas)
+        {
+            <button type="button" class="btn-secondary btn-open-all" @onclick="AbrirTodas">Ver todas las manos</button>
+        }
     </div>
 
 </div>
 
 @code {
-    private static readonly string[] GroupColors =
-        ["#3b82f6", "#f59e0b", "#a855f7", "#22c55e", "#ef4444", "#06b6d4", "#ec4899"];
+    // Marca de las cartas que forman cada grupo. Dorado y blanco: ninguno es
+    // un color de carta. Antes eran azul y naranja, que si lo son y puntuan:
+    // se veian cartas naranjas enmarcadas en azul y rojas en naranja. En una
+    // mano de 5 no caben mas de dos grupos. El segundo va ademas a trazos, para
+    // no depender solo del color. Los mismos en PlayBadge.
+    public static readonly string[] GroupColors = ["#f0c040", "#ffffff"];
+
+    // Mesas grandes: cuantas manos van siempre abiertas y desde cuantos
+    // jugadores se pliega el resto.
+    private const int AbiertasSiempre = 3;
+    private const int PlegarDesde = 6;
+    private readonly HashSet<Guid> _abiertas = [];
+    private int _rondaDeLasAbiertas;
+
+    private bool Plegable => Results.Count >= PlegarDesde;
+    private bool HayPlegadas => Results.OrderBy(r => r.Rank).Skip(AbiertasSiempre)
+        .Any(r => r.PlayerId != MyPlayerId && !_abiertas.Contains(r.PlayerId));
+
+    private void AbrirTodas()
+    {
+        foreach (var r in Results) _abiertas.Add(r.PlayerId);
+    }
 
     [Parameter] public List<HandResultDto> Results { get; set; } = [];
     [Parameter] public List<PlayerDto> Players { get; set; } = [];
@@ -287,6 +336,11 @@
 
     protected override void OnParametersSet()
     {
+        if (RoundNumber != _rondaDeLasAbiertas)
+        {
+            _rondaDeLasAbiertas = RoundNumber;
+            _abiertas.Clear();
+        }
         if (ContinueDeadline == _relojDe) return;
         _relojDe = ContinueDeadline;
         _relojCts?.Cancel();

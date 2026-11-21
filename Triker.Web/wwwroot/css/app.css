@@ -242,11 +242,10 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* En movil el mazo a 50x70 marcaba el alto de la cabecera y, entre dibujo y
    texto, se llevaba ~100px de ancho: con eso el titulo se truncaba a "T.".
-   Se conserva la cuenta, que es el dato, y se cae el dibujo, que es adorno. */
+   Primero se quito solo el dibujo; la cuenta ("492 cartas") seguia cortando
+   el nombre de la mesa y no informa ninguna decision: el mazo no se agota. */
 @media (max-width: 560px) {
-    .deck-stack { display: none; }
-    .deck-view { gap: 0.4rem; }
-    .deck-count { font-size: 0.75rem; }
+    .deck-view { display: none; }
     .game-title-small { font-size: 0.95rem; }
     .round-badge, .target-badge { font-size: 0.75rem; padding: 0.15rem 0.5rem; }
 }
@@ -572,6 +571,27 @@ body.colorblind .cb-code { display: inline; }
     border-radius: 2px;
     background: var(--gc);
 }
+
+/* El segundo grupo, a trazos: se distingue del primero sin depender del color. */
+.rc-slot.rc-grouped.rc-g1 .card { outline-style: dashed; }
+
+/* Mano plegada (mesas grandes): una linea con puesto, nombre y jugada. */
+.result-entry.result-collapsed {
+    flex-direction: row; align-items: center; gap: 0.6rem;
+    padding: 0.55rem 0.9rem; width: 100%; min-height: 48px;
+    color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.result-entry.result-collapsed:hover { background: rgba(255,255,255,0.09); }
+.result-collapsed .rank-medal { font-size: 1.1rem; min-width: 2rem; text-align: center; }
+.result-collapsed .result-player-name {
+    flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.result-collapsed .rc-hand {
+    flex: none; display: inline-flex; align-items: center; gap: 0.35rem;
+    font-size: 0.85rem; color: #c4b5fd;
+}
+.result-collapsed .rc-caret { flex: none; color: #888; }
+.btn-open-all { align-self: center; }
 
 /* Disable the default hover lift inside results */
 .result-entry .card { box-shadow: 1px 2px 5px rgba(0,0,0,0.4); }
