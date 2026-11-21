@@ -33,6 +33,14 @@ try {
   const jugar = await caja(page, '.btn-play-now'), nueva = await caja(page, '.btn-new-game');
   ok(jugar.w === nueva.w && jugar.x === nueva.x, `los dos botones de acción van alineados y con el mismo ancho (${jugar.w} y ${nueva.w} px)`);
   ok(await desborde(page) <= 0, `sin scroll horizontal (${await desborde(page)} px)`);
+  // Botones y campos no heredan la fuente por defecto: sin `font-family: inherit` salen en
+  // la del navegador (Arial en Windows) y la página mezcla dos tipografías.
+  const fuentes = await page.evaluate(() => {
+    const de = (sel) => getComputedStyle(document.querySelector(sel)).fontFamily;
+    return { pagina: de('body'), jugar: de('.btn-play-now'), nueva: de('.btn-new-game'), ayuda: de('.btn-help'), nombre: de('#nombre-jugador') };
+  });
+  const distintas = Object.entries(fuentes).filter(([, f]) => f !== fuentes.pagina).map(([k, f]) => `${k}: ${f}`);
+  ok(distintas.length === 0, `botones y campos usan la fuente de la página (${distintas.join('; ') || fuentes.pagina})`);
   await page.screenshot({ path: join(SHOTS, `${PRE}01-lobby.png`) });
 
   console.log('== C. Sala de espera privada ==');

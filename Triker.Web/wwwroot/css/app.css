@@ -68,6 +68,10 @@ h1:focus, [tabindex="-1"]:focus { outline: none; }
     50% { transform: translateY(-15px); }
 }
 
+/* Los controles de formulario no heredan la fuente: sin esto salen en la del
+   navegador (Arial en Windows, Helvetica en iOS) y la página mezcla dos. */
+button, input, select, textarea { font-family: inherit; }
+
 /* ===== BUTTONS ===== */
 button { cursor: pointer; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; transition: all 0.15s; }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
