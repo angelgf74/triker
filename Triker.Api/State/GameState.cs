@@ -60,6 +60,11 @@ public class GameState
     public int N { get; set; } = 8;
     public int RoundNumber { get; set; } = 1;
 
+    // IP desde la que se creo la partida, para el tope de partidas abiertas
+    // por IP (Limites.PartidasPorIp). Solo en memoria: no va al snapshot ni a
+    // ningun DTO, y tras un reinicio se pierde (la cuenta empieza de cero).
+    [JsonIgnore] public string? CreatorIp { get; set; }
+
     public DateTimeOffset? TurnDeadline { get; set; }
     // Entre rondas: hasta cuando pueden decidir los humanos si siguen. Al
     // vencer salen de la mesa los que no hayan decidido (ver GameService).

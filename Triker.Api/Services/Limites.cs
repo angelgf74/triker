@@ -14,6 +14,10 @@ public static class Limites
     public const int NombrePartida = 30;
     public const int MetaMaxima = 50;
     public const int PartidasMaximas = 500;
+    // Partidas abiertas a la vez creadas desde una misma IP. Holgado para una
+    // clase o un bar detras de una sola conexion; con el, llenar el tope global
+    // pide una docena larga de IP en vez de una o dos.
+    public const int PartidasPorIp = 40;
     public const int EspectadoresMaximos = 30;
     public const int CuerpoMaximoBytes = 16 * 1024;
 
