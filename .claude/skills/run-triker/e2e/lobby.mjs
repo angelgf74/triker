@@ -32,6 +32,12 @@ try {
   ok(abanico?.giros >= 4, `abiertas en abanico (${abanico?.giros} giradas)`);
   ok(abanico?.oculto === 'true' && abanico?.conFoco === 0 && abanico?.toque === 'none', 'es adorno: ni se lee, ni coge el foco, ni se puede tocar');
   ok(/512 cartas/.test(limpio(await page.locator('.abanico-pie').textContent().catch(() => ''))), 'con su pie: de qué está hecho el mazo');
+  // Las cartas de los extremos, giradas, bajan más que las del centro.
+  const aire = await page.evaluate(() => {
+    const abajo = Math.max(...[...document.querySelectorAll('.abanico-cartas .card')].map((c) => c.getBoundingClientRect().bottom));
+    return Math.round(document.querySelector('.abanico-pie').getBoundingClientRect().top - abajo);
+  });
+  ok(aire >= 8, `y las cartas no se echan encima del pie (${aire} px de aire)`);
 
   console.log('== B. Lo importante sigue en la primera pantalla ==');
   const fin = (sel) => page.locator(sel).evaluate((e) => Math.round(e.getBoundingClientRect().bottom));
