@@ -571,7 +571,7 @@ public class GameServiceTests
         var (game, _) = svc.CreateGame("mesa", "Ana", bots: pedidos)!.Value;
 
         Assert.Equal(jugadores, game.Players.Count);
-        Assert.Equal(game.MaxPlayers >= jugadores, true);
+        Assert.True(game.MaxPlayers >= jugadores);
         Assert.Equal(jugadores > 1 ? GameStatus.Playing : GameStatus.Waiting, game.Status);
     }
 
