@@ -7,6 +7,11 @@ namespace Triker.Web.Services;
 
 public enum ResultadoEstado { Ok, NoEncontrada, SinConexion }
 
+// Como ha ido un envio. Rechazado: la peticion llego y el servidor dijo que no
+// (400, 404...), asi que repetirla tal cual no sirve. SinConexion: no llego, o
+// el servidor no pudo atenderla (5xx, 429): tiene sentido volver a intentarlo.
+public enum ResultadoEnvio { Ok, Rechazado, SinConexion }
+
 // Llamadas a la API. Ninguna lanza por un fallo de red: antes una API caida
 // tumbaba el componente con la barra roja generica de Blazor y el lobby decia
 // "No hay partidas disponibles. ¡Crea una!".
@@ -46,8 +51,14 @@ public class ApiService(HttpClient http, JsonSerializerOptions json)
     public Task<bool> StartGame(Asiento a)
         => Ok(Peticion(HttpMethod.Post, $"api/games/{a.GameId}/start?playerId={a.Id}", a));
 
-    public Task<bool> Discard(Asiento a, DiscardRequest req)
-        => Ok(Peticion(HttpMethod.Post, $"api/games/{a.GameId}/discard?playerId={a.Id}", a, req));
+    public async Task<ResultadoEnvio> Discard(Asiento a, DiscardRequest req)
+    {
+        var res = await Enviar(Peticion(HttpMethod.Post, $"api/games/{a.GameId}/discard?playerId={a.Id}", a, req));
+        if (res == null) return ResultadoEnvio.SinConexion;
+        if (res.IsSuccessStatusCode) return ResultadoEnvio.Ok;
+        var codigo = (int)res.StatusCode;
+        return codigo is >= 400 and < 500 and not 429 ? ResultadoEnvio.Rechazado : ResultadoEnvio.SinConexion;
+    }
 
     public Task<bool> Continue(Asiento a, ContinueRequest req)
         => Ok(Peticion(HttpMethod.Post, $"api/games/{a.GameId}/continue?playerId={a.Id}", a, req));

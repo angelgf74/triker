@@ -471,6 +471,7 @@
     {
         _state = state;
         SyncResults();
+        SonidoDeFinDeRonda();
 
         var me = Me;
         if (_state.Status == GameStatus.Playing && me != null)
@@ -661,13 +662,11 @@
             var position = results.Count(r => r.HandRank > myResult.HandRank) + 1;
             _anuncio = $"Ronda {_resultsRound} terminada: quedas {position}º de {results.Count} con {myResult.HandName}";
 
-            bool iWon = position == 1;
-            if (_state?.GameOver == true && iWon)
-                InvokeAsync(Audio.PlayChampion);
-            else if (iWon)
-                InvokeAsync(Audio.PlayWinRound);
-            else
-                InvokeAsync(Audio.PlayLoseRound);
+            // El sonido no se decide aqui: este evento llega antes que el
+            // estado terminado, y GameOver todavia es false. Con la partida
+            // ganada sonaba la victoria de una ronda cualquiera.
+            _sonidoPendiente = position == 1;
+            SonidoDeFinDeRonda();
         }
 
         // Aqui no va el anuncio: taparia los resultados justo cuando el jugador
@@ -677,6 +676,21 @@
 
     // Intersticial AdMob (solo surte efecto dentro de la app Android). Al salir
     // de la mesa se pide sin esperar: detras no corre ningun reloj.
+    // Suena una vez por ronda revelada en directo (no al recargar en los
+    // resultados): cuando se sabe como ha quedado el jugador (HandsRevealed) y
+    // ha llegado el estado terminado, que es el que dice si la partida acabo.
+    // Lo llaman los dos, porque no esta escrito cual llega antes.
+    private bool? _sonidoPendiente;   // null: nada que sonar; true: gano la ronda; false: no
+
+    private void SonidoDeFinDeRonda()
+    {
+        if (_sonidoPendiente is not bool gano || _state?.Status != GameStatus.Finished) return;
+        _sonidoPendiente = null;
+        if (gano && _state.GameOver) InvokeAsync(Audio.PlayChampion);
+        else if (gano) InvokeAsync(Audio.PlayWinRound);
+        else InvokeAsync(Audio.PlayLoseRound);
+    }
+
     private async Task ShowInterstitialAd()
     {
         try { await JS.InvokeVoidAsync("TrikerAds.interstitial"); }
@@ -751,12 +765,17 @@
         _discarded = true;
         _error = "";
         StopCountdown();
-        if (!await Api.Discard(_asiento, new() { CardIds = cardIds }))
-        {
-            _error = "No se pudo enviar el descarte. Comprueba la conexión y vuelve a intentarlo.";
-            _discarded = false;
-            if (_state?.TurnDeadline is { } deadline) StartCountdown(deadline);
-        }
+        var envio = await Api.Discard(_asiento, new() { CardIds = cardIds });
+        if (envio == ResultadoEnvio.Ok) return;
+
+        // Rechazado: el servidor recibio la jugada y no la acepto, casi
+        // siempre porque el turno se agoto justo antes. Decia "comprueba la
+        // conexion", que manda al jugador a mirar lo que no esta roto.
+        _error = envio == ResultadoEnvio.Rechazado
+            ? "El descarte no ha contado: tu turno ya había terminado."
+            : "No se pudo enviar el descarte. Comprueba la conexión y vuelve a intentarlo.";
+        _discarded = false;
+        if (_state?.TurnDeadline is { } deadline) StartCountdown(deadline);
     }
 
     private async Task SendReaction(string emoji)
