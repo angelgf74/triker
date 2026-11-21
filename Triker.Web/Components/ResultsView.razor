@@ -22,7 +22,7 @@
        (abajo, en el resumen). «Resultados — nombre de la mesa» no decía nada y con
        un nombre largo partía en dos líneas. *@
     <div class="results-header">
-        <p class="results-kicker">@GameName · Ronda @RoundNumber@(TargetWins > 0 && !GameOver ? $" · Meta: {TargetWins}🥇" : "")</p>
+        <p class="results-kicker">@GameName · Ronda @RoundNumber@if (TargetWins > 0 && !GameOver) { <span> · Meta: @TargetWins <Medalla Puesto="1" Etiqueta="victorias" /></span> }</p>
     </div>
 
     @*
@@ -134,9 +134,9 @@
                 <thead>
                     <tr>
                         <th>Jugador</th>
-                        <th>🥇</th>
-                        <th>🥈</th>
-                        <th>🥉</th>
+                        <th><Medalla Puesto="1" /></th>
+                        <th><Medalla Puesto="2" /></th>
+                        <th><Medalla Puesto="3" /></th>
                         <th>% Vic.</th>
                     </tr>
                 </thead>
@@ -218,9 +218,9 @@
                     @if (pd != null && (pd.Wins > 0 || pd.Seconds > 0 || pd.Thirds > 0))
                     {
                         <span class="player-medals">
-                            @if (pd.Wins > 0)    { <span>🥇@pd.Wins</span> }
-                            @if (pd.Seconds > 0) { <span>🥈@pd.Seconds</span> }
-                            @if (pd.Thirds > 0)  { <span>🥉@pd.Thirds</span> }
+                            @if (pd.Wins > 0)    { <span><Medalla Puesto="1" />@pd.Wins</span> }
+                            @if (pd.Seconds > 0) { <span><Medalla Puesto="2" />@pd.Seconds</span> }
+                            @if (pd.Thirds > 0)  { <span><Medalla Puesto="3" />@pd.Thirds</span> }
                         </span>
                     }
                     @if (pd != null)
@@ -425,7 +425,7 @@
     private int Position(HandResultDto result)
         => Results.Count(r => r.HandRank > result.HandRank) + 1;
 
-    // El puesto, siempre en número. Las medallas 🥇🥈🥉 se distinguían solo por el
+    // El puesto, siempre en número. Las medallas de oro, plata y bronce se distinguían solo por el
     // color y por un dígito de 6 px; «1º» se lee, y el dorado lo pone el CSS (.rank-1).
     private string PositionLabel(HandResultDto result) => $"{Position(result)}º";
 

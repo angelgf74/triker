@@ -35,9 +35,9 @@
             @if (player.Wins > 0 || player.Seconds > 0 || player.Thirds > 0)
             {
                 <span class="player-medals">
-                    @if (player.Wins > 0)    { <span>🥇@player.Wins</span> }
-                    @if (player.Seconds > 0) { <span>🥈@player.Seconds</span> }
-                    @if (player.Thirds > 0)  { <span>🥉@player.Thirds</span> }
+                    @if (player.Wins > 0)    { <span><Medalla Puesto="1" />@player.Wins</span> }
+                    @if (player.Seconds > 0) { <span><Medalla Puesto="2" />@player.Seconds</span> }
+                    @if (player.Thirds > 0)  { <span><Medalla Puesto="3" />@player.Thirds</span> }
                 </span>
             }
 

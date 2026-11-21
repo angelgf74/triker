@@ -9,7 +9,7 @@
         @foreach (var r in Results.OrderBy(r => r.Rank))
         {
             int above = Results.Count(x => x.HandRank > r.HandRank);
-            string medal = (above + 1) switch { 1 => "🥇", 2 => "🥈", 3 => "🥉", var n => $"{n}º" };
+            string medal = $"{above + 1}º";   // en número, como en los resultados
             <div class="rhp-row @(above == 0 ? "rhp-winner" : "")">
                 <span class="rhp-medal">@medal</span>
                 <span class="rhp-name">@r.PlayerName</span>

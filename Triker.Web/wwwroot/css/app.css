@@ -90,6 +90,16 @@ button, input, select, textarea { font-family: inherit; }
 /* Botones que son solo un icono: centrado, sin depender de la linea base. */
 .btn-sug, .btn-mute, .btn-refresh { display: inline-flex; align-items: center; justify-content: center; }
 
+/* ===== MEDALLAS =====
+   Disco de oro, plata o bronce con el numero dentro (componente Medalla). El
+   color solo no bastaba para distinguirlas. */
+.medalla { width: 1.25em; height: 1.25em; vertical-align: -0.27em; flex: none; }
+.medalla circle { fill: var(--medalla); }
+.medalla text { fill: #1c1606; font-size: 12px; font-weight: 900; }
+.medalla-1 { --medalla: var(--acento); }
+.medalla-2 { --medalla: #c9ced8; }
+.medalla-3 { --medalla: #d08a52; }
+
 /* ===== BUTTONS ===== */
 button { cursor: pointer; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; transition: all 0.15s; }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -334,7 +344,10 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .tag-bot { background: rgba(240,192,64,0.15); color: #f0c040; border-radius: 4px; padding: 1px 6px; }
 .player-medals { display: flex; gap: 0.4rem; align-items: center; margin-left: auto; }
 /* A 0,78rem los tres emojis de medalla eran el mismo circulo. */
-.player-medals span { font-size: 0.95rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.player-medals span {
+    display: inline-flex; align-items: center; gap: 0.2rem;
+    font-size: 0.95rem; white-space: nowrap; font-variant-numeric: tabular-nums;
+}
 
 /* ===== OTHER PLAYERS ===== */
 .other-players {
@@ -1389,7 +1402,11 @@ body.colorblind .hmc-cb { display: block; }
 .rhp-rows { display: flex; flex-direction: column; gap: 0.2rem; }
 .rhp-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; }
 .rhp-winner .rhp-name { color: #fcd34d; font-weight: 700; }
-.rhp-medal { width: 1.4rem; text-align: center; flex-shrink: 0; }
+.rhp-medal {
+    width: 1.6rem; flex-shrink: 0; font-weight: 900; font-variant-numeric: tabular-nums;
+    color: var(--texto-suave);
+}
+.rhp-winner .rhp-medal { color: var(--acento); }
 .rhp-name { flex: 1; font-weight: 500; }
 .rhp-hand { color: var(--texto-suave); font-size: 0.78rem; white-space: nowrap; }
 

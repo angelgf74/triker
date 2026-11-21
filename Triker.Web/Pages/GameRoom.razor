@@ -107,7 +107,7 @@
                 }
                 @if (_state.TargetWins > 0)
                 {
-                    <span class="target-badge">Meta @_state.TargetWins🥇</span>
+                    <span class="target-badge">Meta @_state.TargetWins <Medalla Puesto="1" Etiqueta="victorias" /></span>
                 }
                 @if (IsSpectator)
                 {
@@ -258,9 +258,9 @@
                         @if (me.Wins > 0 || me.Seconds > 0 || me.Thirds > 0)
                         {
                             <span class="player-medals">
-                                @if (me.Wins > 0)    { <span title="Primeros puestos">🥇@me.Wins</span> }
-                                @if (me.Seconds > 0) { <span title="Segundos puestos">🥈@me.Seconds</span> }
-                                @if (me.Thirds > 0)  { <span title="Terceros puestos">🥉@me.Thirds</span> }
+                                @if (me.Wins > 0)    { <span title="Primeros puestos"><Medalla Puesto="1" />@me.Wins</span> }
+                                @if (me.Seconds > 0) { <span title="Segundos puestos"><Medalla Puesto="2" />@me.Seconds</span> }
+                                @if (me.Thirds > 0)  { <span title="Terceros puestos"><Medalla Puesto="3" />@me.Thirds</span> }
                             </span>
                         }
                         @if (_state.Status == GameStatus.Playing)
