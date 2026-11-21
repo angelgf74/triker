@@ -32,6 +32,7 @@ const PRUEBAS = [
   ['mesa', 2, 0],
   ['resultados-de-un-vistazo', 1, 0],
   ['lobby', 1, 0],
+  ['imagen-de-compartir', 0, 0],
   ['resultados-y-cabecera', 2, 0],
   ['nombres-invisibles', 5, 0],
   ['ritmo-de-los-bots', 5, 0],
