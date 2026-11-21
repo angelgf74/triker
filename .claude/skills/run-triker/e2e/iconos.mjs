@@ -3,7 +3,7 @@
 // Un emoji lo pinta el sistema: cambia de un móvil a otro, no hereda el color del
 // texto y no se puede alinear con él. Dos comprobaciones:
 //   A. En el código: ningún .razor de la web lleva emojis fuera de lo permitido
-//      (las reacciones y los textos de compartir, que son contenido, y las medallas).
+//      (las reacciones y los textos de compartir, que son contenido).
 //   B. En pantalla: los botones llevan su icono y no queda ningún emoji pintado en
 //      el lobby, la sala de espera, la mesa ni los resultados.
 // Solo contra localhost: la parte A lee el código del repo.
@@ -16,8 +16,8 @@ soloLocal();
 
 const WEB_SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', 'Triker.Web');
 const EMOJI = /\p{Extended_Pictographic}/gu;
-// Las figuras de las cartas son contenido del juego; las medallas siguen siendo emojis.
-const PERMITIDOS = new Set(['♥', '♣', '♦', '♠', '🥇', '🥈', '🥉']);
+// Las figuras de las cartas son contenido del juego.
+const PERMITIDOS = new Set(['♥', '♣', '♦', '♠']);
 // Líneas cuyo emoji es contenido que viaja fuera de la app o que elige el jugador.
 const LINEA_PERMITIDA = /_emojis\s*=|var text = \$"|^\s*(\? )?\$?"(👉|🔒)/u;
 
@@ -51,9 +51,9 @@ const definidos = new Set([...fs.readFileSync(path.join(WEB_SRC, 'Components', '
 const sinDefinir = [...usados].filter(([n]) => !definidos.has(n)).map(([n, donde]) => `${n} (${donde})`);
 ok(usados.size >= 10 && sinDefinir.length === 0, `los ${usados.size} iconos que se usan existen en Icono.razor${sinDefinir.length ? '; faltan: ' + sinDefinir.join(', ') : ''}`);
 
-// Emojis pintados fuera de las cartas, las reacciones y las medallas.
+// Emojis pintados fuera de las cartas y las reacciones.
 const pintados = (page) => page.evaluate(() => {
-  const permitidos = new Set(['♥', '♣', '♦', '♠', '🥇', '🥈', '🥉']);
+  const permitidos = new Set(['♥', '♣', '♦', '♠']);
   const vistos = new Set();
   const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   for (let n = w.nextNode(); n; n = w.nextNode()) {
@@ -126,7 +126,29 @@ try {
   ok(e.length === 0, `ningún emoji pintado en los resultados${e.length ? ': ' + e.join(' | ') : ''}`);
   await page.screenshot({ path: join('iconos-resultados'), fullPage: true });
 
-  await page.click('button:has-text("Salir de la mesa")');
+  console.log('== E. Medallas ==');
+  // Las medallas son un dibujo con su número dentro: oro, plata y bronce solo se
+  // distinguían por el color.
+  const medallas = (sel) => page.locator(sel).evaluateAll((els) => els.map((e) => ({
+    numero: e.textContent.trim(), color: getComputedStyle(e.querySelector('circle')).fill, leida: e.getAttribute('aria-label'), oculta: e.getAttribute('aria-hidden'),
+  })));
+  const deJugador = await medallas('.result-entry .player-medals svg.medalla');
+  ok(deJugador.length >= 2 && deJugador.every((m) => /^[123]$/.test(m.numero)), `los contadores de cada jugador llevan su medalla con el número dentro (${deJugador.map((m) => m.numero).join(' ')})`);
+  await page.click('.continue-buttons .btn-primary');
+  await page.waitForSelector('.round-badge:has-text("Ronda 2")', { timeout: 20_000 });
+  await page.waitForSelector('.info-row .ssp-table', { timeout: 10_000 });
+  await page.waitForTimeout(800);
+  const cabecera = await medallas('.ssp-table thead svg.medalla');
+  ok(cabecera.map((m) => m.numero).join('') === '123' && new Set(cabecera.map((m) => m.color)).size === 3, `la tabla de la sesión lleva las tres, cada una con su número y su color (${cabecera.map((m) => `${m.numero} ${m.color}`).join(', ')})`);
+  ok(cabecera.every((m) => /puestos/.test(m.leida ?? '')), `y un lector de pantalla las lee: ${cabecera.map((m) => `«${m.leida}»`).join(' ')}`);
+  const historial = await page.locator('.rhp-medal').allTextContents();
+  ok(historial.length >= 2 && historial.every((t) => /^\d+º$/.test(t.trim())), `el historial de la ronda dice los puestos en número (${historial.map((t) => t.trim()).join(' ')})`);
+  e = await pintados(page);
+  ok(e.length === 0, `ningún emoji pintado en la mesa de la segunda ronda${e.length ? ': ' + e.join(' | ') : ''}`);
+  await page.screenshot({ path: join('iconos-ronda2'), fullPage: true });
+
+  await page.click('.btn-leave');
+  await page.click('.leave-confirm .btn-danger');
   await page.waitForSelector('.lobby .game-title', { timeout: 15_000 });
 } catch (err) {
   fallar(err);

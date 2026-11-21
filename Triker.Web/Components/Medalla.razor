@@ -1,0 +1,22 @@
+@* Medalla de oro, plata o bronce con su número dentro. Sustituye a los emojis de
+   medalla, que solo se distinguían por el color (y cada sistema los pinta a su
+   manera). Con el número se distinguen también sin ver el color.
+
+   Se lee como «Primeros puestos» (o lo que diga Etiqueta) y detrás va la cuenta. *@
+<svg class="medalla medalla-@Puesto" viewBox="0 0 20 20" role="img" aria-label="@(Etiqueta ?? PorDefecto)" focusable="false">
+    <circle cx="10" cy="10" r="9" />
+    <text x="10" y="14.3" text-anchor="middle" aria-hidden="true">@Puesto</text>
+</svg>
+
+@code {
+    [Parameter, EditorRequired] public int Puesto { get; set; }
+    [Parameter] public string? Etiqueta { get; set; }
+
+    private string PorDefecto => Puesto switch
+    {
+        1 => "Primeros puestos",
+        2 => "Segundos puestos",
+        3 => "Terceros puestos",
+        _ => throw new ArgumentOutOfRangeException(nameof(Puesto), Puesto, "Solo hay medalla para los puestos 1, 2 y 3.")
+    };
+}
