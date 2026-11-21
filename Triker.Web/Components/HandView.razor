@@ -24,15 +24,17 @@
             <p class="discard-hint" aria-live="polite">
                 @if (_selected.Count == 0)
                 {
-                    <span>Toca las cartas que quieras cambiar, o pasa si te gusta tu mano</span>
+                    <span>Toca las cartas que quieras cambiar</span>
                 }
                 else
                 {
                     <span>@_selected.Count carta@(_selected.Count != 1 ? "s" : "") seleccionada@(_selected.Count != 1 ? "s" : "") para descartar</span>
                 }
             </p>
-            @* Pasar no cambia nada: no lleva el rojo de una accion destructiva. *@
-            <button class="@(_selected.Count == 0 ? "btn-secondary btn-pass" : "btn-discard")" @onclick="ConfirmDiscard">
+            @* Un solo botón, siempre principal y en el mismo sitio: pasar y descartar son
+               las dos formas de jugar tu turno. El texto de arriba cabe en una línea en
+               los dos casos para que el botón no salte al seleccionar una carta. *@
+            <button class="@(_selected.Count == 0 ? "btn-primary btn-pass" : "btn-discard")" @onclick="ConfirmDiscard">
                 @(_selected.Count == 0 ? "Pasar (sin descartar)" : $"Descartar {_selected.Count}")
             </button>
         </div>

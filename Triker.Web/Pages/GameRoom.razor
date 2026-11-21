@@ -300,6 +300,17 @@
                         <div class="my-play-badge">
                             <span class="my-play-label">Tu jugada:</span>
                             <PlayBadge Result="me.Play" />
+                            @* Los nombres de los extremos son los de ScoringService (la peor
+                               y la mejor de las 16): el cliente no tiene la lista. *@
+                            <div class="escala-jugada" role="img" aria-label="@HandLadder.Label(me.Play.HandRank)">
+                                <div class="escala-pasos">
+                                    @for (int paso = HandLadder.Total; paso >= 1; paso--)
+                                    {
+                                        <span class="escala-paso @(paso >= HandLadder.Position(me.Play.HandRank) ? "subido" : "")"></span>
+                                    }
+                                </div>
+                                <div class="escala-extremos"><span>Sin jugada</span><span>Retriker Fuerte</span></div>
+                            </div>
                         </div>
                     }
 
