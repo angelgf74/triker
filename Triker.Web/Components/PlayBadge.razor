@@ -24,7 +24,7 @@
             @for (int gi = 0; gi < realGroups.Count; gi++)
             {
                 if (gi > 0) { <span class="grp-sep">+</span> }
-                <span class="grp-badge" style="--gc:@GroupColors[gi % GroupColors.Length]">@realGroups[gi].Name</span>
+                <span class="grp-badge" style="--gc:@ResultsView.GroupColors[gi % ResultsView.GroupColors.Length]">@realGroups[gi].Name</span>
             }
         </div>
     }
@@ -35,7 +35,4 @@
 
     private bool _expanded;
 
-    // Mismos colores que el coloreado de cartas por grupo en ResultsView.
-    private static readonly string[] GroupColors =
-        ["#3b82f6", "#f59e0b", "#a855f7", "#22c55e", "#ef4444", "#06b6d4", "#ec4899"];
 }
