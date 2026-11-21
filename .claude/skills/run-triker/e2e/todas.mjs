@@ -29,6 +29,7 @@ const PRUEBAS = [
   ['diseno-movil', 1, 0],
   ['un-solo-acento', 1, 0],
   ['iconos', 1, 0],
+  ['mesa', 1, 0],
   ['resultados-y-cabecera', 2, 0],
   ['nombres-invisibles', 5, 0],
   ['ritmo-de-los-bots', 5, 0],
