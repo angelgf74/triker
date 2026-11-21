@@ -7,7 +7,6 @@ namespace Triker.Api.Services;
 public class InactivityService(GameService gameService, GameBroadcaster broadcaster, ILogger<InactivityService> logger)
 {
     private static readonly TimeSpan TurnTimeout   = TimeSpan.FromSeconds(60);
-    private static readonly TimeSpan FinishTimeout = TimeSpan.FromMinutes(5);
 
     // El temporizador de turno lleva el jugador al que vigila: solo lo cancela
     // un descarte valido de ese jugador. Antes lo cancelaba cualquier POST a
@@ -58,8 +57,17 @@ public class InactivityService(GameService gameService, GameBroadcaster broadcas
             CancelTurnTimer(gameId);
     }
 
+    // Arma el temporizador de fin de ronda para el plazo que marca el estado
+    // (GameState.ContinueDeadline). Se llama cada vez que el plazo puede haber
+    // cambiado: al revelar (5 minutos) y cuando un humano decide seguir (se
+    // acorta a un minuto). Con el plazo ya vencido no hace nada: el
+    // temporizador que lo vigilaba ya ha saltado o esta saltando.
     public void StartFinishTimer(Guid gameId)
     {
+        if (gameService.ContinueDeadlineOf(gameId) is not { } deadline) return;
+        var delay = deadline - DateTimeOffset.UtcNow;
+        if (delay <= TimeSpan.Zero) return;
+
         CancelFinishTimer(gameId);
         var cts = new CancellationTokenSource();
         _finishTimers[gameId] = cts;
@@ -67,7 +75,7 @@ public class InactivityService(GameService gameService, GameBroadcaster broadcas
         {
             try
             {
-                await Task.Delay(FinishTimeout, cts.Token);
+                await Task.Delay(delay, cts.Token);
                 _finishTimers.TryRemove(gameId, out _);
                 await HandleFinishTimeout(gameId);
             }
@@ -189,10 +197,7 @@ public class InactivityService(GameService gameService, GameBroadcaster broadcas
             // Null si otro hilo ya la revelo: no se repite el evento.
             var results = gameService.GetRevealedHands(gameId);
             if (results != null)
-            {
                 await broadcaster.SendHandsRevealed(gameId, results);
-                StartFinishTimer(gameId);
-            }
         }
 
         game = gameService.GetGame(gameId);
@@ -205,6 +210,11 @@ public class InactivityService(GameService gameService, GameBroadcaster broadcas
         // Start turn timer before broadcasting so TurnDeadline is included in the state the client receives
         if (game.Status == GameStatus.Playing && game.CurrentTurnPlayer is { IsBot: false } human)
             StartTurnTimer(gameId, human.Id);
+
+        // Entre rondas el plazo puede ser nuevo (se acaba de revelar) o haberse
+        // acortado (alguien ha decidido seguir): el temporizador le sigue.
+        if (game.Status == GameStatus.Finished)
+            StartFinishTimer(gameId);
 
         await broadcaster.BroadcastPersonalized(game);
         await broadcaster.BroadcastLobbyUpdate();

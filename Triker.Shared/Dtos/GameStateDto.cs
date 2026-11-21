@@ -15,6 +15,8 @@ public class GameStateDto
     public int RoundNumber { get; set; }
     public Guid? MyPlayerId { get; set; }
     public DateTimeOffset? TurnDeadline { get; set; }
+    // Solo entre rondas: cuando salen de la mesa los que no hayan decidido.
+    public DateTimeOffset? ContinueDeadline { get; set; }
     public int TargetWins { get; set; }
     public bool GameOver { get; set; }
     public bool IsPrivate { get; set; }

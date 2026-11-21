@@ -61,6 +61,9 @@ public class GameState
     public int RoundNumber { get; set; } = 1;
 
     public DateTimeOffset? TurnDeadline { get; set; }
+    // Entre rondas: hasta cuando pueden decidir los humanos si siguen. Al
+    // vencer salen de la mesa los que no hayan decidido (ver GameService).
+    public DateTimeOffset? ContinueDeadline { get; set; }
     public DateTimeOffset LastActivityAt { get; set; } = DateTimeOffset.UtcNow;
     // Desde cuando no hay ningun jugador humano conectado al hub; null mientras
     // haya alguno. Una sala de espera asi deja de listarse y acaba cerrandose

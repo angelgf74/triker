@@ -85,7 +85,8 @@
                      TargetWins="_state.TargetWins"
                      GameOver="_state.GameOver"
                      IsSpectator="IsSpectator"
-                     Decided="@(_deciding || Me?.WantsToContinue == true)" />
+                     Decided="@(_deciding || Me?.WantsToContinue == true)"
+                     ContinueDeadline="_state.ContinueDeadline" />
         @if (!string.IsNullOrEmpty(_error))
         {
             <div class="error-msg" role="alert">@_error</div>
@@ -685,11 +686,28 @@
     // Antes de pedir la ronda nueva: no vuelve hasta que el anuncio se cierra.
     // Si la ronda empezara con el anuncio delante, los 60 s del turno correrian
     // sin que el jugador vea sus cartas.
+    //
+    // Quien ve el anuncio todavia no ha enviado su decision. Si mientras tanto
+    // otro jugador decide, empieza a correr el minuto de plazo: antes de que
+    // venza se deja de esperar y se envia, aunque el anuncio siga delante. Es
+    // peor empezar la ronda tapado que salir de la mesa por ver un anuncio.
+    private static readonly TimeSpan MargenParaDecidir = TimeSpan.FromSeconds(8);
+
     private async Task ShowInterstitialAdAndWait()
     {
-        try { await JS.InvokeAsync<bool>("TrikerAds.interstitialAndWait"); }
+        try
+        {
+            var anuncio = JS.InvokeAsync<bool>("TrikerAds.interstitialAndWait").AsTask();
+            while (!anuncio.IsCompleted && !PlazoApurado())
+                await Task.WhenAny(anuncio, Task.Delay(500));
+            if (anuncio.IsCompleted) await anuncio;
+            else _ = anuncio.ContinueWith(t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted);
+        }
         catch { /* sin puente de anuncios (web normal) */ }
     }
+
+    private bool PlazoApurado()
+        => _state?.ContinueDeadline is { } plazo && plazo - DateTimeOffset.UtcNow < MargenParaDecidir;
 
     // Volver al lobby es subir un nivel, no avanzar: con replace, el lobby
     // sustituye a la partida en el historial en vez de apilarse encima. Sin

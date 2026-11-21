@@ -1,6 +1,7 @@
 @using Triker.Shared.Dtos
 @inject ShareService ShareSvc
 @inject IJSRuntime JS
+@implements IDisposable
 
 <div class="results-view">
     @if (GameOver && Players.Count > 0)
@@ -91,6 +92,10 @@
                     Esperando a los jugadores…
                     (@Players.Count(p => p.WantsToContinue) / @Players.Count quieren seguir)
                 </p>
+                @if (PlazoVisible)
+                {
+                    <p class="continue-deadline">Quien no decida en @_segundos s sale de la mesa.</p>
+                }
             }
             <button class="btn-secondary" @onclick="() => OnContinue.InvokeAsync(false)">Dejar de ver</button>
         }
@@ -106,6 +111,10 @@
                 <button class="btn-primary" @onclick="() => OnContinue.InvokeAsync(true)">Siguiente ronda</button>
                 <button class="btn-secondary" @onclick="() => OnContinue.InvokeAsync(false)">Salir de la mesa</button>
             </div>
+            @if (PlazoVisible)
+            {
+                <p class="continue-deadline continue-deadline-mine">Decide en @_segundos s o saldrás de la mesa.</p>
+            }
         }
         else
         {
@@ -113,6 +122,10 @@
                 Esperando a los demás jugadores…
                 (@Players.Count(p => p.WantsToContinue) / @Players.Count quieren seguir)
             </p>
+            @if (PlazoVisible)
+            {
+                <p class="continue-deadline">Quien no decida en @_segundos s sale de la mesa.</p>
+            }
         }
     </div>
 
@@ -253,6 +266,49 @@
     // esta enviando: asi sobrevive a una recarga y, si el envio falla, vuelven
     // a salir los botones.
     [Parameter] public bool Decided { get; set; }
+    // Cuando salen de la mesa los que no hayan decidido (GameStateDto.ContinueDeadline).
+    [Parameter] public DateTimeOffset? ContinueDeadline { get; set; }
+
+    // La cuenta atras solo se enseña en el ultimo minuto: mientras nadie ha
+    // decidido hay cinco por delante y un reloj solo meteria prisa. Va fuera
+    // del role="status" para que el lector de pantalla no la lea cada segundo.
+    private const int AvisarDesdeSegundos = 60;
+    private int _segundos;
+    private CancellationTokenSource? _relojCts;
+    private DateTimeOffset? _relojDe;
+
+    private bool PlazoVisible => !GameOver && _segundos > 0 && _segundos <= AvisarDesdeSegundos;
+
+    protected override void OnParametersSet()
+    {
+        if (ContinueDeadline == _relojDe) return;
+        _relojDe = ContinueDeadline;
+        _relojCts?.Cancel();
+        _relojCts = null;
+        _segundos = 0;
+        if (ContinueDeadline is not { } plazo) return;
+        _segundos = SegundosHasta(plazo);
+        _relojCts = new CancellationTokenSource();
+        _ = Reloj(plazo, _relojCts.Token);
+    }
+
+    private static int SegundosHasta(DateTimeOffset plazo)
+        => Math.Max(0, (int)Math.Ceiling((plazo - DateTimeOffset.UtcNow).TotalSeconds));
+
+    private async Task Reloj(DateTimeOffset plazo, CancellationToken token)
+    {
+        while (!token.IsCancellationRequested && _segundos > 0)
+        {
+            try { await Task.Delay(250, token); }
+            catch (OperationCanceledException) { return; }
+            var ahora = SegundosHasta(plazo);
+            if (ahora == _segundos) continue;
+            _segundos = ahora;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public void Dispose() => _relojCts?.Cancel();
 
     private string? _shareNotice;
 
