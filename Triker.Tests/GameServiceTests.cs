@@ -278,6 +278,108 @@ public class GameServiceTests
         Assert.Equal(carla.Id, game.CreatorId);
     }
 
+    // ── Empates ─────────────────────────────────────────────────────────────
+    // La ronda la decide la jugada (HandRank), no los puntos, asi que dos
+    // jugadores con la misma jugada empatan: comparten medalla. Pero el puesto
+    // que viajaba en los resultados (Rank) era el orden en la lista: a dos
+    // empatados en cabeza les tocaba 1 y 2, y al segundo se le trataba como
+    // perdedor alli donde se miraba ese numero.
+
+    // Deja la ronda lista para revelar con las manos que se le pasen: cada
+    // jugador recibe copias (con otro id) de las cartas indicadas.
+    private static void ManosAntesDeRevelar(GameService svc, GameState game, Func<PlayerState, IEnumerable<Card>> mano)
+    {
+        while (game.Status == GameStatus.Playing)
+            Assert.True(svc.SubmitDiscard(game.Id, game.CurrentTurnPlayer!.Id, []));
+        Assert.Equal(GameStatus.Revealing, game.Status);
+        foreach (var p in game.Players)
+            p.Hand = mano(p).Select(c => c with { Id = Guid.NewGuid() }).ToList();
+    }
+
+    [Fact]
+    public void Dos_jugadores_con_la_misma_jugada_comparten_el_primer_puesto()
+    {
+        var (svc, game, ana, berto) = Mesa();
+        svc.StartGame(game.Id, ana.Id);
+        var misma = game.Players[0].Hand.ToList();
+        ManosAntesDeRevelar(svc, game, _ => misma);
+
+        var resultados = svc.GetRevealedHands(game.Id)!;
+
+        Assert.Equal(resultados[0].HandRank, resultados[1].HandRank);
+        Assert.All(resultados, r => Assert.Equal(1, r.Rank));
+        Assert.Equal(1, ana.Wins);
+        Assert.Equal(1, berto.Wins);
+    }
+
+    [Fact]
+    public void Tras_un_empate_en_cabeza_el_siguiente_es_tercero()
+    {
+        var (svc, game, ana, berto, carla) = TresHumanosAntesDeEmpezar();
+        svc.StartGame(game.Id, ana.Id);
+        // Carla se queda con una mano sin ninguna coincidencia: la peor jugada.
+        var sinJugada = new List<Card>
+        {
+            new(Guid.NewGuid(), Letter.T, Figure.Circle, CardColor.Red),
+            new(Guid.NewGuid(), Letter.R, Figure.Square, CardColor.Green),
+            new(Guid.NewGuid(), Letter.I, Figure.Star, CardColor.Blue),
+            new(Guid.NewGuid(), Letter.K, Figure.Triangle, CardColor.Cyan),
+            new(Guid.NewGuid(), Letter.E, Figure.Heart, CardColor.Magenta),
+        };
+        // Ana y Berto, la misma pareja: dos cartas iguales en letra.
+        var pareja = new List<Card>
+        {
+            new(Guid.NewGuid(), Letter.T, Figure.Circle, CardColor.Red),
+            new(Guid.NewGuid(), Letter.T, Figure.Square, CardColor.Green),
+            new(Guid.NewGuid(), Letter.I, Figure.Star, CardColor.Blue),
+            new(Guid.NewGuid(), Letter.K, Figure.Triangle, CardColor.Cyan),
+            new(Guid.NewGuid(), Letter.E, Figure.Heart, CardColor.Magenta),
+        };
+        ManosAntesDeRevelar(svc, game, p => p.Id == carla.Id ? sinJugada : pareja);
+
+        var resultados = svc.GetRevealedHands(game.Id)!;
+
+        var deCarla = resultados.Single(r => r.PlayerId == carla.Id);
+        Assert.True(deCarla.HandRank < resultados.First(r => r.PlayerId == ana.Id).HandRank);
+        Assert.Equal(1, resultados.Single(r => r.PlayerId == ana.Id).Rank);
+        Assert.Equal(1, resultados.Single(r => r.PlayerId == berto.Id).Rank);
+        Assert.Equal(3, deCarla.Rank);           // 1º, 1º, 3º: no hay segundo
+        Assert.Equal(carla.Id, resultados[^1].PlayerId);   // y va la ultima en la lista
+        Assert.Equal((1, 0, 0), (ana.Wins, ana.Seconds, ana.Thirds));
+        Assert.Equal((0, 0, 1), (carla.Wins, carla.Seconds, carla.Thirds));
+    }
+
+    // Con manos al azar: el puesto que viaja es siempre "cuantos tienen mejor
+    // jugada, mas uno", que es tambien como se reparten las medallas.
+    [Fact]
+    public void El_puesto_cuenta_cuantos_tienen_mejor_jugada()
+    {
+        var empates = 0;
+        for (int ronda = 0; ronda < 60; ronda++)
+        {
+            var svc = Nuevo();
+            var (game, ana) = svc.CreateGame("mesa", "Ana", bots: 5)!.Value;
+            while (game.Status == GameStatus.Playing)
+                Assert.True(svc.SubmitDiscard(game.Id, game.CurrentTurnPlayer!.Id, []));
+
+            var resultados = svc.GetRevealedHands(game.Id)!;
+
+            Assert.All(resultados, r => Assert.Equal(resultados.Count(o => o.HandRank > r.HandRank) + 1, r.Rank));
+            Assert.Equal(resultados.OrderByDescending(r => r.HandRank).Select(r => r.HandRank), resultados.Select(r => r.HandRank));
+            if (resultados.Select(r => r.Rank).Distinct().Count() < resultados.Count) empates++;
+        }
+        Assert.True(empates > 0, "en 60 rondas de 6 jugadores tendria que haber algun empate");
+    }
+
+    private static (GameService svc, GameState game, PlayerState ana, PlayerState berto, PlayerState carla) TresHumanosAntesDeEmpezar()
+    {
+        var svc = Nuevo();
+        var (game, ana) = svc.CreateGame("mesa", "Ana")!.Value;
+        var berto = svc.JoinGame(game.Id, "Berto").player!;
+        var carla = svc.JoinGame(game.Id, "Carla").player!;
+        return (svc, game, ana, berto, carla);
+    }
+
     // ── Plazo para decidir entre rondas ─────────────────────────────────────
     // El plazo era siempre de 5 minutos: si un jugador bloqueaba el movil, los
     // que ya habian pulsado «Siguiente ronda» esperaban todo ese tiempo sin
