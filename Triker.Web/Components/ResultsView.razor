@@ -10,7 +10,7 @@
         var maxWins = Players.Max(p => p.Wins);
         var champs = Players.Where(p => p.Wins == maxWins).Select(p => p.Name).ToList();
         <div class="champion-banner">
-            <span class="champion-icon">🏆</span>
+            <span class="champion-icon"><Icono Nombre="trofeo" /></span>
             <span class="champion-name">@string.Join(" y ", champs)</span>
             <span class="champion-sub">
                 ¡@(champs.Count == 1 ? "Campeón" : "Campeones") con @Plural(maxWins, "victoria", "victorias") en @Plural(RoundNumber, "ronda", "rondas")!
@@ -70,7 +70,7 @@
                     @if (mine != null && Position(mine) == 1)
                     {
                         var conmigo = Winners().Where(r => r.PlayerId != MyPlayerId).Select(r => r.PlayerName).ToList();
-                        <span>🎉 Ganaste la ronda@(conmigo.Count > 0 ? $" junto a {Lista(conmigo)}" : "")</span>
+                        <span><Icono Nombre="trofeo" /> Ganaste la ronda@(conmigo.Count > 0 ? $" junto a {Lista(conmigo)}" : "")</span>
                     }
                     else
                     {
@@ -237,7 +237,7 @@
                         {
                             <span class="discard-badge-result badge-timeout"
                                   title="Se acabó el tiempo del turno y se pasó automáticamente">
-                                ⏱ sin tiempo
+                                <Icono Nombre="reloj" /> sin tiempo
                             </span>
                         }
                         else
@@ -266,7 +266,7 @@
                 @if (result.PlayerId == MyPlayerId)
                 {
                     <button class="btn-share" title="Compartir jugada" @onclick="() => ShareResult(result)">
-                        📤 Compartir
+                        <Icono Nombre="compartir" /> Compartir
                     </button>
                     @if (_shareNotice != null)
                     {

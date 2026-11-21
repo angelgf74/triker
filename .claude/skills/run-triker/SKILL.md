@@ -166,6 +166,7 @@ node .claude/skills/run-triker/e2e/empates.mjs           # or one directly
 | `sonido-descarte-y-ayuda` | champion sound, rejected discard message, help wording |
 | `diseno-movil`, `resultados-y-cabecera` | layout measurements at 360 px; results folded on big tables |
 | `un-solo-acento` | colour base: gold is the only accent, nothing purple outside the cards, soft text contrast |
+| `iconos` | interface icons are line drawings (`Icono`), not emojis: source scan plus what is painted on each screen |
 | `nombres-invisibles`, `ritmo-de-los-bots` | API only: invisible characters in names; bot pacing timings |
 | `fuente-propia`, `vista-previa-de-enlaces`, `sin-peticiones-fallidas` | no Google Fonts request; Open Graph tags; no 4xx from the site itself |
 | `politica-de-seguridad` (2 min) | the published package under its CSP: full walk-through with zero violations, and what it must block |
