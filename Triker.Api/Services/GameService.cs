@@ -53,13 +53,15 @@ public class GameService(
     }
 
     // Null si ya hay demasiadas partidas abiertas (el controlador responde 503).
-    public (GameState game, PlayerState player)? CreateGame(string gameName, string playerName, int targetWins = 0, bool isPrivate = false, int bots = 0)
+    public (GameState game, PlayerState player)? CreateGame(string gameName, string playerName, int targetWins = 0, bool isPrivate = false, int bots = 0, string? creatorIp = null)
     {
         if (_games.Count >= Limites.PartidasMaximas) return null;
+        if (creatorIp != null && OpenGamesFrom(creatorIp) >= Limites.PartidasPorIp) return null;
 
         var game = new GameState
         {
             Name = gameName,
+            CreatorIp = creatorIp,
             TargetWins = Math.Clamp(targetWins, 0, Limites.MetaMaxima),
             IsPrivate = isPrivate,
             AccessCode = isPrivate ? Limites.NuevoCodigo() : null
@@ -818,6 +820,11 @@ public class GameService(
             return list;
         }
     }
+
+    // Partidas abiertas creadas desde esa IP. CreatorIp se fija al crear y no
+    // cambia, asi que se lee sin el cerrojo de cada partida. Cuenta mientras la
+    // partida exista, siga o no en ella quien la creo.
+    public int OpenGamesFrom(string ip) => _games.Values.Count(g => g.CreatorIp == ip);
 
     // ── Para InactivityService ──────────────────────────────────────────────
     // Los temporizadores y el bucle de los bots corren en sus propios hilos.

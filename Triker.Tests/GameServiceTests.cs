@@ -417,6 +417,77 @@ public class GameServiceTests
         Assert.Contains(game.Players, p => p.Id == bot.Id);
     }
 
+    // ── Tope de partidas abiertas por IP ────────────────────────────────────
+    // Habia 10 creaciones por minuto e IP y un tope global de 500 partidas:
+    // con una o dos IP bastaba para llenarlo y dejar a todos sin poder crear.
+
+    [Fact]
+    public void Una_IP_no_puede_tener_mas_partidas_abiertas_que_el_tope()
+    {
+        var svc = Nuevo();
+        for (int i = 0; i < Limites.PartidasPorIp; i++)
+            Assert.NotNull(svc.CreateGame($"mesa {i}", "Ana", creatorIp: "203.0.113.7"));
+
+        Assert.Equal(Limites.PartidasPorIp, svc.OpenGamesFrom("203.0.113.7"));
+        Assert.Null(svc.CreateGame("una mas", "Ana", creatorIp: "203.0.113.7"));
+        Assert.Equal(Limites.PartidasPorIp, svc.ListGames().Count);
+    }
+
+    [Fact]
+    public void El_tope_de_una_IP_no_afecta_a_las_demas()
+    {
+        var svc = Nuevo();
+        for (int i = 0; i < Limites.PartidasPorIp; i++)
+            svc.CreateGame($"mesa {i}", "Ana", creatorIp: "203.0.113.7");
+
+        Assert.NotNull(svc.CreateGame("otra red", "Berto", creatorIp: "203.0.113.8"));
+        Assert.NotNull(svc.CreateGame("sin IP", "Carla"));   // sin IP conocida no hay a quien contarsela
+        Assert.Equal(0, svc.OpenGamesFrom("198.51.100.1"));
+    }
+
+    [Fact]
+    public void Al_cerrarse_una_partida_su_IP_recupera_el_sitio()
+    {
+        var svc = Nuevo();
+        var creadas = Enumerable.Range(0, Limites.PartidasPorIp)
+            .Select(i => svc.CreateGame($"mesa {i}", "Ana", creatorIp: "203.0.113.7")!.Value)
+            .ToList();
+        Assert.Null(svc.CreateGame("una mas", "Ana", creatorIp: "203.0.113.7"));
+
+        var (game, ana) = creadas[0];
+        Assert.True(svc.LeaveGame(game.Id, ana.Id));   // sin humanos la mesa se cierra
+
+        Assert.Equal(Limites.PartidasPorIp - 1, svc.OpenGamesFrom("203.0.113.7"));
+        Assert.NotNull(svc.CreateGame("ahora si", "Ana", creatorIp: "203.0.113.7"));
+    }
+
+    [Fact]
+    public void Una_partida_contra_bots_tambien_cuenta_para_su_IP()
+    {
+        var svc = Nuevo();
+        svc.CreateGame("rapida", "Ana", bots: 3, creatorIp: "203.0.113.7");
+
+        Assert.Equal(1, svc.OpenGamesFrom("203.0.113.7"));
+    }
+
+    // La IP sirve para contar mientras la partida vive y nada mas: ni se guarda
+    // con la partida ni sale en lo que la API envia a los clientes.
+    [Fact]
+    public void La_IP_de_quien_crea_no_se_guarda_ni_se_envia()
+    {
+        var espia = new GuardadoEspia();
+        var scoring = new ScoringService();
+        var svc = new GameService(new DeckService(), scoring, new BotService(scoring), espia, NullLogger<GameService>.Instance);
+
+        var (game, ana) = svc.CreateGame("mesa", "Ana", creatorIp: "203.0.113.7")!.Value;
+
+        Assert.Null(espia.Ultimo[game.Id].CreatorIp);
+        var opciones = new JsonSerializerOptions { Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() } };
+        Assert.DoesNotContain("203.0.113.7", JsonSerializer.Serialize(game, opciones));
+        Assert.DoesNotContain("203.0.113.7", JsonSerializer.Serialize(svc.ToDto(game, ana.Id)));
+        Assert.DoesNotContain("203.0.113.7", JsonSerializer.Serialize(svc.ListGames()));
+    }
+
     // ── Lo que InactivityService necesita del estado ────────────────────────
     // Leia y escribia la partida sin su cerrojo (el turno, el plazo) y ponia
     // la marca de turno agotado despues de que el pase ya se hubiera guardado.

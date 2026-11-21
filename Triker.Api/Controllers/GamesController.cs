@@ -35,7 +35,13 @@ public class GamesController(GameService gameService, InactivityService inactivi
         if (playerName == null || gameName == null)
             return BadRequest($"Nombre no válido: hasta {Limites.NombreJugador} caracteres el tuyo y {Limites.NombrePartida} el de la partida");
 
-        var created = gameService.CreateGame(gameName, playerName, req.TargetWins, req.IsPrivate, req.Bots);
+        // La misma IP que usan los limites de peticiones (RateLimits): la del
+        // cliente, porque UseForwardedHeaders se fia del nginx de delante.
+        var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+        if (ip != null && gameService.OpenGamesFrom(ip) >= Limites.PartidasPorIp)
+            return StatusCode(StatusCodes.Status429TooManyRequests, "Hay demasiadas partidas abiertas desde tu conexión. Termina alguna o espera a que se cierren.");
+
+        var created = gameService.CreateGame(gameName, playerName, req.TargetWins, req.IsPrivate, req.Bots, ip);
         if (created is null)
             return StatusCode(StatusCodes.Status503ServiceUnavailable, "Hay demasiadas partidas abiertas. Prueba dentro de un rato.");
         var (game, player) = created.Value;
