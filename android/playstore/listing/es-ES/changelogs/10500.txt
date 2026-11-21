@@ -1,0 +1,6 @@
+Novedades:
+• Los enlaces de invitación abren la app directamente.
+• «Jugar contra bots»: una partida en un toque.
+• El anuncio ya no tapa los resultados de la ronda.
+• Entre rondas, quien no decide en un minuto ya no deja a la mesa esperando.
+¡Gracias por jugar! Cuéntanos qué te parece.
