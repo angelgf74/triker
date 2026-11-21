@@ -14,8 +14,8 @@ android {
         applicationId = "com.angelgf.triker"
         minSdk = 26
         targetSdk = 37
-        versionCode = 10400
-        versionName = "1.4.0"
+        versionCode = 10500
+        versionName = "1.5.0"
     }
 
     buildTypes {

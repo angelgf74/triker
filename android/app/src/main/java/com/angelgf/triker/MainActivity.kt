@@ -95,7 +95,13 @@ class MainActivity : ComponentActivity() {
             WindowInsetsCompat.CONSUMED
         }
 
-        webView.loadUrl(appUrl)
+        // Si la app se abre con un enlace de invitación, se carga ese enlace.
+        // Solo en un arranque de verdad: al recrearse la actividad o al
+        // volver desde recientes el intent sigue siendo el mismo, y repetir
+        // la invitación llevaría otra vez a una partida ya dejada.
+        val desdeRecientes = intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0
+        val enlace = if (savedInstanceState == null && !desdeRecientes) enlaceDe(intent) else null
+        webView.loadUrl(enlace ?: appUrl)
         consent.pedir()
 
         // El botón "atrás" navega en el historial del WebView; si no hay, sale de la app.
@@ -109,6 +115,27 @@ class MainActivity : ComponentActivity() {
                 }
             }
         })
+    }
+
+    // Con la app ya abierta (launchMode singleTask) el enlace llega aquí.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        val enlace = enlaceDe(intent) ?: return
+        setIntent(intent)
+        hideError()
+        webView.loadUrl(enlace)
+    }
+
+    // La dirección con la que otra app pide abrir Triker (App Links), o null
+    // si el intent no trae ninguna. El manifiesto ya limita qué enlaces llegan;
+    // aquí se vuelve a comprobar que es la web de Triker, porque lo que se
+    // cargue en el WebView tiene a su alcance los puentes nativos.
+    private fun enlaceDe(intent: Intent?): String? {
+        if (intent?.action != Intent.ACTION_VIEW) return null
+        val uri = intent.data ?: return null
+        val web = Uri.parse(appUrl)
+        if (uri.scheme != "https" || uri.host != web.host || uri.path != "/") return null
+        return uri.toString()
     }
 
     @SuppressLint("SetJavaScriptEnabled")

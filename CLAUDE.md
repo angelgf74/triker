@@ -103,6 +103,14 @@ published web; game changes reach it through `srv`, without a new app version.
   (`TrikerAds.interstitialAndWait`), or the turn clock would run behind the ad. It needs no
   callback from the app: the ad opens in its own activity, so the page gets `visibilitychange`
   (hidden about 50 ms after the request, visible on close).
+- App Links: an invite link (`https://triker-app.angelgf.com.es/?join=…`) opens the app when it is
+  installed. The manifest claims only the root path (so `privacidad.html` stays in the browser)
+  and Android verifies it against `Triker.Web/wwwroot/.well-known/assetlinks.json`, which lists
+  the SHA-256 of Play's app signing key (Play Console → Firma de aplicaciones) and of the upload
+  key (`playstore/gplay.json`), so a locally signed release verifies too. `MainActivity` is
+  `singleTask`: with the app open the link arrives in `onNewIntent`. Debug builds
+  (`.debug` package) are not in that file and never verify; test their handling with
+  `adb shell am start -a android.intent.action.VIEW -d <link> com.angelgf.triker.debug`.
 - AdMob ids are per build type (`src/debug` has Google's test ids, `src/release` the real ones)
   and debug builds install as `com.angelgf.triker.debug`, next to the Play one.
 - The debug WebView accepts remote debugging: `adb forward tcp:9333
