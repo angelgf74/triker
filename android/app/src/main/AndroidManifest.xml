@@ -37,10 +37,27 @@
             android:name=".MainActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:launchMode="singleTask"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- App Links: un enlace de invitación (https://<web>/?join=...)
+                 abre la app si está instalada. Android lo comprueba contra
+                 /.well-known/assetlinks.json de la web. Solo la raíz: el resto
+                 de páginas (privacidad.html) siguen abriéndose en el navegador.
+                 singleTask: con la app ya abierta el enlace llega a
+                 onNewIntent en vez de crear una segunda pantalla.
+                 El host es el de app_url (strings.xml): si cambia uno, el otro. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="triker-app.angelgf.com.es" />
+                <data android:path="/" />
             </intent-filter>
         </activity>
     </application>

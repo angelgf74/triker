@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.angelgf.triker",
+      "sha256_cert_fingerprints": [
+        "E5:FC:DB:27:9E:F7:1A:D1:FC:B6:F9:04:2A:AF:1A:D0:08:FF:67:38:30:D9:13:FB:68:0F:CE:9C:10:F1:46:D0",
+        "F1:7C:A4:89:00:F2:EA:D2:AF:00:9B:30:C4:25:7E:BF:ED:52:45:9F:EC:5D:22:9F:57:9A:51:FD:CD:88:26:66"
+      ]
+    }
+  }
+]
