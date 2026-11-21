@@ -14,7 +14,7 @@
 <div class="lobby">
     <div class="lobby-header">
         <div class="lobby-title-row">
-            <button class="btn-sug" @onclick="@(() => _sugVisible = true)" title="Enviar sugerencia" aria-label="Enviar sugerencia">✉</button>
+            <button class="btn-sug" @onclick="@(() => _sugVisible = true)" title="Enviar sugerencia" aria-label="Enviar sugerencia"><Icono Nombre="sobre" /></button>
             <h1 class="game-title" tabindex="-1">TRI<span class="mirror-k game-title">K</span>KER</h1>
             <button class="btn-help" @onclick="@(() => _helpVisible = true)" title="Ayuda" aria-label="Cómo se juega">?</button>
         </div>
@@ -53,7 +53,7 @@
     @if (InvitedGame is { } invited)
     {
         <div class="invite-banner">
-            <span class="invite-banner-title">🎴 Te han invitado a «@invited.Name»</span>
+            <span class="invite-banner-title"><Icono Nombre="cartas" /> Te han invitado a «@invited.Name»</span>
             <div class="invite-banner-actions">
                 @if (invited.Status == Triker.Shared.Models.GameStatus.Waiting)
                 {
@@ -62,7 +62,7 @@
                 else
                 {
                     <span class="invite-banner-hint">La partida ya ha empezado.</span>
-                    <button class="btn-spectate" @onclick="() => Spectate(invited.Id, true)">👁 Ver</button>
+                    <button class="btn-spectate" @onclick="() => Spectate(invited.Id, true)"><Icono Nombre="ojo" /> Ver</button>
                 }
                 <button class="btn-secondary" @onclick="DismissInvite">Cancelar</button>
             </div>
@@ -72,7 +72,7 @@
     @* Un solo boton principal: jugar ya. Crear una mesa para invitar a otros
        es el camino largo y va de secundario. *@
     <div class="lobby-actions">
-        <button class="btn-primary btn-play-now" @onclick="JugarAhora" disabled="@_enviando">▶ Jugar contra bots</button>
+        <button class="btn-primary btn-play-now" @onclick="JugarAhora" disabled="@_enviando"><Icono Nombre="jugar" /> Jugar contra bots</button>
         <button class="btn-secondary btn-new-game" @onclick="ShowCreateForm">+ Nueva partida</button>
     </div>
 
@@ -94,7 +94,7 @@
             </div>
             <label class="private-toggle">
                 <input type="checkbox" @bind="_isPrivate" />
-                <span>🔒 Partida privada (con código)</span>
+                <span><Icono Nombre="candado" /> Partida privada (con código)</span>
             </label>
             <button class="btn-primary" @onclick="CreateGame" disabled="@(_enviando || string.IsNullOrWhiteSpace(_gameName))">Crear</button>
             <button class="btn-secondary" @onclick="() => _showCreateForm = false">Cancelar</button>
@@ -104,7 +104,7 @@
     <div class="games-section">
         <div class="section-header">
             <h2>Partidas disponibles</h2>
-            <button class="btn-refresh" @onclick="LoadGames" title="Actualizar" aria-label="Actualizar la lista">↻</button>
+            <button class="btn-refresh" @onclick="LoadGames" title="Actualizar" aria-label="Actualizar la lista"><Icono Nombre="actualizar" /></button>
         </div>
 
         @if (_loading)
@@ -129,7 +129,7 @@
                 {
                     <div class="game-card">
                         <div class="game-info">
-                            <span class="game-name">@(game.IsPrivate ? "🔒 " : "")@game.Name</span>
+                            <span class="game-name">@if (game.IsPrivate) { <Icono Nombre="candado" /> } @game.Name</span>
                             <span class="game-creator">por @game.CreatorName</span>
                         </div>
                         <div class="game-meta">
@@ -160,7 +160,7 @@
                                 }
                                 <button class="btn-spectate" @onclick="() => Spectate(game.Id, true)"
                                         disabled="@(_enviando || string.IsNullOrWhiteSpace(_joinCode))">
-                                    👁 Ver
+                                    <Icono Nombre="ojo" /> Ver
                                 </button>
                                 <button class="btn-secondary" @onclick="() => { _joiningGameId = null; _joinCode = string.Empty; }">Cancelar</button>
                             </div>
@@ -171,13 +171,13 @@
                                 @if (game.Status == Triker.Shared.Models.GameStatus.Waiting)
                                 {
                                     <button class="btn-join" @onclick="() => JoinGame(game.Id)" disabled="@_enviando">
-                                        @(game.IsPrivate ? "🔒 Unirse" : "Unirse")
+                                        @if (game.IsPrivate) { <Icono Nombre="candado" /> } Unirse
                                     </button>
                                 }
                                 @if (game.Status == Triker.Shared.Models.GameStatus.Waiting || game.Status == Triker.Shared.Models.GameStatus.Playing)
                                 {
                                     <button class="btn-spectate" @onclick="() => Spectate(game.Id)" disabled="@_enviando">
-                                        👁 Ver
+                                        <Icono Nombre="ojo" /> Ver
                                     </button>
                                 }
                             </div>

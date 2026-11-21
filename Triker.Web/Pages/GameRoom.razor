@@ -29,7 +29,7 @@
     @if (_turnTimedOut)
     {
         <div class="reconnect-banner timeout-banner" role="alert">
-            ⏱ Se acabó tu tiempo: pasaste sin descartar.
+            <Icono Nombre="reloj" /> Se acabó tu tiempo: pasaste sin descartar.
             <button class="btn-dismiss" @onclick="() => _turnTimedOut = false" title="Cerrar" aria-label="Cerrar aviso">✕</button>
         </div>
     }
@@ -111,12 +111,12 @@
                 }
                 @if (IsSpectator)
                 {
-                    <span class="spectator-badge">👁 Modo espectador</span>
+                    <span class="spectator-badge"><Icono Nombre="ojo" /> Modo espectador</span>
                 }
                 else if (_state.Spectators.Count > 0)
                 {
                     <span class="spectator-count" title="@string.Join(", ", _state.Spectators.Select(s => s.Name))">
-                        👁 @_state.Spectators.Count
+                        <Icono Nombre="ojo" /> @_state.Spectators.Count
                     </span>
                 }
             </div>
@@ -128,7 +128,7 @@
                 <button class="btn-mute" @onclick="@(() => Audio.Enabled = !Audio.Enabled)"
                         title="@(Audio.Enabled ? "Silenciar" : "Activar sonido")"
                         aria-label="@(Audio.Enabled ? "Silenciar" : "Activar sonido")">
-                    @(Audio.Enabled ? "🔊" : "🔇")
+                    <Icono Nombre="@(Audio.Enabled ? "sonido" : "silencio")" />
                 </button>
                 <button class="btn-help" @onclick="@(() => _helpVisible = true)" title="Ayuda" aria-label="Cómo se juega">?</button>
                 @if (IsSpectator)
@@ -163,10 +163,10 @@
                 @if (_state.IsPrivate && !string.IsNullOrEmpty(_state.AccessCode))
                 {
                     <div class="private-code-banner">
-                        <span class="private-code-label">🔒 Código privado</span>
+                        <span class="private-code-label"><Icono Nombre="candado" /> Código privado</span>
                         <button class="private-code-value btn-copy-code" title="Copiar el código"
                                 aria-label="Copiar el código @_state.AccessCode"
-                                @onclick="CopyCode">@_state.AccessCode<span class="copy-icon" aria-hidden="true">📋</span></button>
+                                @onclick="CopyCode">@_state.AccessCode<span class="copy-icon"><Icono Nombre="copiar" /></span></button>
                         <span class="private-code-hint">Compártelo con tus amigos para que puedan unirse</span>
                     </div>
                 }
@@ -174,7 +174,7 @@
                 {
                     <div class="invite-row">
                         <button class="@(_state.Players.Count < 2 ? "btn-primary" : "btn-secondary") btn-invite" @onclick="InviteFriends">
-                            👥 Invitar a un amigo
+                            <Icono Nombre="usuarios" /> Invitar a un amigo
                         </button>
                         @if (_inviteNotice != null)
                         {
@@ -194,7 +194,7 @@
                             <button class="btn-secondary" @onclick="AddBot">+ Añadir bot</button>
                         }
                         <button class="btn-primary btn-start" @onclick="StartGame"
-                                disabled="@(_state.Players.Count < 2)">▶ Iniciar partida</button>
+                                disabled="@(_state.Players.Count < 2)"><Icono Nombre="jugar" /> Iniciar partida</button>
                     </div>
                     @if (_state.Players.Count < 2)
                     {

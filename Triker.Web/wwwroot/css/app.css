@@ -80,6 +80,13 @@ h1:focus, [tabindex="-1"]:focus { outline: none; }
    navegador (Arial en Windows, Helvetica en iOS) y la página mezcla dos. */
 button, input, select, textarea { font-family: inherit; }
 
+/* ===== ICONOS =====
+   Dibujos de linea (componente Icono). Heredan el color y el tamaño del texto
+   en el que van; el desplazamiento los asienta sobre la linea base. */
+.icono { width: 1.2em; height: 1.2em; vertical-align: -0.22em; flex: none; }
+/* Botones que son solo un icono: centrado, sin depender de la linea base. */
+.btn-sug, .btn-mute, .btn-refresh { display: inline-flex; align-items: center; justify-content: center; }
+
 /* ===== BUTTONS ===== */
 button { cursor: pointer; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; transition: all 0.15s; }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -746,7 +753,7 @@ body.colorblind .cb-code { display: inline; }
 /* (la definicion de .game-header esta arriba; aqui solo el boton de sonido,
    que ya no necesita margin-left:auto porque lo aporta .game-header-actions) */
 .btn-mute {
-    background: transparent; border: none; font-size: 1.2rem;
+    background: transparent; border: none; font-size: 1.2rem; color: var(--texto);
     cursor: pointer; line-height: 1; padding: 0.2rem; opacity: 0.8;
     min-width: 44px; min-height: 44px;
     transition: opacity 0.15s;
@@ -1049,7 +1056,7 @@ body.colorblind .hmc-cb { display: block; }
     border-radius: 12px; padding: 1rem 1.5rem;
     margin-bottom: 0.8rem; flex-wrap: wrap; text-align: center;
 }
-.champion-icon { font-size: 2.2rem; line-height: 1; }
+.champion-icon { font-size: 2.2rem; line-height: 1; color: var(--acento); }
 .champion-name { font-size: 1.5rem; font-weight: 800; color: #fcd34d; }
 .champion-sub  { font-size: 0.9rem; color: #a0a0a0; width: 100%; margin-top: -0.2rem; }
 
@@ -1124,7 +1131,7 @@ body.colorblind .hmc-cb { display: block; }
 .btn-copy-code:hover { opacity: 0.75; }
 .btn-copy-code { white-space: nowrap; }
 .btn-copy-code .copy-icon {
-    font-size: 1rem; letter-spacing: 0; text-shadow: none;
+    font-size: 1rem; letter-spacing: 0; text-shadow: none; color: var(--texto-suave);
     vertical-align: middle; margin-left: 0.15rem;
 }
 

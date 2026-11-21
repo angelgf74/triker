@@ -1,0 +1,42 @@
+@* Icono de línea de la interfaz. Sustituye a los emojis: un emoji lo pinta el
+   sistema (cambia de un móvil a otro), no hereda el color del texto y no se
+   alinea con él. Este hereda color y tamaño de donde se ponga (css: .icono).
+
+   Decorativo siempre (aria-hidden): el texto de al lado o el aria-label del botón
+   dicen lo que hace. Un nombre que no existe lanza: es un error de quien escribe. *@
+<svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+    @foreach (var d in Trazos)
+    {
+        <path d="@d" fill="@(Relleno ? "currentColor" : null)" />
+    }
+</svg>
+
+@code {
+    [Parameter, EditorRequired] public string Nombre { get; set; } = string.Empty;
+
+    private string[] Trazos => _iconos.TryGetValue(Nombre, out var trazos)
+        ? trazos
+        : throw new ArgumentException($"No hay ningún icono «{Nombre}». Están: {string.Join(", ", _iconos.Keys)}.");
+
+    private bool Relleno => Nombre == "jugar";
+
+    // Trazos sobre una rejilla de 24, solo <path>: así el <svg> de arriba los crea
+    // en su espacio de nombres sin pasar por MarkupString.
+    private static readonly Dictionary<string, string[]> _iconos = new()
+    {
+        ["sobre"] = ["M3 6h18v12H3z", "M3 7l9 6 9-6"],
+        ["jugar"] = ["M7 4.5l12.5 7.5L7 19.5z"],
+        ["actualizar"] = ["M20 11a8 8 0 1 0-2.3 5.7", "M20 4v7h-7"],
+        ["candado"] = ["M6 11h12v9H6z", "M8.5 11V8a3.5 3.5 0 0 1 7 0v3"],
+        ["ojo"] = ["M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z", "M12 9.2a2.8 2.8 0 1 0 0 5.6a2.8 2.8 0 0 0 0-5.6z"],
+        ["sonido"] = ["M4 10v4h3l5 4V6L7 10H4z", "M16 9a4 4 0 0 1 0 6", "M18.5 6.5a8 8 0 0 1 0 11"],
+        ["silencio"] = ["M4 10v4h3l5 4V6L7 10H4z", "M16.5 9.5l5 5", "M21.5 9.5l-5 5"],
+        ["copiar"] = ["M9 9h11v11H9z", "M5 15H4V4h11v1"],
+        ["usuarios"] = ["M9 5a3 3 0 1 0 0 6a3 3 0 0 0 0-6z", "M3 19a6 6 0 0 1 12 0", "M16 5.2a3 3 0 0 1 0 5.6", "M21 19a6 6 0 0 0-3.5-5.4"],
+        ["compartir"] = ["M12 15V4", "M8 8l4-4 4 4", "M5 13v6h14v-6"],
+        ["reloj"] = ["M12 5a8 8 0 1 0 0 16a8 8 0 0 0 0-16z", "M12 9v4l2.5 2", "M9.5 2.5h5"],
+        ["trofeo"] = ["M8 4h8v5a4 4 0 0 1-8 0V4z", "M8 6H5a3 3 0 0 0 3 4", "M16 6h3a3 3 0 0 1-3 4", "M12 13v4", "M8 20h8"],
+        ["cartas"] = ["M5 7h10v13H5z", "M9 4h10v13"],
+    };
+}
