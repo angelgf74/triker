@@ -66,6 +66,28 @@ try {
   await page.click('.btn-leave');
   await page.click('.leave-confirm .btn-danger');
   await page.waitForSelector('.lobby .game-title', { timeout: 15_000 });
+
+  console.log('== D. Pantalla ancha ==');
+  // Con sitio de sobra las cartas no crecen más (tope de 110 px): que queden en el
+  // centro del tapete y no pegadas a la izquierda con media mesa vacía.
+  const ancho = await browser.newContext({ ignoreHTTPSErrors: true, locale: 'es-ES', viewport: { width: 1280, height: 800 } });
+  const pc = await ancho.newPage();
+  await pc.goto(WEB + '/', { waitUntil: 'load' });
+  await pc.waitForSelector('.lobby .game-title', { timeout: 90_000 });
+  await pc.fill('#nombre-jugador', 'Ana');
+  await pc.click('.btn-play-now');
+  await pc.waitForSelector('.turn-indicator.my-turn', { timeout: 20_000 });
+  await pc.waitForFunction(() => document.querySelectorAll('.hand-cards .card.dealing').length === 0, null, { timeout: 10_000 });
+  const hueco = await pc.evaluate(() => {
+    const zona = document.querySelector('.hand-cards').getBoundingClientRect();
+    const c = [...document.querySelectorAll('.hand-cards .card')].map((e) => e.getBoundingClientRect());
+    return { izq: Math.round(c[0].left - zona.left), der: Math.round(zona.right - c[4].right) };
+  });
+  ok(Math.abs(hueco.izq - hueco.der) <= 4, `la mano va centrada (${hueco.izq} px a la izquierda y ${hueco.der} a la derecha)`);
+  await pc.screenshot({ path: join(SHOTS, 'mesa-03-ancha.png') });
+  await pc.click('.btn-leave');
+  await pc.click('.leave-confirm .btn-danger');
+  await pc.waitForSelector('.lobby .game-title', { timeout: 15_000 });
 } catch (e) {
   fallar(e);
 } finally {

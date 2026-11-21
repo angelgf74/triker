@@ -18,6 +18,13 @@
 #     instalación mata las apps que los usan. Si la app desaparece sin motivo, es eso.
 #   - En Git Bash las rutas /sdcard/... se convierten en rutas de Windows: van con //sdcard
 #     o dentro de una sola cadena para `adb shell "..."`.
+#   - Antes de fiarse de lo que se ve, mirar qué versión hay instalada
+#     (adb shell dumpsys package <paquete> | grep versionName). En el emulador quedó una
+#     compilación antigua (1.0) que pinta por debajo de la barra de estado: parecía un
+#     fallo de la web y era la app vieja. La de depuración actual se instala con
+#     `gradlew :app:installDebug` desde android/.
+#   - La de depuración enseña al arrancar el formulario de consentimiento de prueba, sin
+#     textos legibles por uiautomator: se responde tocando por coordenadas.
 #   - La compilación de Play usa anuncios reales: en ella no se piden ni se pulsan. Las
 #     pruebas con anuncios, en la de depuración (com.angelgf.triker.debug), que usa los de prueba.
 ADB="${ADB:-$LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe}"
