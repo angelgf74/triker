@@ -31,7 +31,8 @@ public class GamePersistenceService(
     private readonly ConcurrentDictionary<Guid, SemaphoreSlim> _gates = new();
     private readonly ConcurrentDictionary<Guid, long> _written = new();
 
-    public Task SaveAsync(GameState game)
+    // virtual: las pruebas lo sustituyen para ver que se guarda y cuando.
+    public virtual Task SaveAsync(GameState game)
     {
         string json;
         try { json = JsonSerializer.Serialize(game, _json); }
