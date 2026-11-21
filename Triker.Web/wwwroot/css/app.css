@@ -677,13 +677,20 @@ body.colorblind .cb-code { display: inline; }
 }
 .result-entry.result-collapsed:hover { background: rgba(255,255,255,0.09); }
 .result-collapsed .rank-medal { font-size: 1.1rem; min-width: 2rem; text-align: center; }
+/* Cuando no cabe todo, encoge el nombre de la jugada y no el del jugador: antes
+   era al reves y con «Doble Pareja Mixta» el jugador se quedaba en «Del…». El
+   nombre del jugador solo se corta si pasa de media fila; el puesto en la escala
+   no se corta nunca. */
 .result-collapsed .result-player-name {
-    flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    flex: 0 0 auto; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .result-collapsed .rc-hand {
-    flex: none; display: inline-flex; align-items: center; gap: 0.35rem;
+    flex: 0 1 auto; min-width: 0; margin-left: auto;
+    display: inline-flex; align-items: center; gap: 0.35rem;
     font-size: 0.85rem; color: var(--texto);
 }
+.rc-hand-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.result-collapsed .grp-ladder { flex: none; margin-left: 0; }
 .result-collapsed .rc-caret { flex: none; color: #888; }
 .btn-open-all { align-self: center; }
 

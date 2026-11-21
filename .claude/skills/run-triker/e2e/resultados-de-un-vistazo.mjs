@@ -55,6 +55,23 @@ try {
   ok(conAro.length === 1 && conAro[0].mia, `el aro dorado lo lleva tu fila y ninguna más (${conAro.length} con aro)`);
   await page.screenshot({ path: join(SHOTS, 'resultados-vistazo.png'), fullPage: true });
 
+  console.log('== C. Compartir ==');
+  // Ni el texto ni la imagen presumen de puntos: no deciden nada, gana la jugada. Dicen
+  // el puesto de la jugada en la escala, como el resto de la pantalla. Y «jugada nº», no
+  // «puesto»: «Ana · puesto 12 de 16» se leería como que Ana quedó duodécima.
+  await page.evaluate(() => {
+    window.__compartido = null;
+    window.AndroidShare = { share(texto, imagen) { window.__compartido = { texto, conImagen: !!imagen }; } };
+    const dibujar = window.TrikerHandImage.render;
+    window.TrikerHandImage.render = (cartas, jugada, detalle, jugador) => { window.__detalle = detalle; return dibujar(cartas, jugada, detalle, jugador); };
+  });
+  await page.click('.btn-share');
+  await page.waitForFunction(() => window.__compartido !== null, null, { timeout: 8000 });
+  const compartido = await page.evaluate(() => ({ ...window.__compartido, detalle: String(window.__detalle) }));
+  const escala = tuyo.match(/(\d+)\/16/)[1];
+  ok(new RegExp(`jugada nº ${escala} de 16`).test(compartido.texto) && !/\bpts\b|puntos/.test(compartido.texto), `el texto dice la jugada y su número en la escala, sin puntos: «${compartido.texto.split('\n')[0]}»`);
+  ok(compartido.detalle === `jugada nº ${escala} de 16` && compartido.conImagen, `y la imagen, lo mismo: «${compartido.detalle}»`);
+
   await page.click('button:has-text("Salir de la mesa")');
   await page.waitForSelector('.lobby .game-title', { timeout: 15_000 });
 } catch (e) {

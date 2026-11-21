@@ -185,7 +185,7 @@
                     <span class="rank-medal">@PositionLabel(result)</span>
                     <span class="result-player-name">@result.PlayerName</span>
                     <span class="rc-hand">
-                        @result.HandName
+                        <span class="rc-hand-name">@result.HandName</span>
                         <span class="grp-ladder" title="@HandLadder.Label(result.HandRank)">
                             @HandLadder.Position(result.HandRank)/@HandLadder.Total
                         </span>
@@ -372,7 +372,7 @@
 
     private async Task ShareResult(HandResultDto result)
     {
-        var text = $"🎴 ¡Conseguí \"{result.HandName}\" jugando a Triker! ({result.TotalScore} pts)\n" +
+        var text = $"🎴 ¡Conseguí \"{result.HandName}\" jugando a Triker! ({EnLaEscala(result)})\n" +
                     "👉 App web: https://triker-app.angelgf.com.es/\n" +
                     "👉 Android: https://play.google.com/store/apps/details?id=com.angelgf.triker";
 
@@ -419,8 +419,14 @@
             })
             .ToList();
 
-        return await JS.InvokeAsync<string>("TrikerHandImage.render", cards, result.HandName, result.TotalScore, result.PlayerName);
+        return await JS.InvokeAsync<string>("TrikerHandImage.render", cards, result.HandName, EnLaEscala(result), result.PlayerName);
     }
+
+    // Lo que se dice de una jugada al compartirla. No los puntos: no deciden nada, gana
+    // la jugada, y la pantalla de resultados tampoco los enseña. Y «jugada nº», no
+    // «puesto»: «Ana · puesto 12 de 16» se leería como que Ana quedó duodécima.
+    private static string EnLaEscala(HandResultDto result)
+        => $"jugada nº {HandLadder.Position(result.HandRank)} de {HandLadder.Total}";
 
     private int Position(HandResultDto result)
         => Results.Count(r => r.HandRank > result.HandRank) + 1;

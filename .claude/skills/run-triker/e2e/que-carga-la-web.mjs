@@ -43,7 +43,7 @@ try {
   await page.click('.btn-pass');
   await page.waitForSelector('.results-view .result-entry', { timeout: 40_000 });
   const imagen = await page.evaluate(async () => {
-    try { return String(await window.TrikerHandImage.render([{ letter: 'T', figure: '●', color: '#e53935', groupColor: null }], 'Prueba', 1, 'Prueba')).slice(0, 22); }
+    try { return String(await window.TrikerHandImage.render([{ letter: 'T', figure: '●', color: '#e53935', groupColor: null }], 'Prueba', 'jugada nº 1 de 16', 'Prueba')).slice(0, 22); }
     catch (e) { return 'error: ' + e.message; }
   });
   console.log('IMAGEN COMPARTIR :', imagen);

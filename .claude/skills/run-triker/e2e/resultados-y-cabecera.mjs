@@ -63,6 +63,20 @@ try {
     ok(await page.locator('.result-entry.my-result.result-collapsed').count() === 0, 'tu mano nunca va plegada');
     const linea = (await page.locator('.result-entry.result-collapsed').first().textContent()).trim().replace(/\s+/g, ' ');
     ok(/\d+º|🥇|🥈|🥉/.test(linea) && /\d+\/16/.test(linea), `cada línea plegada dice puesto, nombre y jugada: «${linea}»`);
+    // Con la jugada de nombre más largo, quien encoge es la jugada, no el nombre del
+    // jugador: «Del…» no dice quién es, y el puesto en la escala sigue a la vista.
+    // Se escribe en la primera fila plegada el peor caso, que al azar no siempre sale.
+    const justa = await page.locator('.result-entry.result-collapsed').first().evaluate((fila) => {
+      const nombre = fila.querySelector('.result-player-name');
+      const jugada = fila.querySelector('.rc-hand-name') ?? [...fila.querySelector('.rc-hand').childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());
+      nombre.textContent = 'Vulcano';
+      jugada.textContent = 'Doble Pareja Fuerte';
+      const escala = fila.querySelector('.grp-ladder').getBoundingClientRect(), caja = fila.getBoundingClientRect();
+      return { nombreEntero: nombre.scrollWidth <= nombre.clientWidth, escalaDentro: escala.right <= caja.right && escala.width > 20, alto: Math.round(caja.height) };
+    });
+    ok(justa.nombreEntero, 'en una fila plegada, con la jugada más larga el nombre del jugador se lee entero');
+    ok(justa.escalaDentro && justa.alto <= 56, `y el puesto en la escala sigue dentro, en una sola línea (alto ${justa.alto} px)`);
+    await page.locator('.result-entry.result-collapsed').first().screenshot({ path: join(SHOTS, `${PRE}fila-plegada.png`) });
     const alto = await altoPagina(page);
     ok(alto < 2600, `la pantalla mide ${alto} px (${(alto / ALTO).toFixed(1)} pantallas; eran 3.657)`);
     await page.screenshot({ path: join(SHOTS, `${PRE}resultados16.png`), fullPage: true });
