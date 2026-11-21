@@ -1,6 +1,6 @@
-nunito-sans-900-latin.woff2
+nunito-sans-latin.woff2
 
-Nunito Sans, peso 900 (Black), subconjunto latino, tal como lo distribuye Google Fonts.
+Nunito Sans, fuente variable (pesos 400 a 900), subconjunto latino, tal como lo distribuye Google Fonts (v19).
 
 Copyright 2016 The Nunito Sans Project Authors (https://github.com/Fonthausen/NunitoSans)
 
