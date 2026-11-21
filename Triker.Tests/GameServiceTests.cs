@@ -642,6 +642,53 @@ public class GameServiceTests
         Assert.Equal(game.CurrentTurnPlayer.Name, turno.Name);
     }
 
+    // Cuantos bots van a jugar seguidos desde el turno actual: de eso depende
+    // el ritmo (BotPacing).
+    [Fact]
+    public void Se_sabe_cuantos_bots_juegan_seguidos()
+    {
+        // Orden de la mesa: Ana, bot, Berto, bot, bot.
+        var svc = Nuevo();
+        var (game, ana) = svc.CreateGame("mesa", "Ana")!.Value;
+        Assert.NotNull(svc.AddBot(game.Id, ana.Id));
+        var berto = svc.JoinGame(game.Id, "Berto").player!;
+        Assert.NotNull(svc.AddBot(game.Id, ana.Id));
+        Assert.NotNull(svc.AddBot(game.Id, ana.Id));
+        svc.StartGame(game.Id, ana.Id);
+
+        Assert.Equal(0, svc.TurnOf(game.Id)!.Value.BotsInARow);            // turno de Ana
+
+        svc.SubmitDiscard(game.Id, ana.Id, []);
+        Assert.Equal(1, svc.TurnOf(game.Id)!.Value.BotsInARow);            // un bot y luego Berto
+
+        Assert.True(svc.ProcessBotTurn(game.Id));
+        svc.SubmitDiscard(game.Id, berto.Id, []);
+        Assert.Equal(2, svc.TurnOf(game.Id)!.Value.BotsInARow);            // los dos del final
+
+        Assert.True(svc.ProcessBotTurn(game.Id));
+        Assert.Equal(1, svc.TurnOf(game.Id)!.Value.BotsInARow);            // queda uno
+
+        Assert.True(svc.ProcessBotTurn(game.Id));
+        Assert.Equal(0, svc.TurnOf(game.Id)!.Value.BotsInARow);            // ronda jugada: nadie
+    }
+
+    [Fact]
+    public void Un_humano_que_se_fue_no_corta_la_tanda_de_bots()
+    {
+        // Ana, bot, Berto, bot: Berto se va a mitad de ronda y su turno se salta.
+        var svc = Nuevo();
+        var (game, ana) = svc.CreateGame("mesa", "Ana")!.Value;
+        svc.AddBot(game.Id, ana.Id);
+        var berto = svc.JoinGame(game.Id, "Berto").player!;
+        svc.AddBot(game.Id, ana.Id);
+        svc.StartGame(game.Id, ana.Id);
+        Assert.True(svc.LeaveGame(game.Id, berto.Id));
+
+        svc.SubmitDiscard(game.Id, ana.Id, []);
+
+        Assert.Equal(2, svc.TurnOf(game.Id)!.Value.BotsInARow);
+    }
+
     [Fact]
     public void El_plazo_del_turno_se_fija_y_se_quita()
     {
