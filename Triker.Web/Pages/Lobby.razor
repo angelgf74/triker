@@ -220,6 +220,7 @@
     private List<MiPartida> _misPartidas = [];
     private bool _cerrado;
     private HubConnection? _hubConnection;
+    private readonly CancellationTokenSource _cierre = new();
     private ElementReference _nombreInput;
 
     // La invitacion busca en todas: una sala sin nadie conectado sigue viva y
@@ -252,7 +253,7 @@
         var apiBase = (Config["ApiBaseUrl"] ?? "https://localhost:7077").TrimEnd('/');
         _hubConnection = new HubConnectionBuilder()
             .WithUrl($"{apiBase}/gamehub")
-            .WithAutomaticReconnect()
+            .WithAutomaticReconnect(new ReintentoSinFin())
             .AddJsonProtocol(o => o.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter()))
             .Build();
 
@@ -265,9 +266,10 @@
         });
 
         // Sin tiempo real la lista se puede actualizar a mano; no es motivo
-        // para tumbar la pagina.
-        try { await _hubConnection.StartAsync(); }
-        catch { }
+        // para tumbar la pagina ni para esperar: si la primera conexion falla
+        // se sigue intentando por detras. Al conectar (y al reconectar) el
+        // servidor envia la lista al dia.
+        _ = ReintentoSinFin.Arrancar(_hubConnection, _cierre.Token);
     }
 
     // Enlace de invitacion: /?join=<gameId>&code=<codigo> (lo genera InviteLink
@@ -566,6 +568,7 @@
     public async ValueTask DisposeAsync()
     {
         _cerrado = true;
+        _cierre.Cancel();
         if (_hubConnection != null)
             await _hubConnection.DisposeAsync();
     }
