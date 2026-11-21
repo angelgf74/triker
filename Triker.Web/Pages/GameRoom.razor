@@ -166,14 +166,14 @@
                         <span class="private-code-label">🔒 Código privado</span>
                         <button class="private-code-value btn-copy-code" title="Copiar el código"
                                 aria-label="Copiar el código @_state.AccessCode"
-                                @onclick="CopyCode">@_state.AccessCode 📋</button>
+                                @onclick="CopyCode">@_state.AccessCode<span class="copy-icon" aria-hidden="true">📋</span></button>
                         <span class="private-code-hint">Compártelo con tus amigos para que puedan unirse</span>
                     </div>
                 }
                 @if (!IsSpectator)
                 {
                     <div class="invite-row">
-                        <button class="btn-primary btn-invite" @onclick="InviteFriends">
+                        <button class="@(_state.Players.Count < 2 ? "btn-primary" : "btn-secondary") btn-invite" @onclick="InviteFriends">
                             👥 Invitar a un amigo
                         </button>
                         @if (_inviteNotice != null)
