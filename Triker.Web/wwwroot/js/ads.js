@@ -21,23 +21,61 @@ window.TrikerAds = (function () {
         catch (e) { return false; }
     }
 
+    // Pide un intersticial a la app. Devuelve true si se ha pedido; la app
+    // puede no enseñar nada (sin anuncio cargado o sin consentimiento resuelto).
+    function interstitial() {
+        if (!isAndroidApp()) return false;
+        var now = Date.now();
+        if (now - lastShown < MIN_INTERVAL_MS) return false;
+        lastShown = now;
+        try {
+            window.AndroidAds.showInterstitial();
+            return true;
+        } catch (e) {
+            console.warn('AdMob bridge error', e);
+            return false;
+        }
+    }
+
+    // El anuncio se abre en otra pantalla de la app, encima del WebView: la
+    // página pasa a oculta al abrirse (unos 50 ms después de pedirlo) y vuelve
+    // a visible al cerrarse. Así se sabe cuándo ha terminado sin que la app
+    // tenga que avisar.
+    var SIN_ANUNCIO_MS = 1500;   // si en este tiempo no se ha tapado la página, no hubo anuncio
+    var TOPE_MS = 90000;         // por si el jugador deja la app con el anuncio abierto
+
+    function interstitialAndWait() {
+        return new Promise(function (resolve) {
+            if (!interstitial()) { resolve(false); return; }
+            var tapada = document.hidden, hecho = false;
+            function acabar(huboAnuncio) {
+                if (hecho) return;
+                hecho = true;
+                document.removeEventListener('visibilitychange', alCambiar);
+                clearTimeout(sinAnuncio);
+                clearTimeout(tope);
+                resolve(huboAnuncio);
+            }
+            function alCambiar() {
+                if (document.hidden) tapada = true;
+                else if (tapada) acabar(true);
+            }
+            document.addEventListener('visibilitychange', alCambiar);
+            var sinAnuncio = setTimeout(function () { if (!tapada) acabar(false); }, SIN_ANUNCIO_MS);
+            var tope = setTimeout(function () { acabar(true); }, TOPE_MS);
+        });
+    }
+
     return {
         isAndroidApp: isAndroidApp,
 
-        // Llamado por Blazor entre partidas. Solo muestra anuncio dentro de la app Android.
-        interstitial: function () {
-            if (!isAndroidApp()) return false;
-            var now = Date.now();
-            if (now - lastShown < MIN_INTERVAL_MS) return false;
-            lastShown = now;
-            try {
-                window.AndroidAds.showInterstitial();
-                return true;
-            } catch (e) {
-                console.warn('AdMob bridge error', e);
-                return false;
-            }
-        },
+        // Al salir de la mesa desde los resultados: se pide y no se espera.
+        interstitial: interstitial,
+
+        // Al pulsar «Siguiente ronda»: se resuelve cuando el anuncio se ha
+        // cerrado (o cuando queda claro que no lo hubo), para que la ronda
+        // nueva no empiece a correr con el anuncio delante.
+        interstitialAndWait: interstitialAndWait,
 
         // Enseña u oculta los elementos [data-ads-privacy] (el enlace del
         // lobby). Lo llama el lobby al pintarse y la app cuando cambia el

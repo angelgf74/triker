@@ -669,16 +669,25 @@
                 InvokeAsync(Audio.PlayLoseRound);
         }
 
-        // Intersticial AdMob entre partidas (solo surte efecto dentro de la app Android).
-        if (!IsSpectator)
-            _ = ShowInterstitialAd();
-
+        // Aqui no va el anuncio: taparia los resultados justo cuando el jugador
+        // quiere ver quien ha ganado. Se pide al decidir (HandleContinue).
         InvokeAsync(StateHasChanged);
     }
 
+    // Intersticial AdMob (solo surte efecto dentro de la app Android). Al salir
+    // de la mesa se pide sin esperar: detras no corre ningun reloj.
     private async Task ShowInterstitialAd()
     {
         try { await JS.InvokeVoidAsync("TrikerAds.interstitial"); }
+        catch { /* sin puente de anuncios (web normal) */ }
+    }
+
+    // Antes de pedir la ronda nueva: no vuelve hasta que el anuncio se cierra.
+    // Si la ronda empezara con el anuncio delante, los 60 s del turno correrian
+    // sin que el jugador vea sus cartas.
+    private async Task ShowInterstitialAdAndWait()
+    {
+        try { await JS.InvokeAsync<bool>("TrikerAds.interstitialAndWait"); }
         catch { /* sin puente de anuncios (web normal) */ }
     }
 
@@ -801,6 +810,9 @@
 
         if (!wantsToContinue)
         {
+            // La salida se envia ya, con el anuncio abriendose: los demas no
+            // tienen por que esperar a que este jugador lo cierre.
+            _ = ShowInterstitialAd();
             // Si falla, el temporizador de fin de ronda le saca igualmente.
             await Api.Continue(_asiento, new() { WantsToContinue = false });
             await Session.OlvidarAsiento(_asiento.GameId, _asiento.Id);
@@ -809,6 +821,8 @@
         }
 
         _deciding = true;
+        await ShowInterstitialAdAndWait();
+        if (_asiento == null) return;
         if (!await Api.Continue(_asiento, new() { WantsToContinue = true }))
         {
             _deciding = false;
