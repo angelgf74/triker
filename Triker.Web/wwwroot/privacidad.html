@@ -2,6 +2,9 @@
 <html lang="es">
 <head>
     <meta charset="utf-8" />
+    <!-- Pagina fija, sin scripts ni recursos de fuera: solo sus estilos. La de
+         la app la pone deploy/csp.mjs al publicar. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Política de privacidad — Triker</title>
     <meta name="robots" content="index, follow" />
