@@ -1,11 +1,15 @@
-/* La fuente del logo, servida desde la propia web. Antes venia de Google
-   Fonts: una hoja de estilos que frenaba el pintado y dos conexiones a otro
-   servidor, que recibia la IP de cada visitante, para un solo peso que solo
-   usa el logo. Subconjunto latino; licencia en fonts/NOTICE.txt. */
+/* La tipografia de toda la app, servida desde la propia web y no desde Google
+   Fonts (una hoja de estilos que frenaba el pintado y dos conexiones a otro
+   servidor, que recibia la IP de cada visitante). Un solo fichero variable
+   cubre del peso normal al del logo; antes solo el logo la usaba y el resto
+   salia en la fuente de cada sistema. Subconjunto latino: lo que no esta en el
+   (las figuras de las cartas, por ejemplo) sigue saliendo con la del sistema.
+   index.html la precarga. Licencia en fonts/NOTICE.txt. */
 @font-face {
     font-family: 'Nunito Sans';
-    font-style: normal; font-weight: 900; font-display: swap;
-    src: url('../fonts/nunito-sans-900-latin.woff2') format('woff2');
+    font-style: normal; font-weight: 400 900; font-display: swap;
+    src: url('../fonts/nunito-sans-latin.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 /* ===== RESET & BASE ===== */
@@ -34,7 +38,7 @@
 }
 
 html, body {
-    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-family: 'Nunito Sans', 'Segoe UI', system-ui, sans-serif;
     background: var(--fondo);
     color: var(--texto);
     min-height: 100vh;
