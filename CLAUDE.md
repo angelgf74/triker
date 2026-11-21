@@ -87,6 +87,15 @@ creates its table on startup (`EnsureCreated`).
 
 - `<base href="/triker/">` stays in `index.html` for development; `deploy/base-en-la-raiz.mjs`
   (a `pasos` step in `srv.json`) rewrites it to `/` in the package, and fails if it can't find it.
+- The published `index.html` carries a Content-Security-Policy that the dev one does not:
+  `deploy/csp.mjs` (second `pasos` step) writes it as a `<meta>` once the package is built,
+  because Blazor's inline `<script type="importmap">` changes on every build and needs its hash.
+  It reads the API from `appsettings.Production.json` and the allowed third-party script origins
+  from `index.html` itself, and refuses to publish if it finds an inline script or handler: add
+  JS as a file under `wwwroot/js/` (`js/arranque.js` runs before Blazor). The suggestions
+  mailbox origin is a constant there and must match `SugerenciasModal.razor`. Anything new the
+  page loads or calls from another origin must be added to that policy, or it fails silently in
+  production only.
 - Don't put `Urls` in `appsettings*.json`: it overrides the `ASPNETCORE_URLS` that srv sets.
 - The API is built with `InvariantGlobalization` (the pre-srv unit set
   `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1`).

@@ -41,20 +41,10 @@
 </head>
 
 <body>
-    <script>
-        // Antes de pintar nada: si no, las cartas aparecen sin los codigos de
-        // color y se los ve aparecer al arrancar Blazor. Ver AccessibilityService.
-        if (localStorage.getItem('triker_colorblind') === '1') {
-            document.body.classList.add('colorblind');
-        }
-        // Las cartas son role="button" (CardView): Espacio las selecciona y no
-        // debe hacer scroll. Blazor no puede cancelar solo una tecla.
-        document.addEventListener('keydown', function (e) {
-            if (e.key === ' ' && e.target && e.target.getAttribute && e.target.getAttribute('role') === 'button') {
-                e.preventDefault();
-            }
-        });
-    </script>
+    <!-- Sin scripts en linea: la politica de seguridad que se pone al publicar
+         (deploy/csp.mjs) no los deja ejecutar, y ese paso falla si encuentra
+         alguno. El unico que queda es el importmap, que lo escribe Blazor. -->
+    <script src="js/arranque.js?v=1"></script>
     <div id="app">
         <div class="loading-screen">
             <h1 class="loading-title">TRI<span class="mirror-k">K</span>KER</h1>
@@ -80,11 +70,6 @@
     <script src="js/cardImage.js?v=1"></script>
     <script src="js/share.js?v=3"></script>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('service-worker.js');
-        }
-    </script>
     <script src="https://webanalytics-api.angelgf.com.es/tracker.js?site=3b19382c-62f9-4e18-9d57-cff4c76585f8"></script>
 </body>
 </html>
