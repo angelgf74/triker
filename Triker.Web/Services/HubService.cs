@@ -9,6 +9,8 @@ public class HubService : IAsyncDisposable
 {
     private HubConnection? _hub;
     private Asiento? _asiento;
+    // Para dejar de intentar la primera conexion si la sala se cierra antes.
+    private CancellationTokenSource? _descartado;
 
     public GameStateDto? GameState { get; private set; }
 
@@ -25,16 +27,19 @@ public class HubService : IAsyncDisposable
 
     public bool IsConnected => _hub?.State == HubConnectionState.Connected;
 
-    // Conecta y se identifica con GameHub.Entrar. False si no se pudo conectar
-    // o el asiento no vale.
+    // Conecta y se identifica con GameHub.Entrar. False solo si el servidor no
+    // reconoce el asiento. Si no se puede conectar no devuelve false: avisa con
+    // OnReconnecting y lo sigue intentando; cuando lo consiga llegara
+    // OnReconnected (u OnSeatLost).
     public async Task<bool> Connect(string apiBaseUrl, Asiento asiento)
     {
         if (_hub != null) await DisposeAsync();
         _asiento = asiento;
+        _descartado = new CancellationTokenSource();
 
         _hub = new HubConnectionBuilder()
             .WithUrl($"{apiBaseUrl.TrimEnd('/')}/gamehub?gameId={asiento.GameId}")
-            .WithAutomaticReconnect()
+            .WithAutomaticReconnect(new ReintentoSinFin())
             .AddJsonProtocol(options =>
             {
                 options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter());
@@ -75,9 +80,22 @@ public class HubService : IAsyncDisposable
         }
         catch
         {
-            return false;
+            // La reconexion automatica no cubre una conexion que no llego a
+            // abrirse: antes este fallo dejaba «Conexion perdida» sin un solo
+            // reintento.
+            OnReconnecting?.Invoke();
+            _ = SeguirIntentando(_hub, _descartado.Token);
+            return true;
         }
         return await Entrar();
+    }
+
+    private async Task SeguirIntentando(HubConnection hub, CancellationToken cancelar)
+    {
+        if (!await ReintentoSinFin.Arrancar(hub, cancelar, desdeIntento: 1)) return;
+        if (!ReferenceEquals(hub, _hub)) return;   // la sala ya abrio otra conexion
+        if (await Entrar()) OnReconnected?.Invoke();
+        else OnSeatLost?.Invoke();
     }
 
     private async Task<bool> Entrar()
@@ -95,6 +113,8 @@ public class HubService : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        _descartado?.Cancel();
+        _descartado = null;
         if (_hub != null)
         {
             await _hub.DisposeAsync();
