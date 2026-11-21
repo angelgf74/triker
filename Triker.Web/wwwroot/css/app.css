@@ -40,7 +40,7 @@ h1:focus, [tabindex="-1"]:focus { outline: none; }
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     height: 100vh; gap: 2rem;
 }
-.loading-title { font-size: 4rem; font-weight: 900; letter-spacing: 0.3em; color: #f0c040; }
+.loading-title { font-size: clamp(2rem, 9vw, 4rem); font-weight: 900; letter-spacing: 0.2em; color: #f0c040; }
 .loading-cards { display: flex; gap: 0.5rem; }
 .loading-card {
     width: 50px; height: 70px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.3);
@@ -139,6 +139,12 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .lobby-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
 .lobby-actions .btn-secondary { padding: 0.6rem 1.2rem; }
+/* En el movil no caben en una fila: antes saltaban a dos, cada uno con su
+   ancho. Apilados y al ancho completo se leen como una lista de dos opciones. */
+@media (max-width: 480px) {
+    .lobby-actions { flex-direction: column; }
+    .lobby-actions > button { width: 100%; }
+}
 .create-form {
     display: flex; gap: 0.8rem; align-items: center;
     background: rgba(255,255,255,0.05); border-radius: 12px; padding: 1rem 1.5rem;
@@ -777,13 +783,13 @@ body.colorblind .cb-code { display: inline; }
 
 /* ===== SUGERENCIAS ===== */
 .btn-sug {
-    width: clamp(2rem, 7.5vw, 3.2rem); height: clamp(2rem, 7.5vw, 3.2rem); border-radius: 50%;
-    border: 2px solid #64B5F6; background: transparent;
-    color: #64B5F6; font-size: clamp(1.1rem, 4.5vw, 1.8rem);
+    width: clamp(44px, 7.5vw, 3.2rem); height: clamp(44px, 7.5vw, 3.2rem); border-radius: 50%;
+    border: 2px solid #f0c040; background: transparent;
+    color: #f0c040; font-size: clamp(1.1rem, 4.5vw, 1.8rem);
     cursor: pointer; line-height: 1; flex-shrink: 0;
     transition: background 0.15s, color 0.15s;
 }
-.btn-sug:hover { background: #64B5F6; color: #1a1a2e; }
+.btn-sug:hover { background: #f0c040; color: #1a1a2e; }
 
 .sug-modal { max-width: 480px; }
 
@@ -1065,6 +1071,11 @@ body.colorblind .hmc-cb { display: block; }
     transition: opacity 0.15s ease;
 }
 .btn-copy-code:hover { opacity: 0.75; }
+.btn-copy-code { white-space: nowrap; }
+.btn-copy-code .copy-icon {
+    font-size: 1rem; letter-spacing: 0; text-shadow: none;
+    vertical-align: middle; margin-left: 0.15rem;
+}
 
 .invite-row {
     display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
@@ -1229,6 +1240,11 @@ body.colorblind .hmc-cb { display: block; }
 /* ===== FILA INFO (historial + sesión) ===== */
 .info-row {
     display: flex; gap: 0.75rem; margin-bottom: 0.75rem;
+}
+/* En el movil, una debajo de otra: a medias, la tabla de la sesion no cabia
+   en su tarjeta y se salia por la derecha. */
+@media (max-width: 480px) {
+    .info-row { flex-direction: column; }
 }
 .info-col {
     flex: 1; min-width: 0;
