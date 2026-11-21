@@ -17,6 +17,10 @@
       - Archivos .js   => service-worker.js tiene semantica especial de actualizacion;
                           los scripts de framework ya los gestiona el SDK de Blazor.
       - Archivos .json => manifest.json debe tener URL estable para PWAs instaladas.
+      - Fuentes        => index.html precarga la fuente y css/app.css la carga: tienen
+                          que pedir la MISMA URL. Con huella solo en index.html, la
+                          precarga pedia un fichero y el CSS otro, y la fuente se bajaba
+                          dos veces. Si la fuente cambia, se le cambia el nombre.
 #>
 param(
     [Parameter(Mandatory)][string]$PublishDir
@@ -26,7 +30,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 # Extensiones de archivo que se pueden fingerprinting con seguridad en index.html
-$AllowedExtensions = @('.css', '.svg', '.png', '.jpg', '.jpeg', '.ico', '.gif', '.webp', '.woff', '.woff2')
+$AllowedExtensions = @('.css', '.svg', '.png', '.jpg', '.jpeg', '.ico', '.gif', '.webp')
 
 $wwwroot       = Join-Path $PublishDir 'wwwroot'
 $endpointsFile = Join-Path $PublishDir 'Triker.Web.staticwebassets.endpoints.json'

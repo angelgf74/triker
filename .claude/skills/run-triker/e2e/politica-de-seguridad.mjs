@@ -51,6 +51,8 @@ try {
   await ctx.addInitScript(puenteAndroid);
   const page = await ctx.newPage();
   const consola = [];
+  const fuentes = [];
+  page.on('request', (r) => { if (r.resourceType() === 'font') fuentes.push(new URL(r.url()).pathname); });
   page.on('console', (m) => { if (/Content Security Policy|Refused to/i.test(m.text())) consola.push(m.text().slice(0, 200)); });
   page.on('pageerror', (e) => console.log(`  [pageerror] ${e.message.slice(0, 200)}`));
   const violaciones = async () => [...new Set([...(await page.evaluate(() => window.__csp ?? [])), ...consola])];
@@ -60,7 +62,11 @@ try {
   const politica = await page.evaluate(() => document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.content ?? null);
   ok(!!politica, `el paquete lleva la política: ${politica ? politica.slice(0, 110) + '…' : 'no hay ninguna'}`);
   ok(await espera(page.waitForSelector('.lobby .game-title', { timeout: 60_000 })), 'Blazor arranca y pinta el lobby');
-  ok(await page.evaluate(() => document.fonts.ready.then(() => [...document.fonts].some((f) => f.status === 'loaded'))), 'la fuente del logo carga');
+  ok(await page.evaluate(() => document.fonts.ready.then(() => [...document.fonts].some((f) => f.status === 'loaded'))), 'la fuente carga');
+  // Solo se ve en lo publicado: PostPublish.ps1 pone huella a lo que nombra index.html.
+  // Si se la pone a la fuente, la precarga pide un fichero y el CSS otro, y se baja dos veces.
+  await page.waitForTimeout(1500);
+  ok(fuentes.length === 1, `y se baja una sola vez: la precarga y el CSS piden el mismo fichero (${fuentes.join(', ') || 'ninguno'})`);
   ok(await page.evaluate(() => window.__tracker === 1), 'el script de analítica se ejecuta');
   ok(await espera(page.waitForFunction(() => window.__visita === 1, null, { timeout: 5000 })), 'y puede enviar su visita');
   ok(await espera(page.waitForFunction(() => navigator.serviceWorker.getRegistration().then((r) => !!r), null, { timeout: 8000 })), 'el service worker se registra');
