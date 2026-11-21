@@ -3,7 +3,7 @@ namespace Triker.Api.Services;
 // Cada minuto y no cada cuarto de hora: las salas de espera sin nadie
 // conectado dejan de listarse a los dos minutos (GameService.EmptyRoomGrace) y
 // eso no lo dispara ninguna peticion; solo se ve si alguien pasa a mirar.
-public class GameCleanupService(GameService gameService, GameBroadcaster broadcaster, ILogger<GameCleanupService> logger) : BackgroundService
+public class GameCleanupService(GameService gameService, GameBroadcaster broadcaster, GamePersistenceService persistence, ILogger<GameCleanupService> logger) : BackgroundService
 {
     private static readonly TimeSpan Interval = TimeSpan.FromMinutes(1);
 
@@ -19,6 +19,8 @@ public class GameCleanupService(GameService gameService, GameBroadcaster broadca
                     logger.LogInformation("Cleaned up {Count} stale game(s)", removed);
                 if (lobbyChanged)
                     await broadcaster.BroadcastLobbyUpdate();
+                // Lo que el guardado recuerda de las partidas ya borradas.
+                persistence.ForgetDeleted(DateTimeOffset.UtcNow);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

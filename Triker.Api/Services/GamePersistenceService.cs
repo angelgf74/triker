@@ -31,6 +31,34 @@ public class GamePersistenceService(
     private readonly ConcurrentDictionary<Guid, SemaphoreSlim> _gates = new();
     private readonly ConcurrentDictionary<Guid, long> _written = new();
 
+    // Cuando se borro cada partida. La marca Deleted hace falta un rato, para
+    // que un guardado rezagado no la resucite, pero no para siempre: antes se
+    // quedaba una entrada por cada partida cerrada mientras viviera la API.
+    private readonly ConcurrentDictionary<Guid, DateTimeOffset> _deletedAt = new();
+
+    // Un guardado tarda como mucho unos segundos: pasado este margen ya no
+    // puede quedar ninguno pendiente de una partida borrada.
+    public static readonly TimeSpan ForgetDeletedAfter = TimeSpan.FromMinutes(10);
+
+    // Partidas de las que se guarda algo en memoria.
+    public int TrackedCount => _written.Keys.Union(_gates.Keys).Count();
+
+    // Olvida las partidas borradas hace mas de ForgetDeletedAfter. Lo llama
+    // GameCleanupService en cada pasada. Devuelve cuantas ha olvidado.
+    public int ForgetDeleted(DateTimeOffset now)
+    {
+        var olvidadas = 0;
+        foreach (var (id, cuando) in _deletedAt)
+        {
+            if (now - cuando <= ForgetDeletedAfter) continue;
+            if (!_deletedAt.TryRemove(new KeyValuePair<Guid, DateTimeOffset>(id, cuando))) continue;
+            _written.TryRemove(id, out _);
+            _gates.TryRemove(id, out _);
+            olvidadas++;
+        }
+        return olvidadas;
+    }
+
     // virtual: las pruebas lo sustituyen para ver que se guarda y cuando.
     public virtual Task SaveAsync(GameState game)
     {
@@ -83,8 +111,12 @@ public class GamePersistenceService(
 
         // Primero se marca: toda escritura que empiece despues se salta. Luego
         // se espera a la que ya estuviera en marcha, y solo entonces se borra.
+        var ahora = DateTimeOffset.UtcNow;
         foreach (var id in ids)
+        {
             _written[id] = Deleted;
+            _deletedAt[id] = ahora;
+        }
 
         foreach (var id in ids)
         {

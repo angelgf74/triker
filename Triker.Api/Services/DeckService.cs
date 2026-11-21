@@ -28,7 +28,11 @@ public class DeckService
         {
             var reshuffled = Shuffle(discardPile);
             deck = [.. deck, .. reshuffled];
-            discardPile = [];
+            // Clear y no "discardPile = []": lo segundo solo cambia la variable
+            // de aqui y la pila de la partida seguia llena, con lo que al
+            // siguiente rebarajado esas cartas entrarian otra vez. Hoy no se
+            // llega: un mazo de 512 da para la ronda mas larga (160 cartas).
+            discardPile.Clear();
         }
 
         var drawn = deck.Take(count).ToList();

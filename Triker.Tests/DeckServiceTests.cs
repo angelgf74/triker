@@ -76,4 +76,34 @@ public class DeckServiceTests
 
         Assert.Equal(5, robadas.Count);
     }
+
+    // Lo rebarajado ha vuelto al mazo: si la pila de descartes se quedara como
+    // estaba, la siguiente vez que el mazo se acabe esas mismas cartas
+    // entrarian otra vez y habria duplicadas en la mesa. (Antes se vaciaba una
+    // copia local y la pila de la partida seguia llena.)
+    [Fact]
+    public void Al_rebarajar_la_pila_de_descartes_se_vacia()
+    {
+        var todas = _deck.GenerateDeck(5);
+        var mazo = todas.Take(2).ToList();
+        var descarte = todas.Skip(2).Take(10).ToList();
+
+        var (robadas, resto) = _deck.Draw(mazo, descarte, 5);
+
+        Assert.Empty(descarte);
+        Assert.Equal(12, robadas.Count + resto.Count);   // las 2 del mazo y las 10 rebarajadas, una vez cada una
+        Assert.Equal(12, robadas.Concat(resto).Select(c => c.Id).Distinct().Count());
+    }
+
+    [Fact]
+    public void Si_el_mazo_alcanza_la_pila_de_descartes_no_se_toca()
+    {
+        var todas = _deck.GenerateDeck(5);
+        var mazo = todas.Take(20).ToList();
+        var descarte = todas.Skip(20).Take(10).ToList();
+
+        _deck.Draw(mazo, descarte, 5);
+
+        Assert.Equal(10, descarte.Count);
+    }
 }
