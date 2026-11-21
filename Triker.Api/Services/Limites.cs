@@ -55,7 +55,7 @@ public static class Limites
     //     blanco: rellenos hangul y el braille vacio.
     private static bool EsInvisible(char c)
         => char.GetUnicodeCategory(c) == System.Globalization.UnicodeCategory.Format
-           || c is 'ᅟ' or 'ᅠ' or 'ㅤ' or 'ﾠ' or '⠀';
+           || c is '\u115F' or '\u1160' or '\u3164' or '\uFFA0' or '\u2800';
 
     // Seis cifras: con el limite de peticiones por IP de Program.cs, probar el
     // millon de codigos cuesta semanas. Con cuatro eran 9.000 y salian en segundos.

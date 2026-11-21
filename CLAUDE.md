@@ -25,9 +25,12 @@ They build hands from the rule definitions rather than from the implementation,
 so they fail when the rules change. `GameServiceTests` and `LimitesTests` cover
 the game lifecycle: seat tokens, results in the state, leaving the table,
 concurrent requests, restore after a restart and input limits (they run without
-PostgreSQL: saves fail and are logged, as in the API without a database). There
-is no coverage of the HTTP/SignalR wiring or the frontend; for those,
-`.claude/skills/run-triker` drives the real app.
+PostgreSQL: saves fail and are logged, as in the API without a database). The HTTP/SignalR
+wiring and the frontend are covered by driving the real app in headless Chrome:
+`.claude/skills/run-triker/e2e/` has one file per behaviour and `todas.mjs` runs them
+(see that skill). `e2e/humo.mjs` is the check to run against production after publishing,
+and `e2e/politica-de-seguridad.mjs` the one to run before publishing anything that makes
+the page load or call something new.
 
 ## Architecture
 
