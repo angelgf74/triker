@@ -15,10 +15,18 @@
    superficie mas clara (filas de rivales); los #555-#777 de antes daban
    entre 2:1 y 2,9:1, por debajo de WCAG AA. */
 :root {
+    /* El fondo no se toca: es tambien el de la app Android (colors.xml), el del
+       icono y el del manifiesto. */
     --fondo: #1a1a2e;
-    --texto: #e0e0e0;
-    --texto-suave: #9a9aa8;
+    --panel: #26284a;
+    --linea: #34375c;
+    --linea-fuerte: #454977;
+    --texto: #f3f2ec;
+    --texto-suave: #a8abc6;
+    /* Un solo acento. Va en la accion principal y en lo que es tuyo o gana; los
+       controles secundarios son neutros para que el dorado siga significando algo. */
     --acento: #f0c040;
+    --sobre-acento: #1c1606;
     --foco: #f0c040;
 }
 
@@ -75,30 +83,34 @@ button, input, select, textarea { font-family: inherit; }
 /* ===== BUTTONS ===== */
 button { cursor: pointer; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; transition: all 0.15s; }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-primary {
-    background: linear-gradient(135deg, #f0c040, #e8a020);
-    color: #1a1a2e; padding: 0.6rem 1.5rem; border: 1px solid transparent;
+/* Dorado liso con sombra dura: se lee como una tecla, y al pulsar baja. */
+.btn-primary, .btn-discard {
+    background: var(--acento); color: var(--sobre-acento);
+    padding: 0.6rem 1.5rem; border: 1px solid transparent; border-radius: 12px;
+    font-weight: 700; box-shadow: 0 4px 0 rgba(0,0,0,0.35);
 }
-.btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(240,192,64,0.4); }
+.btn-primary:hover:not(:disabled), .btn-discard:hover:not(:disabled) { filter: brightness(1.08); }
+.btn-primary:active:not(:disabled), .btn-discard:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,0.35); }
 .btn-secondary {
-    background: rgba(255,255,255,0.1); color: #e0e0e0;
-    padding: 0.6rem 1.5rem; border: 1px solid rgba(255,255,255,0.2);
+    background: transparent; color: var(--texto);
+    padding: 0.6rem 1.5rem; border: 1.5px solid var(--linea-fuerte); border-radius: 12px;
 }
-.btn-secondary:hover:not(:disabled) { background: rgba(255,255,255,0.2); }
+.btn-secondary:hover:not(:disabled) { background: rgba(255,255,255,0.08); }
 /* Verde y rojo mas oscuros: el blanco sobre #4CAF50 daba 2,8:1 y sobre
    #e53935 4,2:1; ahora 5,1:1 y 5:1. */
 .btn-join {
-    background: linear-gradient(135deg, #2e7d32, #1b5e20);
-    color: white; padding: 0.4rem 1rem; font-size: 0.85rem; min-height: 44px;
+    background: transparent; color: var(--acento);
+    border: 1.5px solid var(--acento); border-radius: 12px;
+    padding: 0.4rem 1rem; font-size: 0.85rem; min-height: 44px;
 }
-.btn-join:hover:not(:disabled) { transform: translateY(-1px); }
+.btn-join:hover:not(:disabled) { background: rgba(240,192,64,0.12); }
+/* Descartar es la jugada, no algo peligroso: va como accion principal. El rojo
+   queda para salir de la mesa (.btn-danger). */
 .btn-discard {
-    background: linear-gradient(135deg, #d32f2f, #b71c1c);
-    color: white; padding: 0.7rem 2rem; font-size: 1rem; margin-top: 0.5rem;
+    padding: 0.7rem 2rem; font-size: 1rem; margin-top: 0.5rem;
     min-height: 48px;
 }
 .btn-pass { padding: 0.7rem 2rem; font-size: 1rem; margin-top: 0.5rem; min-height: 48px; }
-.btn-discard:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(229,57,53,0.4); }
 .btn-refresh {
     background: transparent; color: #aaa; font-size: 1.2rem; padding: 0.2rem 0.5rem;
     border-radius: 50%;
@@ -512,14 +524,14 @@ body.colorblind .cb-code { display: inline; }
     color: var(--texto-suave); font-size: 0.8rem; line-height: 1.35;
     margin: 0.35rem auto 0; max-width: 42ch;
 }
-.scale-hint strong { color: #cbb6ff; }
+.scale-hint strong { color: var(--texto); }
 
 /* Puesto en la escala de jugadas, pegado al nombre de la jugada. Mas apagado
    que el nombre: acompana, no compite con el. */
 .grp-ladder {
     margin-left: 0.4rem; padding: 0.05rem 0.35rem;
     border-radius: 6px;
-    background: color-mix(in srgb, var(--gc, #a78bfa) 22%, transparent);
+    background: color-mix(in srgb, var(--gc, #f3f2ec) 22%, transparent);
     font-size: max(12px, 0.86em); font-weight: 800; font-variant-numeric: tabular-nums;
     opacity: 0.9;
 }
@@ -538,8 +550,8 @@ body.colorblind .cb-code { display: inline; }
 .rs-medal { font-size: 1.5rem; line-height: 1; }
 .rs-position { font-size: 1.05rem; font-weight: 800; }
 .rs-play {
-    background: rgba(160,120,255,0.18); border: 1px solid rgba(160,120,255,0.45);
-    color: #cbb6ff; border-radius: 999px;
+    background: rgba(255,255,255,0.1); border: 1px solid transparent;
+    color: var(--texto); border-radius: 999px;
     padding: 0.1rem 0.6rem; font-size: 0.85rem; font-weight: 700;
 }
 .rs-score { margin-left: auto; color: #9aa0aa; font-size: 0.85rem; white-space: nowrap; }
@@ -602,7 +614,7 @@ body.colorblind .cb-code { display: inline; }
 }
 .result-collapsed .rc-hand {
     flex: none; display: inline-flex; align-items: center; gap: 0.35rem;
-    font-size: 0.85rem; color: #c4b5fd;
+    font-size: 0.85rem; color: var(--texto);
 }
 .result-collapsed .rc-caret { flex: none; color: #888; }
 .btn-open-all { align-self: center; }
@@ -629,8 +641,13 @@ body.colorblind .cb-code { display: inline; }
     border-style: dashed;
     font-style: italic;
 }
+/* El nombre de la jugada, en neutro y relleno: antes iba en morado, que competia
+   con el dorado y es casi el magenta de las cartas (un atributo que puntua). Las
+   pastillas de cada grupo siguen con su borde, asi no se confunden con esta. */
 .grp-badge.grp-hand-name {
-    --gc: #a78bfa;
+    --gc: #f3f2ec;
+    border-color: transparent;
+    background: rgba(255,255,255,0.1);
     font-size: 0.82rem;
     letter-spacing: 0.02em;
 }
@@ -639,10 +656,10 @@ body.colorblind .cb-code { display: inline; }
     display: inline-flex; align-items: center; justify-content: center;
     width: 1.15rem; height: 1.15rem; margin-left: 0.4rem;
     border-radius: 50%;
-    background: var(--gc, #a78bfa);
-    color: #fff;
+    background: var(--gc, #f3f2ec);
+    color: var(--fondo);
     font-size: 0.72rem; line-height: 1; font-style: normal;
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--gc, #a78bfa) 30%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--gc, #f3f2ec) 30%, transparent);
     transition: transform 0.18s ease;
 }
 .grp-caret.open { transform: rotate(180deg); }
@@ -716,12 +733,12 @@ body.colorblind .cb-code { display: inline; }
 /* 44 px como minimo: es el tamaño de un dedo (a 360 px de ancho medían 32). */
 .btn-help {
     width: clamp(44px, 7.5vw, 3.2rem); height: clamp(44px, 7.5vw, 3.2rem); border-radius: 50%;
-    border: 2px solid #f0c040; background: transparent;
-    color: #f0c040; font-weight: 900; font-size: clamp(1.1rem, 4.5vw, 1.8rem);
+    border: 1.5px solid var(--linea-fuerte); background: var(--panel);
+    color: var(--texto); font-weight: 900; font-size: clamp(1.1rem, 4.5vw, 1.8rem);
     cursor: pointer; line-height: 1; flex-shrink: 0;
-    transition: background 0.15s, color 0.15s;
+    transition: border-color 0.15s;
 }
-.btn-help:hover { background: #f0c040; color: #1a1a2e; }
+.btn-help:hover { border-color: var(--texto); }
 
 .lobby-header { display: flex; flex-direction: column; align-items: center; }
 .lobby-title-row { display: flex; align-items: center; gap: 0.5rem; }
@@ -818,12 +835,12 @@ body.colorblind .cb-code { display: inline; }
 /* ===== SUGERENCIAS ===== */
 .btn-sug {
     width: clamp(44px, 7.5vw, 3.2rem); height: clamp(44px, 7.5vw, 3.2rem); border-radius: 50%;
-    border: 2px solid #f0c040; background: transparent;
-    color: #f0c040; font-size: clamp(1.1rem, 4.5vw, 1.8rem);
+    border: 1.5px solid var(--linea-fuerte); background: var(--panel);
+    color: var(--texto); font-size: clamp(1.1rem, 4.5vw, 1.8rem);
     cursor: pointer; line-height: 1; flex-shrink: 0;
-    transition: background 0.15s, color 0.15s;
+    transition: border-color 0.15s;
 }
-.btn-sug:hover { background: #f0c040; color: #1a1a2e; }
+.btn-sug:hover { border-color: var(--texto); }
 
 .sug-modal { max-width: 480px; }
 
