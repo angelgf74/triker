@@ -1,3 +1,13 @@
+/* La fuente del logo, servida desde la propia web. Antes venia de Google
+   Fonts: una hoja de estilos que frenaba el pintado y dos conexiones a otro
+   servidor, que recibia la IP de cada visitante, para un solo peso que solo
+   usa el logo. Subconjunto latino; licencia en fonts/NOTICE.txt. */
+@font-face {
+    font-family: 'Nunito Sans';
+    font-style: normal; font-weight: 900; font-display: swap;
+    src: url('../fonts/nunito-sans-900-latin.woff2') format('woff2');
+}
+
 /* ===== RESET & BASE ===== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
