@@ -1,0 +1,8 @@
+nunito-sans-900-latin.woff2
+
+Nunito Sans, peso 900 (Black), subconjunto latino, tal como lo distribuye Google Fonts.
+
+Copyright 2016 The Nunito Sans Project Authors (https://github.com/Fonthausen/NunitoSans)
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+The license is available with a FAQ at: https://openfontlicense.org

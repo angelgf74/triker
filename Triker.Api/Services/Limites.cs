@@ -37,13 +37,25 @@ public static class Limites
                 espacio = sb.Length > 0;
                 continue;
             }
-            if (char.IsControl(c)) continue;
+            if (char.IsControl(c) || EsInvisible(c)) continue;
             if (espacio) sb.Append(' ');
             espacio = false;
             sb.Append(c);
         }
         return sb.Length == 0 || sb.Length > maximo ? null : sb.ToString();
     }
+
+    // Lo que cuenta como texto y no pinta nada. Con ellos se podia entrar en
+    // una mesa sin nombre visible, o con el caracter que invierte el sentido
+    // de la escritura (U+202E), que descoloca lo que venga detras en la lista.
+    //   - Categoria Format: espacio de ancho cero, marcas e inversores de
+    //     direccion, guion opcional, marca de orden de bytes... Tambien cae el
+    //     unidor de ancho cero, asi que un emoji compuesto queda en sus piezas.
+    //   - Unos pocos que Unicode clasifica como letra o simbolo y salen en
+    //     blanco: rellenos hangul y el braille vacio.
+    private static bool EsInvisible(char c)
+        => char.GetUnicodeCategory(c) == System.Globalization.UnicodeCategory.Format
+           || c is 'ᅟ' or 'ᅠ' or 'ㅤ' or 'ﾠ' or '⠀';
 
     // Seis cifras: con el limite de peticiones por IP de Program.cs, probar el
     // millon de codigos cuesta semanas. Con cuatro eran 9.000 y salian en segundos.
