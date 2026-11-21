@@ -417,6 +417,128 @@ public class GameServiceTests
         Assert.Contains(game.Players, p => p.Id == bot.Id);
     }
 
+    // ── Lo que InactivityService necesita del estado ────────────────────────
+    // Leia y escribia la partida sin su cerrojo (el turno, el plazo) y ponia
+    // la marca de turno agotado despues de que el pase ya se hubiera guardado.
+
+    // Guarda el ultimo JSON de cada partida en vez de escribirlo en la base.
+    private sealed class GuardadoEspia() : GamePersistenceService(new SinBase(), NullLogger<GamePersistenceService>.Instance)
+    {
+        public readonly Dictionary<Guid, GameState> Ultimo = [];
+
+        public override Task SaveAsync(GameState game)
+        {
+            var opciones = new JsonSerializerOptions { Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() } };
+            Ultimo[game.Id] = JsonSerializer.Deserialize<GameState>(JsonSerializer.Serialize(game, opciones), opciones)!;
+            return Task.CompletedTask;
+        }
+    }
+
+    [Fact]
+    public void El_turno_se_lee_de_una_vez_estado_y_jugador()
+    {
+        var (svc, game, ana, _) = Mesa(bots: 1);
+        Assert.Equal(GameStatus.Waiting, svc.TurnOf(game.Id)!.Value.Status);
+        Assert.Null(svc.TurnOf(game.Id)!.Value.PlayerId);
+
+        svc.StartGame(game.Id, ana.Id);
+        var turno = svc.TurnOf(game.Id)!.Value;
+        Assert.Equal(GameStatus.Playing, turno.Status);
+        Assert.Equal(game.CurrentTurnPlayer!.Id, turno.PlayerId);
+        Assert.False(turno.IsBot);
+
+        JugarRonda(svc, game);
+        turno = svc.TurnOf(game.Id)!.Value;
+        Assert.Equal(GameStatus.Finished, turno.Status);
+        Assert.Null(turno.PlayerId);   // entre rondas no es el turno de nadie
+
+        Assert.Null(svc.TurnOf(Guid.NewGuid()));
+    }
+
+    [Fact]
+    public void El_turno_de_un_bot_se_reconoce()
+    {
+        var (svc, game, ana, _) = Mesa(bots: 1);
+        svc.StartGame(game.Id, ana.Id);
+        while (!game.CurrentTurnPlayer!.IsBot)
+            svc.SubmitDiscard(game.Id, game.CurrentTurnPlayer.Id, []);
+
+        var turno = svc.TurnOf(game.Id)!.Value;
+
+        Assert.True(turno.IsBot);
+        Assert.Equal(game.CurrentTurnPlayer.Name, turno.Name);
+    }
+
+    [Fact]
+    public void El_plazo_del_turno_se_fija_y_se_quita()
+    {
+        var (svc, game, ana, _) = Mesa();
+        svc.StartGame(game.Id, ana.Id);
+        var plazo = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(60);
+
+        svc.SetTurnDeadline(game.Id, plazo);
+        Assert.Equal(plazo, svc.ToDto(game, ana.Id).TurnDeadline);
+
+        svc.SetTurnDeadline(game.Id, null);
+        Assert.Null(svc.ToDto(game, ana.Id).TurnDeadline);
+
+        svc.SetTurnDeadline(Guid.NewGuid(), plazo);   // partida que ya no existe: no falla
+    }
+
+    [Fact]
+    public void Al_agotarse_el_turno_se_pasa_y_queda_marcado_en_un_solo_paso()
+    {
+        var (svc, game, ana, _) = Mesa();
+        svc.StartGame(game.Id, ana.Id);
+        var jugador = game.CurrentTurnPlayer!;
+        jugador.ConnectionId = "conn-1";
+        var mano = jugador.Hand.Select(c => c.Id).ToList();
+
+        var (pasado, conexion) = svc.PassOnTimeout(game.Id, jugador.Id);
+
+        Assert.True(pasado);
+        Assert.Equal("conn-1", conexion);   // para avisarle: se lee antes de que el turno avance
+        Assert.True(jugador.TurnTimedOut);
+        Assert.Equal(mano, jugador.Hand.Select(c => c.Id));   // pasa sin descartar
+        Assert.NotEqual(jugador.Id, game.CurrentTurnPlayer!.Id);
+        Assert.True(svc.ToDto(game, jugador.Id).Players.Single(p => p.Id == jugador.Id).TurnTimedOut);
+    }
+
+    [Fact]
+    public void La_marca_de_turno_agotado_va_en_el_mismo_guardado_que_el_pase()
+    {
+        var espia = new GuardadoEspia();
+        var scoring = new ScoringService();
+        var svc = new GameService(new DeckService(), scoring, new BotService(scoring), espia, NullLogger<GameService>.Instance);
+        var (game, ana) = svc.CreateGame("mesa", "Ana")!.Value;
+        svc.JoinGame(game.Id, "Berto");
+        svc.StartGame(game.Id, ana.Id);
+        var jugador = game.CurrentTurnPlayer!;
+
+        svc.PassOnTimeout(game.Id, jugador.Id);
+
+        var guardado = espia.Ultimo[game.Id].Players.Single(p => p.Id == jugador.Id);
+        Assert.Equal(PlayerTurnStatus.Ready, guardado.TurnStatus);   // es el guardado del pase
+        Assert.True(guardado.TurnTimedOut);                          // y ya lleva la marca
+    }
+
+    [Fact]
+    public void Un_temporizador_rezagado_no_pasa_el_turno_de_otro()
+    {
+        var (svc, game, ana, _) = Mesa();
+        svc.StartGame(game.Id, ana.Id);
+        var deTurno = game.CurrentTurnPlayer!;
+        var otro = game.Players.Single(p => p.Id != deTurno.Id);
+
+        var (pasado, conexion) = svc.PassOnTimeout(game.Id, otro.Id);
+
+        Assert.False(pasado);
+        Assert.Null(conexion);
+        Assert.False(otro.TurnTimedOut);
+        Assert.Equal(deTurno.Id, game.CurrentTurnPlayer!.Id);
+        Assert.Equal((false, null), svc.PassOnTimeout(Guid.NewGuid(), otro.Id));
+    }
+
     // ── Salir de la mesa ────────────────────────────────────────────────────
     // Antes solo se podia salir con la ronda terminada. Quien queria irse de
     // la sala de espera o a mitad de ronda cerraba la pestaña: la sala quedaba

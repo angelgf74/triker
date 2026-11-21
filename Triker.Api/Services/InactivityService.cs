@@ -22,8 +22,7 @@ public class InactivityService(GameService gameService, GameBroadcaster broadcas
     public void StartTurnTimer(Guid gameId, Guid playerId)
     {
         CancelTurnTimer(gameId);
-        var game = gameService.GetGame(gameId);
-        if (game != null) game.TurnDeadline = DateTimeOffset.UtcNow + TurnTimeout;
+        gameService.SetTurnDeadline(gameId, DateTimeOffset.UtcNow + TurnTimeout);
         var cts = new CancellationTokenSource();
         var timer = new TurnTimer(cts, playerId);
         _turnTimers[gameId] = timer;
@@ -45,8 +44,7 @@ public class InactivityService(GameService gameService, GameBroadcaster broadcas
     {
         if (_turnTimers.TryRemove(gameId, out var timer))
             timer.Cts.Cancel();
-        var game = gameService.GetGame(gameId);
-        if (game != null) game.TurnDeadline = null;
+        gameService.SetTurnDeadline(gameId, null);
     }
 
     // Tras un descarte valido: cancela el temporizador solo si era el de ese
@@ -114,28 +112,14 @@ public class InactivityService(GameService gameService, GameBroadcaster broadcas
 
     private async Task HandleTurnTimeout(Guid gameId, Guid playerId)
     {
-        var game = gameService.GetGame(gameId);
-        if (game == null || game.Status != GameStatus.Playing) return;
-        if (game.CurrentTurnPlayer?.Id != playerId) return;
+        // Pasa sin descartar y queda marcado en el estado, no solo en el aviso
+        // de abajo: quien se queda sin tiempo suele estar mirando a otro lado,
+        // asi que el banner puede perderselo y necesita encontrarlo luego en
+        // los resultados. No hace nada si el turno ya no es suyo.
+        var (passed, connectionId) = gameService.PassOnTimeout(gameId, playerId);
+        if (!passed) return;
 
         logger.LogWarning("Turn timeout for player {PlayerId} in game {GameId} — auto-pass", playerId, gameId);
-
-        // La conexion se lee antes de jugar: al pasar el turno avanza y el
-        // jugador deja de ser CurrentTurnPlayer.
-        var connectionId = gameService.ConnectionOf(game, playerId);
-
-        // Auto-pass: discard nothing, keep all cards
-        if (!gameService.SubmitDiscard(gameId, playerId, []))
-            return;
-
-        // Queda marcado en el estado, no solo en este aviso: quien se queda sin
-        // tiempo suele estar mirando a otro lado, asi que el banner puede
-        // perderselo y necesita encontrarlo luego en los resultados.
-        lock (game.SyncLock)
-        {
-            var player = game.Players.FirstOrDefault(p => p.Id == playerId);
-            if (player != null) player.TurnTimedOut = true;
-        }
         if (connectionId != null) await broadcaster.SendTurnTimedOut(connectionId);
 
         await ProcessBotsAndBroadcast(gameId);
@@ -143,8 +127,7 @@ public class InactivityService(GameService gameService, GameBroadcaster broadcas
 
     private async Task HandleFinishTimeout(Guid gameId)
     {
-        var game = gameService.GetGame(gameId);
-        if (game == null || game.Status != GameStatus.Finished) return;
+        if (gameService.TurnOf(gameId)?.Status != GameStatus.Finished) return;
         logger.LogInformation("Finish timeout for game {GameId} — removing undecided players", gameId);
 
         // Primero se saca a todos (de una vez, ver RemoveUndecidedPlayers) y
@@ -158,10 +141,14 @@ public class InactivityService(GameService gameService, GameBroadcaster broadcas
 
     // ── Game orchestration (bots + broadcast) ───────────────────────────────
 
+    // El estado de la partida se consulta con GameService.TurnOf, que lo lee
+    // bajo su cerrojo: aqui no se toca GameState directamente. Entre una
+    // consulta y la siguiente otro hilo puede haber cambiado la partida; por
+    // eso se vuelve a preguntar despues de cada espera y de cada jugada.
     public async Task ProcessBotsAndBroadcast(Guid gameId)
     {
-        var game = gameService.GetGame(gameId);
-        if (game == null)
+        var turn = gameService.TurnOf(gameId);
+        if (turn == null)
         {
             await broadcaster.BroadcastLobbyUpdate();
             return;
@@ -169,15 +156,15 @@ public class InactivityService(GameService gameService, GameBroadcaster broadcas
 
         // If a new round just started (or the table went back to the waiting
         // room), cancel any lingering finish timer
-        if (game.Status != GameStatus.Finished)
+        if (turn.Value.Status != GameStatus.Finished)
             CancelFinishTimer(gameId);
 
         bool anyBotPlayed = false;
 
-        while (game.Status == GameStatus.Playing && game.CurrentTurnPlayer?.IsBot == true)
+        while ((turn = gameService.TurnOf(gameId)) is { Status: GameStatus.Playing, IsBot: true })
         {
-            var botName = game.CurrentTurnPlayer.Name;
-            await broadcaster.BroadcastPersonalized(game);
+            var botName = turn.Value.Name;
+            await broadcaster.BroadcastState(gameId);
             await Task.Delay(1200);
 
             if (!gameService.ProcessBotTurn(gameId))
@@ -185,13 +172,13 @@ public class InactivityService(GameService gameService, GameBroadcaster broadcas
             anyBotPlayed = true;
             logger.LogDebug("Bot '{Bot}' played in game {GameId}", botName, gameId);
 
-            await broadcaster.BroadcastPersonalized(game);
+            await broadcaster.BroadcastState(gameId);
 
-            if (game.Status == GameStatus.Playing && game.CurrentTurnPlayer?.IsBot == true)
+            if (gameService.TurnOf(gameId) is { Status: GameStatus.Playing, IsBot: true })
                 await Task.Delay(900);
         }
 
-        if (game.Status == GameStatus.Revealing)
+        if (gameService.TurnOf(gameId)?.Status == GameStatus.Revealing)
         {
             if (anyBotPlayed) await Task.Delay(600);
             // Null si otro hilo ya la revelo: no se repite el evento.
@@ -200,23 +187,23 @@ public class InactivityService(GameService gameService, GameBroadcaster broadcas
                 await broadcaster.SendHandsRevealed(gameId, results);
         }
 
-        game = gameService.GetGame(gameId);
-        if (game == null)
+        turn = gameService.TurnOf(gameId);
+        if (turn == null)
         {
             await broadcaster.BroadcastLobbyUpdate();
             return;
         }
 
         // Start turn timer before broadcasting so TurnDeadline is included in the state the client receives
-        if (game.Status == GameStatus.Playing && game.CurrentTurnPlayer is { IsBot: false } human)
-            StartTurnTimer(gameId, human.Id);
+        if (turn is { Status: GameStatus.Playing, IsBot: false, PlayerId: { } humanId })
+            StartTurnTimer(gameId, humanId);
 
         // Entre rondas el plazo puede ser nuevo (se acaba de revelar) o haberse
         // acortado (alguien ha decidido seguir): el temporizador le sigue.
-        if (game.Status == GameStatus.Finished)
+        if (turn.Value.Status == GameStatus.Finished)
             StartFinishTimer(gameId);
 
-        await broadcaster.BroadcastPersonalized(game);
+        await broadcaster.BroadcastState(gameId);
         await broadcaster.BroadcastLobbyUpdate();
     }
 

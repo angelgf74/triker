@@ -819,10 +819,58 @@ public class GameService(
         }
     }
 
-    public string? ConnectionOf(GameState game, Guid playerId)
+    // ── Para InactivityService ──────────────────────────────────────────────
+    // Los temporizadores y el bucle de los bots corren en sus propios hilos.
+    // Todo lo que necesitan del estado lo piden aqui, bajo el cerrojo: fuera
+    // de el, GameState.CurrentTurnPlayer mira la lista de jugadores dos veces
+    // (el recuento y el indice) y otro hilo puede quitar uno entre medias.
+
+    // De quien es el turno. PlayerId es null si la partida no esta en juego.
+    public readonly record struct TurnInfo(GameStatus Status, Guid? PlayerId, bool IsBot, string? Name);
+
+    public TurnInfo? TurnOf(Guid gameId)
     {
+        if (!_games.TryGetValue(gameId, out var game)) return null;
+
         lock (game.SyncLock)
-            return game.Players.FirstOrDefault(p => p.Id == playerId)?.ConnectionId;
+        {
+            var player = game.Status == GameStatus.Playing ? game.CurrentTurnPlayer : null;
+            return new TurnInfo(game.Status, player?.Id, player?.IsBot == true, player?.Name);
+        }
+    }
+
+    public void SetTurnDeadline(Guid gameId, DateTimeOffset? deadline)
+    {
+        if (!_games.TryGetValue(gameId, out var game)) return;
+        lock (game.SyncLock) game.TurnDeadline = deadline;
+    }
+
+    // Turno agotado: el jugador pasa sin descartar y queda marcado
+    // (TurnTimedOut), para que encuentre el aviso en los resultados aunque se
+    // pierda el del momento. No hace nada si ya no es su turno (un
+    // temporizador rezagado). Devuelve su conexion, leida antes de que el
+    // turno avance, para avisarle.
+    public (bool Passed, string? ConnectionId) PassOnTimeout(Guid gameId, Guid playerId)
+    {
+        if (!_games.TryGetValue(gameId, out var game)) return (false, null);
+
+        lock (game.SyncLock)
+        {
+            if (game.Status != GameStatus.Playing) return (false, null);
+            var player = game.CurrentTurnPlayer;
+            if (player == null || player.Id != playerId) return (false, null);
+
+            var connectionId = player.ConnectionId;
+            // La marca va antes del pase: SubmitDiscard guarda la partida, y
+            // puesta despues se quedaba fuera de ese guardado.
+            player.TurnTimedOut = true;
+            if (!SubmitDiscard(gameId, playerId, []))
+            {
+                player.TurnTimedOut = false;
+                return (false, null);
+            }
+            return (true, connectionId);
+        }
     }
 
     private void StartGameLocked(GameState game)
