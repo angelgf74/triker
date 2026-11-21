@@ -28,22 +28,22 @@ public class LimitesTests
     // hecho solo de ellos (un jugador sin nombre en la mesa) y el que invierte
     // el sentido de la escritura, que descoloca lo que venga detras en la lista.
     [Theory]
-    [InlineData("​")]              // espacio de ancho cero
-    [InlineData("​​​")]
-    [InlineData("‮")]              // invierte el texto (derecha a izquierda)
-    [InlineData("﻿")]              // marca de orden de bytes
-    [InlineData("­")]              // guion opcional
-    [InlineData("ㅤ")]              // relleno hangul: cuenta como letra y no pinta nada
-    [InlineData("⠀")]              // braille en blanco
-    [InlineData(" ​ ㅤ ")]
+    [InlineData("\u200B")]              // espacio de ancho cero
+    [InlineData("\u200B\u200B\u200B")]
+    [InlineData("\u202E")]              // invierte el texto (derecha a izquierda)
+    [InlineData("\uFEFF")]              // marca de orden de bytes
+    [InlineData("\u00AD")]              // guion opcional
+    [InlineData("\u3164")]              // relleno hangul: cuenta como letra y no pinta nada
+    [InlineData("\u2800")]              // braille en blanco
+    [InlineData(" \u200B \u3164 ")]
     public void Un_nombre_hecho_solo_de_caracteres_invisibles_no_vale(string entrada)
         => Assert.Null(Limites.Nombre(entrada, Limites.NombreJugador));
 
     [Theory]
-    [InlineData("A​na", "Ana")]                 // escondido en medio
-    [InlineData("‮Ana", "Ana")]                 // ya no invierte nada
-    [InlineData("Ana⁦⁩", "Ana")]           // aislantes de direccion
-    [InlineData("Anㅤa", "Ana")]
+    [InlineData("A\u200Bna", "Ana")]                 // escondido en medio
+    [InlineData("\u202EAna", "Ana")]                 // ya no invierte nada
+    [InlineData("Ana\u2066\u2069", "Ana")]           // aislantes de direccion
+    [InlineData("An\u3164a", "Ana")]
     public void Los_caracteres_invisibles_se_quitan_del_nombre(string entrada, string esperado)
         => Assert.Equal(esperado, Limites.Nombre(entrada, Limites.NombreJugador));
 
@@ -66,7 +66,7 @@ public class LimitesTests
     {
         var justo = new string('a', Limites.NombreJugador);
 
-        Assert.Equal(justo, Limites.Nombre("​" + justo + "​", Limites.NombreJugador));
+        Assert.Equal(justo, Limites.Nombre("\u200B" + justo + "\u200B", Limites.NombreJugador));
     }
 
     [Fact]

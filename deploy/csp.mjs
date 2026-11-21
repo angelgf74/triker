@@ -70,7 +70,7 @@ for (const origen of deOtroSitio)
 // La API del juego: la que usa la web publicada. Peticiones (https) y SignalR (wss).
 const ajustes = path.join(web, 'appsettings.Production.json');
 let api;
-try { api = new URL(JSON.parse(fs.readFileSync(ajustes, 'utf8').replace(/^﻿/, '')).ApiBaseUrl); }
+try { api = new URL(JSON.parse(fs.readFileSync(ajustes, 'utf8').replace(/^\uFEFF/, '')).ApiBaseUrl); }
 catch (e) { fallar(`no se puede leer ApiBaseUrl de ${ajustes}: ${e.message}`); }
 if (api.protocol !== 'https:') fallar(`ApiBaseUrl de producción no es https: ${api.href}`);
 

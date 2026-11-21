@@ -133,8 +133,90 @@ assets** (see Gotchas). Use the agent-path command instead.
 
 `dotnet test Triker.Tests` covers the rules and the game lifecycle in
 `GameService` (tokens, results in state, leaving the table, concurrency,
-restore after restart). Nothing covers the HTTP/SignalR wiring or the
-frontend: `driver.mjs api` + `ui` are the smoke suite for those.
+restore after restart). The HTTP/SignalR wiring and the frontend are covered by
+the real app: `driver.mjs api` + `ui` for a quick look, and `e2e/` for behaviour.
+
+### e2e/: the real app, one behaviour per file
+
+Each file in `.claude/skills/run-triker/e2e/` drives the running app in headless
+Chrome at 360 px, es-ES, prints `OK`/`FALLO` per check and ends with
+`== TODO OK ==` (exit code 1 otherwise). They share `e2e/lib/comun.mjs`.
+
+```powershell
+node .claude/skills/run-triker/e2e/todas.mjs --rapidas   # the quick ones, ~6 min
+node .claude/skills/run-triker/e2e/todas.mjs             # all of them, ~25 min
+node .claude/skills/run-triker/e2e/todas.mjs empates reconexion
+node .claude/skills/run-triker/e2e/empates.mjs           # or one directly
+```
+
+`todas.mjs` needs both dev servers up and waits between tests so the API's
+10-creates-per-minute limit is never hit.
+
+| file | what it pins down |
+|---|---|
+| `humo` | one bots game through the UI, table closed on leaving. **The check to run against production right after `srv subir --publicar`.** |
+| `jugar-contra-bots` | «Jugar contra bots»: one tap, one create request, no waiting room |
+| `salir-de-la-mesa`, `volver-a-tu-partida` | leaving in every phase; the lobby taking you back to your seat |
+| `salas-sin-nadie` (4 min) | waiting rooms nobody is connected to stop being listed |
+| `cuenta-atras-y-turno-agotado` (3 min) | countdown bar in es-ES, timeout banner surviving the reveal |
+| `plazo-entre-rondas` (3 min) | the 60 s to decide once someone wants to go on; an ad must not get you removed |
+| `reconexion` (3 min) | table and lobby come back alone after a 50 s network cut, and after a failed first connect |
+| `anuncio-entre-rondas`, `privacidad-de-anuncios` | interstitial timing and the privacy link, with a fake `window.AndroidAds` |
+| `empates` | shared first place in the results summary |
+| `sonido-descarte-y-ayuda` | champion sound, rejected discard message, help wording |
+| `diseno-movil`, `resultados-y-cabecera` | layout measurements at 360 px; results folded on big tables |
+| `nombres-invisibles`, `ritmo-de-los-bots` | API only: invisible characters in names; bot pacing timings |
+| `fuente-propia`, `vista-previa-de-enlaces`, `sin-peticiones-fallidas` | no Google Fonts request; Open Graph tags; no 4xx from the site itself |
+| `politica-de-seguridad` (2 min) | the published package under its CSP: full walk-through with zero violations, and what it must block |
+
+Not in `todas.mjs`, run by hand: `tope-por-ip` (creates 40 games in 6 min and
+leaves the API full: restart it afterwards) and `que-carga-la-web` (not a test:
+the inventory of what the page loads, for updating `deploy/csp.mjs`).
+
+**Against production.** Set both variables; only `humo`, `diseno-movil`,
+`resultados-y-cabecera`, `fuente-propia`, `vista-previa-de-enlaces`,
+`nombres-invisibles`, `ritmo-de-los-bots` and `que-carga-la-web` accept it (the
+rest call `soloLocal()` and exit 2). Every one creates public test tables for a
+few seconds and leaves them.
+
+```powershell
+$env:TRIKER_WEB='https://triker-app.angelgf.com.es'; $env:TRIKER_API='https://triker-api.angelgf.com.es'
+node .claude/skills/run-triker/e2e/humo.mjs
+```
+
+Things these tests learned the hard way (the helpers already handle them):
+
+- **Leave the table and wait for the lobby before closing the browser.** Closing
+  first aborts the leave request and the test table stays open until its timers
+  close it (minutes).
+- **`context.setOffline` does not cut an open WebSocket.** `lib/corte.mjs` routes
+  the hub through Playwright so it can really close it. And the hub connects
+  *after* the table is painted: cut right when the turn appears and you are
+  testing a failed first connect, not a reconnect.
+- **States you cannot produce by playing** (a tie, a 16-player table, a game
+  ending in one round) are forced by rewriting the request or the REST state on
+  the way (`page.route`), with the hub cut so the real state does not overwrite
+  it. That tests the real rendering, not the server's maths; the maths has unit
+  tests.
+- **The CSP only exists in the published package.** `lib/montar-paquete.mjs`
+  builds it the way `srv subir` does and `lib/produccion-local.mjs` serves it
+  while the browser believes it is on the production origin, with the API
+  diverted to the local one. Nothing reaches the Internet.
+- **Code run straight from `page.evaluate` is exempt from the CSP** (the browser
+  treats it as the devtools console): `eval` looks allowed. Ask for it from page
+  code, inside a `setTimeout`.
+- **Headless Chrome has `navigator.share` and cancels it**: sharing returns
+  `cancelled` and shows nothing. Test sharing with a fake `window.AndroidShare`.
+- **Sounds, ads and the Android bridges are observed, not heard or seen**: the
+  tests record which `trikerAudio` function or bridge method the app calls.
+
+### android/: the app on the emulator
+
+`android/emulador.sh` (source it from Git Bash) reads what is on screen and taps by
+text over adb; `android/cdp.mjs` evaluates JS in the debug app's WebView;
+`android/invitacion.mjs` opens a real invite link in the app (App Links). Their
+headers say how. The debug app loads the **production** web, so a web change can
+only be checked in the app after publishing it.
 
 ## Gotchas
 
