@@ -160,12 +160,17 @@ public class InactivityService(GameService gameService, GameBroadcaster broadcas
             CancelFinishTimer(gameId);
 
         bool anyBotPlayed = false;
+        // El ritmo se fija al empezar la tanda, con los bots que van a jugar
+        // seguidos, y se mantiene hasta el final: si se recalculara en cada
+        // turno, los ultimos irian cada vez mas despacio.
+        (TimeSpan Think, TimeSpan Gap)? pace = null;
 
         while ((turn = gameService.TurnOf(gameId)) is { Status: GameStatus.Playing, IsBot: true })
         {
             var botName = turn.Value.Name;
+            var (think, gap) = pace ??= BotPacing.For(turn.Value.BotsInARow);
             await broadcaster.BroadcastState(gameId);
-            await Task.Delay(1200);
+            await Task.Delay(think);
 
             if (!gameService.ProcessBotTurn(gameId))
                 break; // otro hilo jugo ese turno o la partida cambio
@@ -175,7 +180,7 @@ public class InactivityService(GameService gameService, GameBroadcaster broadcas
             await broadcaster.BroadcastState(gameId);
 
             if (gameService.TurnOf(gameId) is { Status: GameStatus.Playing, IsBot: true })
-                await Task.Delay(900);
+                await Task.Delay(gap);
         }
 
         if (gameService.TurnOf(gameId)?.Status == GameStatus.Revealing)

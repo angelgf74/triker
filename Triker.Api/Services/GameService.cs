@@ -838,7 +838,9 @@ public class GameService(
     // (el recuento y el indice) y otro hilo puede quitar uno entre medias.
 
     // De quien es el turno. PlayerId es null si la partida no esta en juego.
-    public readonly record struct TurnInfo(GameStatus Status, Guid? PlayerId, bool IsBot, string? Name);
+    // BotsInARow: cuantos bots van a jugar seguidos desde el turno actual (0 si
+    // le toca a un humano); de eso depende su ritmo (BotPacing).
+    public readonly record struct TurnInfo(GameStatus Status, Guid? PlayerId, bool IsBot, string? Name, int BotsInARow = 0);
 
     public TurnInfo? TurnOf(Guid gameId)
     {
@@ -847,8 +849,25 @@ public class GameService(
         lock (game.SyncLock)
         {
             var player = game.Status == GameStatus.Playing ? game.CurrentTurnPlayer : null;
-            return new TurnInfo(game.Status, player?.Id, player?.IsBot == true, player?.Name);
+            return new TurnInfo(game.Status, player?.Id, player?.IsBot == true, player?.Name,
+                player == null ? 0 : BotsInARowLocked(game));
         }
+    }
+
+    // Desde el turno actual hasta el primer humano que aun tiene que jugar o
+    // el final de la ronda. Quien salio a mitad de ronda no corta la tanda: su
+    // turno se salta solo (ver SubmitDiscard).
+    private static int BotsInARowLocked(GameState game)
+    {
+        var bots = 0;
+        for (var i = game.CurrentTurnIndex; i < game.StartPlayerIndex + game.Players.Count; i++)
+        {
+            var p = game.Players[i % game.Players.Count];
+            if (p.HasLeft) continue;
+            if (!p.IsBot) break;
+            bots++;
+        }
+        return bots;
     }
 
     public void SetTurnDeadline(Guid gameId, DateTimeOffset? deadline)
