@@ -63,13 +63,19 @@
             @if (winner != null)
             {
                 <div class="rs-winner">
-                    @if (mine != null && winner.PlayerId == MyPlayerId)
+                    @* Con la misma jugada se empata: puede haber varios ganadores.
+                       Antes solo se felicitaba al primero de la lista y al
+                       otro se le decia "Ganó Vulcan y Ana", en tercera persona
+                       y en singular. *@
+                    @if (mine != null && Position(mine) == 1)
                     {
-                        <span>🎉 Ganaste la ronda</span>
+                        var conmigo = Winners().Where(r => r.PlayerId != MyPlayerId).Select(r => r.PlayerName).ToList();
+                        <span>🎉 Ganaste la ronda@(conmigo.Count > 0 ? $" junto a {Lista(conmigo)}" : "")</span>
                     }
                     else
                     {
-                        <span>Ganó <strong>@WinnerNames()</strong> con @winner.HandName</span>
+                        var ganan = Winners().Select(r => r.PlayerName).ToList();
+                        <span>@(ganan.Count == 1 ? "Ganó" : "Ganaron") <strong>@Lista(ganan)</strong> con @winner.HandName</span>
                     }
                 </div>
             }
@@ -381,10 +387,17 @@
 
     // Puede haber empate arriba: se nombran todos los que comparten la mejor
     // jugada, que es lo que decide la ronda (HandRank, no los puntos).
-    private string WinnerNames()
+    private List<HandResultDto> Winners()
     {
         var best = Results.Max(r => r.HandRank);
-        var names = Results.Where(r => r.HandRank == best).Select(r => r.PlayerName).ToList();
-        return names.Count == 1 ? names[0] : string.Join(" y ", names);
+        return Results.Where(r => r.HandRank == best).ToList();
     }
+
+    // "Ana", "Ana y Berto", "Ana, Berto y Carla".
+    private static string Lista(List<string> nombres) => nombres.Count switch
+    {
+        0 => "",
+        1 => nombres[0],
+        _ => $"{string.Join(", ", nombres.Take(nombres.Count - 1))} y {nombres[^1]}"
+    };
 }

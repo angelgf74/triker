@@ -246,14 +246,18 @@ public class GameService(
                 .OrderByDescending(r => r.HandRank)
                 .ToList();
 
-            for (int i = 0; i < results.Count; i++)
-                results[i].Rank = i + 1;
+            // El puesto es "cuantos tienen mejor jugada, mas uno": con la misma
+            // jugada se comparte (1º, 1º, 3º). Antes era el orden en la lista
+            // y a dos empatados en cabeza les tocaba 1 y 2, con las medallas
+            // (que ya contaban asi) diciendo otra cosa.
+            foreach (var result in results)
+                result.Rank = results.Count(r => r.HandRank > result.HandRank) + 1;
 
             foreach (var result in results)
             {
                 var player = game.Players.FirstOrDefault(p => p.Id == result.PlayerId);
                 if (player == null) continue;
-                int pos = results.Count(r => r.HandRank > result.HandRank) + 1;
+                int pos = result.Rank;
                 if (pos == 1) player.Wins++;
                 else if (pos == 2) player.Seconds++;
                 else if (pos == 3) player.Thirds++;
@@ -276,7 +280,8 @@ public class GameService(
             }
 
             logger.LogInformation("Game {GameId} round {Round} finished. Winner: '{Winner}' ({Hand})",
-                gameId, game.RoundNumber, results[0].PlayerName, results[0].HandName);
+                gameId, game.RoundNumber,
+                string.Join("', '", results.Where(r => r.Rank == 1).Select(r => r.PlayerName)), results[0].HandName);
 
             _ = persistence.SaveAsync(game);
             return results;

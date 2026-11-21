@@ -52,7 +52,7 @@ Cards have three independent attributes, each with 8 possible values:
 
 The number of values per attribute is `GameState.N` (default 8); `DeckService.GenerateDeck(n)` takes the first `n` values of each enum, so the full deck has `N³` cards (512 with N=8). Each turn, players receive 5 cards, discard some, draw replacements. Groups of matching cards score as `(N-1)² × 2^A` where N = group size and A = number of matching attributes.
 
-There are 16 hand ranks (`HandRank` enum, values 0–15), ordered worst to best from "Sin jugada" (no two cards share any attribute) up to "Retriker Fuerte". The round winner is decided **solely by `HandRank` order**, not by raw points — `TotalScore` is not used for ranking between players.
+There are 16 hand ranks (`HandRank` enum, values 0–15), ordered worst to best from "Sin jugada" (no two cards share any attribute) up to "Retriker Fuerte". The round winner is decided **solely by `HandRank` order**, not by raw points — `TotalScore` is not used for ranking between players. So players with the same hand tie, and ties are common: a position is "how many have a better hand, plus one" (1st, 1st, 3rd), both in `HandResultDto.Rank` and in the medals, and several players can win a round (or the game) at once.
 
 ## Key Design Decisions
 
