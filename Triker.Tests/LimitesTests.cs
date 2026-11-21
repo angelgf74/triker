@@ -24,6 +24,51 @@ public class LimitesTests
     public void Un_nombre_vacio_no_vale(string? entrada)
         => Assert.Null(Limites.Nombre(entrada, Limites.NombreJugador));
 
+    // Caracteres que no se ven pero cuentan como texto. Se aceptaba un nombre
+    // hecho solo de ellos (un jugador sin nombre en la mesa) y el que invierte
+    // el sentido de la escritura, que descoloca lo que venga detras en la lista.
+    [Theory]
+    [InlineData("​")]              // espacio de ancho cero
+    [InlineData("​​​")]
+    [InlineData("‮")]              // invierte el texto (derecha a izquierda)
+    [InlineData("﻿")]              // marca de orden de bytes
+    [InlineData("­")]              // guion opcional
+    [InlineData("ㅤ")]              // relleno hangul: cuenta como letra y no pinta nada
+    [InlineData("⠀")]              // braille en blanco
+    [InlineData(" ​ ㅤ ")]
+    public void Un_nombre_hecho_solo_de_caracteres_invisibles_no_vale(string entrada)
+        => Assert.Null(Limites.Nombre(entrada, Limites.NombreJugador));
+
+    [Theory]
+    [InlineData("A​na", "Ana")]                 // escondido en medio
+    [InlineData("‮Ana", "Ana")]                 // ya no invierte nada
+    [InlineData("Ana⁦⁩", "Ana")]           // aislantes de direccion
+    [InlineData("Anㅤa", "Ana")]
+    public void Los_caracteres_invisibles_se_quitan_del_nombre(string entrada, string esperado)
+        => Assert.Equal(esperado, Limites.Nombre(entrada, Limites.NombreJugador));
+
+    // Lo que si se ve se queda como esta: tildes, otros alfabetos y emojis.
+    [Theory]
+    [InlineData("Ángel")]
+    [InlineData("José María")]
+    [InlineData("Ñandú")]
+    [InlineData("Zoë")]
+    [InlineData("علي")]
+    [InlineData("山田")]
+    [InlineData("Ana 🎴")]
+    [InlineData("❤️")]                  // lleva un selector de variacion, que no es invisible por si solo
+    public void Un_nombre_visible_no_cambia(string nombre)
+        => Assert.Equal(nombre, Limites.Nombre(nombre, Limites.NombreJugador));
+
+    // Sin los invisibles, el maximo cuenta lo que se ve.
+    [Fact]
+    public void Los_invisibles_no_cuentan_para_el_maximo()
+    {
+        var justo = new string('a', Limites.NombreJugador);
+
+        Assert.Equal(justo, Limites.Nombre("​" + justo + "​", Limites.NombreJugador));
+    }
+
     [Fact]
     public void El_maximo_cuenta_tras_limpiar_y_no_admite_uno_mas()
     {
