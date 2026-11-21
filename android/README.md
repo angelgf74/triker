@@ -8,8 +8,12 @@ anuncios **intersticiales de AdMob entre partidas**.
 - `MainActivity` carga la URL de la web (`res/values/strings.xml` → `app_url`) en un `WebView`.
 - `MobileAds` (SDK Google Mobile Ads) precarga un intersticial al arrancar.
 - La web expone, dentro de la app, el puente `window.AndroidAds` (clase `AdsBridge`).
-- Al terminar cada partida, `GameRoom.razor` llama a `window.TrikerAds.interstitial()`
-  (`Triker.Web/wwwroot/js/ads.js`), que invoca el puente y muestra el anuncio.
+- El anuncio no se pide al revelar las manos (taparía los resultados), sino cuando el jugador
+  decide: `GameRoom.razor` llama a `window.TrikerAds` (`Triker.Web/wwwroot/js/ads.js`) al pulsar
+  «Siguiente ronda», «Salir de la mesa» o «Volver al inicio».
+- En «Siguiente ronda» la ronda nueva no se pide hasta que el anuncio se cierra
+  (`interstitialAndWait`). La web lo sabe sin que la app avise: el anuncio se abre en otra
+  pantalla y el WebView pasa a oculto (`visibilitychange`) y vuelve a visible al cerrarse.
 - Hay un **cooldown de 60 s** (en JS y en `InterstitialAdManager`) para no saturar.
 - Tras cerrarse un anuncio se precarga el siguiente automáticamente.
 

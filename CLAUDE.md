@@ -97,6 +97,11 @@ published web; game changes reach it through `srv`, without a new app version.
 - Ads: nothing from AdMob runs until `AdsConsent` (Google UMP) says ads can be requested. The
   consent form is the one configured in the AdMob console for the app; where it is mandatory the
   web shows «Privacidad de los anuncios» in the lobby (`js/ads.js`, `window.AndroidAds`).
+- The interstitial is asked for when the player decides on the results screen, never at the
+  reveal. On «Siguiente ronda» the web waits for the ad to close before sending the continue
+  (`TrikerAds.interstitialAndWait`), or the turn clock would run behind the ad. It needs no
+  callback from the app: the ad opens in its own activity, so the page gets `visibilitychange`
+  (hidden about 50 ms after the request, visible on close).
 - AdMob ids are per build type (`src/debug` has Google's test ids, `src/release` the real ones)
   and debug builds install as `com.angelgf.triker.debug`, next to the Play one.
 - The debug WebView accepts remote debugging: `adb forward tcp:9333
