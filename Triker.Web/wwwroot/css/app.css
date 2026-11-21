@@ -639,6 +639,8 @@ body.colorblind .cb-code { display: inline; }
 .continue-prompt { font-size: 1.1rem; font-weight: 600; }
 .continue-buttons { display: flex; gap: 1rem; }
 .waiting-others { color: #888; }
+.continue-deadline { color: #aaa; font-size: 0.9rem; margin: 0; font-variant-numeric: tabular-nums; }
+.continue-deadline-mine { color: #f0c040; }
 
 /* ===== MOBILE ===== */
 @media (max-width: 480px) {

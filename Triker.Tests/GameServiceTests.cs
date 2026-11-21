@@ -278,6 +278,135 @@ public class GameServiceTests
         Assert.Equal(carla.Id, game.CreatorId);
     }
 
+    // ── Plazo para decidir entre rondas ─────────────────────────────────────
+    // El plazo era siempre de 5 minutos: si un jugador bloqueaba el movil, los
+    // que ya habian pulsado «Siguiente ronda» esperaban todo ese tiempo sin
+    // saber cuanto faltaba. Ahora, en cuanto un humano decide seguir, al resto
+    // le queda un minuto, y el plazo viaja en el estado para poder mostrarlo.
+
+    private static readonly TimeSpan Margen = TimeSpan.FromSeconds(5);
+
+    private static void Cerca(DateTimeOffset esperado, DateTimeOffset? real)
+    {
+        Assert.NotNull(real);
+        Assert.InRange(real.Value, esperado - Margen, esperado + Margen);
+    }
+
+    private static (GameService svc, GameState game, PlayerState ana, PlayerState berto, PlayerState carla) TresHumanosEntreRondas()
+    {
+        var svc = Nuevo();
+        var (game, ana) = svc.CreateGame("mesa", "Ana")!.Value;
+        var berto = svc.JoinGame(game.Id, "Berto").player!;
+        var carla = svc.JoinGame(game.Id, "Carla").player!;
+        Assert.True(svc.StartGame(game.Id, ana.Id));
+        JugarRonda(svc, game);
+        return (svc, game, ana, berto, carla);
+    }
+
+    [Fact]
+    public void Al_terminar_la_ronda_hay_cinco_minutos_para_decidir()
+    {
+        var (svc, game, ana, _) = RondaTerminada();
+
+        Cerca(DateTimeOffset.UtcNow + GameService.ContinueTimeout, game.ContinueDeadline);
+        Cerca(DateTimeOffset.UtcNow + GameService.ContinueTimeout, svc.ToDto(game, ana.Id).ContinueDeadline);
+    }
+
+    [Fact]
+    public void Cuando_un_humano_decide_seguir_al_resto_le_queda_un_minuto()
+    {
+        var (svc, game, ana, berto, _) = TresHumanosEntreRondas();
+
+        Assert.True(svc.SetContinue(game.Id, ana.Id, true));
+
+        Assert.Equal(GameStatus.Finished, game.Status);
+        Cerca(DateTimeOffset.UtcNow + GameService.ContinueGrace, game.ContinueDeadline);
+        Cerca(DateTimeOffset.UtcNow + GameService.ContinueGrace, svc.ToDto(game, berto.Id).ContinueDeadline);
+    }
+
+    [Fact]
+    public void Las_decisiones_siguientes_no_alargan_el_plazo()
+    {
+        var (svc, game, ana, berto, _) = TresHumanosEntreRondas();
+        svc.SetContinue(game.Id, ana.Id, true);
+        // Como si Ana hubiera decidido hace 40 s: quedan 20.
+        var quedan20 = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(20);
+        game.ContinueDeadline = quedan20;
+
+        Assert.True(svc.SetContinue(game.Id, berto.Id, true));
+
+        Assert.Equal(quedan20, game.ContinueDeadline);
+    }
+
+    [Fact]
+    public void Que_alguien_se_vaya_no_mete_prisa_a_los_demas()
+    {
+        var (svc, game, ana, _, _) = TresHumanosEntreRondas();
+
+        Assert.True(svc.SetContinue(game.Id, ana.Id, false));
+
+        Cerca(DateTimeOffset.UtcNow + GameService.ContinueTimeout, game.ContinueDeadline);
+    }
+
+    [Fact]
+    public void Con_la_partida_acabada_nadie_mete_prisa()
+    {
+        var (svc, game, ana, _, _) = TresHumanosEntreRondas();
+        game.GameOver = true;
+
+        svc.SetContinue(game.Id, ana.Id, true);
+
+        Cerca(DateTimeOffset.UtcNow + GameService.ContinueTimeout, game.ContinueDeadline);
+    }
+
+    [Fact]
+    public void Al_empezar_la_ronda_siguiente_el_plazo_desaparece()
+    {
+        var (svc, game, ana, berto) = RondaTerminada();
+
+        svc.SetContinue(game.Id, ana.Id, true);
+        svc.SetContinue(game.Id, berto.Id, true);
+
+        Assert.Equal(GameStatus.Playing, game.Status);
+        Assert.Null(game.ContinueDeadline);
+        Assert.Null(svc.ToDto(game, ana.Id).ContinueDeadline);
+    }
+
+    [Fact]
+    public void Si_la_mesa_vuelve_a_la_sala_de_espera_el_plazo_desaparece()
+    {
+        var (svc, game, ana, berto) = RondaTerminada();
+        svc.SetContinue(game.Id, ana.Id, true);
+
+        svc.SetContinue(game.Id, berto.Id, false);
+
+        Assert.Equal(GameStatus.Waiting, game.Status);
+        Assert.Null(game.ContinueDeadline);
+    }
+
+    // El plazo guardado puede haber vencido con la API parada: al volver se
+    // empieza de nuevo, o el despliegue echaria a quien estaba a punto de pulsar.
+    [Fact]
+    public void Al_restaurar_entre_rondas_el_plazo_empieza_de_nuevo()
+    {
+        var svc = Nuevo();
+        var ahora = DateTimeOffset.UtcNow;
+        var nadieDecidio = Guardada(GameStatus.Finished, TimeSpan.FromMinutes(2));
+        nadieDecidio.ContinueDeadline = ahora - TimeSpan.FromSeconds(30);
+        var alguienDecidio = Guardada(GameStatus.Finished, TimeSpan.FromMinutes(2));
+        alguienDecidio.Players.Add(new PlayerState { Name = "Berto", Token = "t-berto" });
+        alguienDecidio.Players[0].WantsToContinue = true;
+        alguienDecidio.ContinueDeadline = ahora - TimeSpan.FromSeconds(30);
+        var jugando = Guardada(GameStatus.Playing, TimeSpan.FromMinutes(2));
+        jugando.ContinueDeadline = ahora;
+
+        svc.RestoreGames([nadieDecidio, alguienDecidio, jugando], ahora);
+
+        Assert.Equal(ahora + GameService.ContinueTimeout, nadieDecidio.ContinueDeadline);
+        Assert.Equal(ahora + GameService.ContinueGrace, alguienDecidio.ContinueDeadline);
+        Assert.Null(jugando.ContinueDeadline);
+    }
+
     [Fact]
     public void Un_bot_no_puede_decidir_por_la_mesa()
     {

@@ -24,6 +24,14 @@ public class GameService(
 
     public static readonly TimeSpan FinishedGameTtl = TimeSpan.FromMinutes(30);
     public static readonly TimeSpan ActiveGameTtl   = TimeSpan.FromHours(2);
+
+    // Plazo para decidir entre rondas. Mientras nadie ha decidido es largo: no
+    // hay nadie esperando. En cuanto un humano quiere seguir, al resto le
+    // queda ContinueGrace; un jugador ausente ya no retiene a la mesa 5 minutos.
+    // El minuto da margen a quien esta viendo el anuncio tras pulsar
+    // «Siguiente ronda», que todavia no ha enviado su decision.
+    public static readonly TimeSpan ContinueTimeout = TimeSpan.FromMinutes(5);
+    public static readonly TimeSpan ContinueGrace   = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan SpectatorGoneTtl = TimeSpan.FromMinutes(10);
 
     private readonly ConcurrentDictionary<Guid, GameState> _games = new();
@@ -257,6 +265,7 @@ public class GameService(
             game.LastResults = results;
             game.Status = GameStatus.Finished;
             game.LastActivityAt = DateTimeOffset.UtcNow;
+            game.ContinueDeadline = DateTimeOffset.UtcNow + ContinueTimeout;
 
             if (game.TargetWins > 0 && game.Players.Any(p => p.Wins >= game.TargetWins))
             {
@@ -294,9 +303,24 @@ public class GameService(
             }
 
             player.WantsToContinue = true;
+            // Ya hay alguien esperando: el resto no dispone de todo el plazo
+            // largo. Solo se acorta; quien decide despues no lo alarga. Con la
+            // partida acabada no hay ronda que esperar.
+            var corto = DateTimeOffset.UtcNow + ContinueGrace;
+            if (!game.GameOver && (game.ContinueDeadline is null || game.ContinueDeadline > corto))
+                game.ContinueDeadline = corto;
             AfterContinueDecisionLocked(game);
             return true;
         }
+    }
+
+    // Para el temporizador de fin de ronda (InactivityService): null si la
+    // partida no esta entre rondas.
+    public DateTimeOffset? ContinueDeadlineOf(Guid gameId)
+    {
+        if (!_games.TryGetValue(gameId, out var game)) return null;
+        lock (game.SyncLock)
+            return game.Status == GameStatus.Finished ? game.ContinueDeadline : null;
     }
 
     // El temporizador de fin de ronda saca de una vez a todos los humanos que
@@ -390,6 +414,7 @@ public class GameService(
         game.CurrentTurnIndex = 0;
         game.StartPlayerIndex = 0;
         game.TurnDeadline = null;
+        game.ContinueDeadline = null;
         foreach (var p in game.Players)
         {
             p.Hand = [];
@@ -704,6 +729,10 @@ public class GameService(
             game.Spectators.Clear();
             // InactivityService vuelve a armar el temporizador.
             game.TurnDeadline = null;
+            // Entre rondas el plazo empieza de nuevo: el guardado puede haber
+            // vencido con la API parada, y eso echaria a quien iba a pulsar.
+            game.ContinueDeadline = game.Status != GameStatus.Finished ? null
+                : now + (game.Players.Any(p => !p.IsBot && p.WantsToContinue) && !game.GameOver ? ContinueGrace : ContinueTimeout);
 
             _games[game.Id] = game;
             restored.Add(game);
@@ -730,6 +759,7 @@ public class GameService(
                 RoundNumber = game.RoundNumber,
                 MyPlayerId = forPlayerId,
                 TurnDeadline = game.TurnDeadline,
+                ContinueDeadline = game.Status == GameStatus.Finished ? game.ContinueDeadline : null,
                 TargetWins = game.TargetWins,
                 GameOver = game.GameOver,
                 IsPrivate = game.IsPrivate,
@@ -826,6 +856,7 @@ public class GameService(
     {
         game.StartPlayerIndex = (game.StartPlayerIndex + 1) % game.Players.Count;
         game.RoundNumber++;
+        game.ContinueDeadline = null;
         StartGameLocked(game);
     }
 
