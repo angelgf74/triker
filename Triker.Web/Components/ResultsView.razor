@@ -18,13 +18,11 @@
         </div>
     }
 
+    @* La mesa y la ronda, en pequeño: el titular de la pantalla es cómo te ha ido
+       (abajo, en el resumen). «Resultados — nombre de la mesa» no decía nada y con
+       un nombre largo partía en dos líneas. *@
     <div class="results-header">
-        <h2>Resultados — @GameName</h2>
-        <p class="round-label">Ronda @RoundNumber@(TargetWins > 0 && !GameOver ? $" · Meta: {TargetWins}🥇" : "")</p>
-        <p class="scale-hint">
-            Gana la jugada más alta, no los puntos. El número junto a cada jugada es su puesto
-            en la escala de @HandLadder.Total: <strong>1 es la mejor</strong>.
-        </p>
+        <p class="results-kicker">@GameName · Ronda @RoundNumber@(TargetWins > 0 && !GameOver ? $" · Meta: {TargetWins}🥇" : "")</p>
     </div>
 
     @*
@@ -41,15 +39,26 @@
     @if (mine != null || winner != null)
     {
         <div class="round-summary">
+            @if (winner != null)
+            {
+                @* El titular. Con la misma jugada se empata: puede haber varios
+                   ganadores. Antes solo se felicitaba al primero de la lista y al
+                   otro se le decia "Ganó Vulcan y Ana", en tercera persona
+                   y en singular. *@
+                @if (mine != null && Position(mine) == 1)
+                {
+                    var conmigo = Winners().Where(r => r.PlayerId != MyPlayerId).Select(r => r.PlayerName).ToList();
+                    <h2 class="rs-titular"><Icono Nombre="trofeo" /> Ganaste la ronda@(conmigo.Count > 0 ? $" junto a {Lista(conmigo)}" : "")</h2>
+                }
+                else
+                {
+                    var ganan = Winners().Select(r => r.PlayerName).ToList();
+                    <h2 class="rs-titular">@(ganan.Count == 1 ? "Ganó" : "Ganaron") @Lista(ganan) con @winner.HandName</h2>
+                }
+            }
             @if (mine != null)
             {
                 <div class="rs-mine">
-                    @* Fuera del podio MedalLabel ya devuelve "8º": pintarlo
-                       junto a la posicion daba "8º 8º de 8". *@
-                    @if (Position(mine) <= 3)
-                    {
-                        <span class="rs-medal">@MedalLabel(mine)</span>
-                    }
                     <span class="rs-position">@PositionLabel(mine) de @Results.Count</span>
                     <span class="rs-play">
                         @mine.HandName
@@ -57,26 +66,7 @@
                             @HandLadder.Position(mine.HandRank)/@HandLadder.Total
                         </span>
                     </span>
-                    @* Sin puntos: justo encima pone que no deciden nada. *@
-                </div>
-            }
-            @if (winner != null)
-            {
-                <div class="rs-winner">
-                    @* Con la misma jugada se empata: puede haber varios ganadores.
-                       Antes solo se felicitaba al primero de la lista y al
-                       otro se le decia "Ganó Vulcan y Ana", en tercera persona
-                       y en singular. *@
-                    @if (mine != null && Position(mine) == 1)
-                    {
-                        var conmigo = Winners().Where(r => r.PlayerId != MyPlayerId).Select(r => r.PlayerName).ToList();
-                        <span><Icono Nombre="trofeo" /> Ganaste la ronda@(conmigo.Count > 0 ? $" junto a {Lista(conmigo)}" : "")</span>
-                    }
-                    else
-                    {
-                        var ganan = Winners().Select(r => r.PlayerName).ToList();
-                        <span>@(ganan.Count == 1 ? "Ganó" : "Ganaron") <strong>@Lista(ganan)</strong> con @winner.HandName</span>
-                    }
+                    @* Sin puntos: no deciden nada. *@
                 </div>
             }
         </div>
@@ -171,6 +161,12 @@
         </div>
     }
 
+    @* Justo encima de las manos, que es donde salen los numeros que explica. *@
+    <p class="scale-hint">
+        Gana la jugada más alta, no los puntos. El número junto a cada jugada es su puesto
+        en la escala de @HandLadder.Total: <strong>1 es la mejor</strong>.
+    </p>
+
     <div class="results-list">
         @{ var orden = 0; }
         @foreach (var result in Results.OrderBy(r => r.Rank))
@@ -186,7 +182,7 @@
                 <button type="button" class="result-entry result-collapsed rank-@result.Rank"
                         aria-expanded="false" title="Ver la mano de @result.PlayerName"
                         @onclick="() => _abiertas.Add(abrir)">
-                    <span class="rank-medal">@MedalLabel(result)</span>
+                    <span class="rank-medal">@PositionLabel(result)</span>
                     <span class="result-player-name">@result.PlayerName</span>
                     <span class="rc-hand">
                         @result.HandName
@@ -214,7 +210,7 @@
             <div class="result-entry @(result.PlayerId == MyPlayerId ? "my-result" : "") rank-@result.Rank">
 
                 <div class="result-player-header">
-                    <span class="rank-medal">@MedalLabel(result)</span>
+                    <span class="rank-medal">@PositionLabel(result)</span>
                     <span class="result-player-name">
                         @result.PlayerName@(result.PlayerId == MyPlayerId ? " (tú)" : "")
                     </span>
@@ -429,14 +425,8 @@
     private int Position(HandResultDto result)
         => Results.Count(r => r.HandRank > result.HandRank) + 1;
 
-    private string MedalLabel(HandResultDto result) => Position(result) switch
-    {
-        1 => "🥇",
-        2 => "🥈",
-        3 => "🥉",
-        var n => $"{n}º"
-    };
-
+    // El puesto, siempre en número. Las medallas 🥇🥈🥉 se distinguían solo por el
+    // color y por un dígito de 6 px; «1º» se lee, y el dorado lo pone el CSS (.rank-1).
     private string PositionLabel(HandResultDto result) => $"{Position(result)}º";
 
     // Puede haber empate arriba: se nombran todos los que comparten la mejor

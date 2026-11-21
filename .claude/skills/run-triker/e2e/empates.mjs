@@ -71,8 +71,8 @@ try {
   ok(/1º de 4/.test(resumen), 'tu puesto es 1º de 4');
   ok(new RegExp(`Ganaste la ronda junto a ${info.otro}`).test(resumen), `dice que ganaste junto a ${info.otro}, no como si hubieras ganado en solitario ni como si hubiera ganado otro`);
   const medallas = (await page.locator('.result-entry .rank-medal').allTextContents()).map(limpio);
-  ok(medallas[0] === '🥇' && medallas[1] === '🥇', `los dos empatados llevan oro: ${medallas.join(' ')}`);
-  ok(medallas[2] === '🥉' && medallas[3] === '🥉', 'y los siguientes son terceros: no hay segundo');
+  ok(medallas[0] === '1º' && medallas[1] === '1º', `los dos empatados son primeros: ${medallas.join(' ')}`);
+  ok(medallas[2] === '3º' && medallas[3] === '3º', 'y los siguientes son terceros: no hay segundo');
   ok(await page.locator('.result-entry.rank-1').count() === 2, 'los dos empatados van resaltados como ganadores');
   await page.screenshot({ path: join(SHOTS, 'm01-empate-ganas.png') });
   await page.context().close();
