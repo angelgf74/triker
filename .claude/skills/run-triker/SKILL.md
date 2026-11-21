@@ -169,6 +169,7 @@ node .claude/skills/run-triker/e2e/empates.mjs           # or one directly
 | `iconos` | interface icons are line drawings (`Icono`), not emojis: source scan plus what is painted on each screen |
 | `mesa` | your turn at 360 px: felt-coloured zone edge to edge, cards at least 62 px wide, the 16-step ladder, one action button that does not move |
 | `resultados-de-un-vistazo` | results headline says how you did, places are numbers, gold ring only on your row and gold number only on the winners |
+| `lobby` | lobby at 360 px: the decorative fan of cards, name label above its field, game rows as panels, and «Jugar contra bots» still on the first screen |
 | `nombres-invisibles`, `ritmo-de-los-bots` | API only: invisible characters in names; bot pacing timings |
 | `fuente-propia`, `vista-previa-de-enlaces`, `sin-peticiones-fallidas` | no Google Fonts request; Open Graph tags; no 4xx from the site itself |
 | `politica-de-seguridad` (2 min) | the published package under its CSP: full walk-through with zero violations, and what it must block |
