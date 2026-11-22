@@ -120,6 +120,9 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
     padding: 0.6rem 1.5rem; border: 1.5px solid var(--linea-fuerte); border-radius: 12px;
 }
 .btn-secondary:hover:not(:disabled) { background: rgba(255,255,255,0.08); }
+/* 44 px como minimo, lo que ocupa un dedo: con el relleno y la letra de arriba se
+   quedaban en 41 («Jugar contra bots», «Siguiente ronda»...). */
+.btn-primary, .btn-secondary { min-height: 44px; }
 /* Verde y rojo mas oscuros: el blanco sobre #4CAF50 daba 2,8:1 y sobre
    #e53935 4,2:1; ahora 5,1:1 y 5:1. */
 .btn-join {
@@ -242,7 +245,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .game-card:hover { border-color: rgba(240,192,64,0.3); }
 .game-info { flex: 1; display: flex; flex-direction: column; gap: 0.2rem; }
 .game-name { font-weight: 700; font-size: 1rem; }
-.game-creator { font-size: 0.8rem; color: #888; }
+/* --texto-suave y no #888: sobre un panel el gris daba 4:1 (minimo 4,5). */
+.game-creator { font-size: 0.8rem; color: var(--texto-suave); }
 .game-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 0.3rem; }
 .player-count { font-size: 0.85rem; color: #aaa; }
 .game-status { font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 20px; }
@@ -476,7 +480,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 h1.game-title-small { color: inherit; }
 .turn-indicator { padding: 0.25rem 0.8rem; border-radius: 20px; font-size: 0.85rem; font-weight: 700; }
 .turn-indicator.my-turn { background: var(--acento); color: var(--sobre-acento); animation: pulse 1.5s infinite; }
-.turn-indicator.waiting-turn { background: rgba(255,255,255,0.08); color: #aaa; }
+/* El claro de los textos del tapete (pista, escala): #aaa se quedaba en 4,47:1. */
+.turn-indicator.waiting-turn { background: rgba(255,255,255,0.08); color: #d5dee8; }
 .turn-indicator.revealing { background: rgba(33,150,243,0.2); color: #64B5F6; }
 .turn-countdown { display: flex; align-items: center; gap: 0.4rem; }
 .countdown-secs { font-size: 0.8rem; color: #bbb; min-width: 26px; text-align: right; font-variant-numeric: tabular-nums; }
@@ -802,8 +807,8 @@ body.colorblind .cb-code { display: inline; }
 .btn-share {
     align-self: flex-start;
     display: inline-flex; align-items: center; gap: 0.35rem;
-    padding: 0.3rem 0.85rem;
-    border-radius: 20px;
+    padding: 0.3rem 1rem; min-height: 44px;   /* media 29 px de alto: no cabia un dedo */
+    border-radius: 22px;
     border: 1.5px solid rgba(255,255,255,0.25);
     background: rgba(255,255,255,0.06);
     color: #e8e8ec;
@@ -1031,7 +1036,7 @@ body.colorblind .cb-code { display: inline; }
     font-size: 0.85rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #888;
+    color: var(--texto-suave);
     font-weight: 600;
 }
 .stats-table {
@@ -1445,7 +1450,7 @@ body.colorblind .hmc-cb { display: block; }
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 0.35rem;
 }
-.rhp-title { font-size: 0.75rem; color: #888; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.rhp-title { font-size: 0.75rem; color: var(--texto-suave); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
 .rhp-close {
     background: none; border: none; color: var(--texto-suave); cursor: pointer;
     font-size: 0.8rem; line-height: 1; padding: 0 0.1rem;
@@ -1473,7 +1478,7 @@ body.colorblind .hmc-cb { display: block; }
     display: flex; flex-direction: column; gap: 0.35rem;
 }
 .ssp-title {
-    font-size: 0.75rem; color: #888; font-weight: 700;
+    font-size: 0.75rem; color: var(--texto-suave); font-weight: 700;
     letter-spacing: 0.04em; text-transform: uppercase;
 }
 .ssp-table {
