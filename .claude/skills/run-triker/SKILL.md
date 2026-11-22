@@ -168,6 +168,7 @@ node .claude/skills/run-triker/e2e/empates.mjs           # or one directly
 | `un-solo-acento` | colour base: gold is the only accent, nothing purple outside the cards, soft text contrast |
 | `iconos` | interface icons are line drawings (`Icono`), not emojis: source scan plus what is painted on each screen |
 | `mesa` | your turn at 360 px: felt-coloured zone edge to edge, cards at least 62 px wide, the 16-step ladder, one action button that does not move |
+| `asientos` | rivals as seats above your zone up to 8 (one or two rows), as a list below it from 9; history and session panels under the table; the play button stays on the first screen at 360x740 |
 | `resultados-de-un-vistazo` | results headline says how you did, places are numbers, gold ring only on your row and gold number only on the winners |
 | `lobby` | lobby at 360 px: the decorative fan of cards, name label above its field, game rows as panels, and «Jugar contra bots» still on the first screen |
 | `imagen-de-compartir` | the shared image of a hand: generated for real and read pixel by pixel (flat background, felt behind the cards, group bars, no emojis) |
