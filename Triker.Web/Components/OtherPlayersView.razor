@@ -9,10 +9,24 @@
     descarte, medallas -- cabe en una linea.
 *@
 
-<div class="other-players">
-    @foreach (var player in Players
+@*
+    Dos disposiciones. Como asientos (Asientos, hasta MaxAsientos rivales): arriba de
+    tu zona, cada rival con su avatar, en una fila hasta 4 y en dos hasta 8. Con más
+    no caben sin echar tu mano de la pantalla, y van en la lista de siempre, debajo.
+    Es el mismo marcado; lo que cambia es el CSS (.other-players.asientos).
+*@
+@{
+    var rivales = Players
         .SkipWhile(p => p.Id != MyPlayerId).Skip(1)
-        .Concat(Players.TakeWhile(p => p.Id != MyPlayerId)))
+        .Concat(Players.TakeWhile(p => p.Id != MyPlayerId))
+        .ToList();
+    // Hasta 4, una fila; de 5 a 8, dos filas lo más iguales posible (5 -> 3 + 2).
+    var columnas = rivales.Count <= 4 ? Math.Max(rivales.Count, 1) : (rivales.Count + 1) / 2;
+}
+
+<div class="other-players @(Asientos ? (rivales.Count <= 4 ? "asientos asientos-pocos" : "asientos asientos-muchos") : "")"
+     style="@(Asientos ? $"--columnas:{columnas}" : null)">
+    @foreach (var player in rivales)
     {
         // Quien salio a mitad de ronda sigue en la lista hasta revelar.
         var ready = player.TurnStatus == PlayerTurnStatus.Ready && !player.HasLeft;
@@ -22,6 +36,12 @@
             {
                 <span class="reaction-bubble" @key="rx.Seq">@rx.Emoji</span>
             }
+
+            @* El avatar solo se ve en los asientos. Los bots llevan un robot: ahí la
+               etiqueta «Bot» no cabe, y queda solo para los lectores de pantalla. *@
+            <span class="op-avatar" aria-hidden="true">
+                @if (player.IsBot) { <Icono Nombre="robot" /> } else { @Inicial(player.Name) }
+            </span>
 
             <span class="op-mark" aria-hidden="true">@(player.HasLeft ? "✕" : player.IsCurrentTurn ? "▸" : ready ? "✓" : "•")</span>
 
@@ -63,7 +83,7 @@
                 }
                 else
                 {
-                    <span class="thinking-badge">pensando…</span>
+                    <span class="thinking-badge" title="Todavía no le ha tocado">espera</span>
                 }
             </span>
         </div>
@@ -74,4 +94,13 @@
     [Parameter] public List<PlayerDto> Players { get; set; } = [];
     [Parameter] public Guid MyPlayerId { get; set; }
     [Parameter] public Dictionary<Guid, ReactionEntry>? Reactions { get; set; }
+    [Parameter] public bool Asientos { get; set; }
+
+    // Con más rivales que estos, los asientos (dos filas) ya no caben encima de tu
+    // mano en un móvil de 360×740 sin sacar el botón de jugar de la pantalla.
+    public const int MaxAsientos = 8;
+
+    // La primera letra del nombre, entera aunque sea un emoji o lleve tilde.
+    private static string Inicial(string nombre)
+        => string.IsNullOrWhiteSpace(nombre) ? "?" : System.Globalization.StringInfo.GetNextTextElement(nombre.Trim()).ToUpperInvariant();
 }

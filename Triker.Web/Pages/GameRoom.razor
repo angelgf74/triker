@@ -230,18 +230,13 @@
         }
         else
         {
-            @if (_lastRoundResults != null && _historyVisible)
+            @* Los rivales, sentados a la mesa: arriba ellos y abajo tú. Solo mientras
+               caben en una o dos filas; con más, los asientos echarían tu mano de la
+               pantalla y se quedan en lista, debajo (ver OtherPlayersView). *@
+            var enAsientos = _state.Players.Count(p => p.Id != _myPlayerId) <= OtherPlayersView.MaxAsientos;
+            @if (enAsientos)
             {
-                <div class="info-row">
-                    <div class="info-col">
-                        <RoundHistoryPanel Results="_lastRoundResults" RoundNumber="_lastRoundNumber"
-                                           OnClose="@(() => _historyVisible = false)" />
-                    </div>
-                    <div class="info-col">
-                        <SessionStatsPanel Players="_state.Players" RoundNumber="_lastRoundNumber"
-                                           MyPlayerId="_myPlayerId" />
-                    </div>
-                </div>
+                <OtherPlayersView Players="_state.Players" MyPlayerId="_myPlayerId" Reactions="_reactions" Asientos="true" />
             }
 
             var me = Me;
@@ -340,7 +335,27 @@
                 </div>
             }
 
-            <OtherPlayersView Players="_state.Players" MyPlayerId="_myPlayerId" Reactions="_reactions" />
+            @if (!enAsientos)
+            {
+                <OtherPlayersView Players="_state.Players" MyPlayerId="_myPlayerId" Reactions="_reactions" />
+            }
+
+            @* El historial y la sesión, debajo de la mesa: son para consultar. Encima
+               de tu mano la bajaban desde la segunda ronda, y con los asientos el
+               botón de jugar se salía de la pantalla en un móvil pequeño. *@
+            @if (_lastRoundResults != null && _historyVisible)
+            {
+                <div class="info-row">
+                    <div class="info-col">
+                        <RoundHistoryPanel Results="_lastRoundResults" RoundNumber="_lastRoundNumber"
+                                           OnClose="@(() => _historyVisible = false)" />
+                    </div>
+                    <div class="info-col">
+                        <SessionStatsPanel Players="_state.Players" RoundNumber="_lastRoundNumber"
+                                           MyPlayerId="_myPlayerId" />
+                    </div>
+                </div>
+            }
 
             @if (!IsSpectator)
             {
