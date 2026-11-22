@@ -2,9 +2,11 @@
 // que tiene detrás de verdad, medido en la página pintada y no en la hoja de estilos. Un
 // gris que vale sobre el fondo de la página (#888 da 4,9:1) no llega sobre un panel (4:1),
 // y eso solo se ve midiendo cada texto donde cae.
-// Recorre lobby con una partida, formulario, sala de espera, mesa, confirmación de salida,
-// resultados y la segunda ronda. No mide las cartas (su color es un atributo del juego),
-// los emojis ni los controles desactivados, que la norma deja fuera.
+// Recorre los diálogos de ayuda y de sugerencias, lobby con una partida, formulario, sala
+// de espera, mesa, confirmación de salida, resultados y la segunda ronda, y lo que ve un
+// espectador de la mesa y de los resultados. No mide las cartas, tampoco las de ejemplo de
+// la ayuda (su color es un atributo del juego), los emojis ni los controles desactivados,
+// que la norma deja fuera.
 // Vale contra producción: crea dos mesas y sale de ellas.
 import { chromium, WEB, MOVIL, ok, espera, fallar, terminar } from './lib/comun.mjs';
 
@@ -15,9 +17,9 @@ const flojos = (page) => page.evaluate(() => {
   const hex = ({ r, g, b }) => '#' + [r, g, b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
   const vistos = new Map();
   for (const e of document.querySelectorAll('body *')) {
-    if (e.closest('.card') || e.closest('svg') || e.closest(':disabled')) continue;
+    if (e.closest('.card, .help-mini-card') || e.closest('svg') || e.closest(':disabled')) continue;
     const texto = [...e.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').trim();
-    if (!/[\p{L}\p{N}]/u.test(texto)) continue;   // sin letras ni cifras: vacío, un signo o un emoji
+    if (!/[\p{L}\p{N}\p{Sm}]/u.test(texto)) continue;   // sin letras, cifras ni un «+»: vacío, un signo o un emoji
     const caja = e.getBoundingClientRect();
     if (caja.width === 0 || caja.height === 0) continue;
     const s = getComputedStyle(e);
@@ -60,12 +62,22 @@ const entrar = async (nombre) => {
   await page.fill('#nombre-jugador', nombre);
   return page;
 };
-const MESA = `Contraste ${Date.now() % 100000}`;
+// El nombre de Ana lleva número: su partida contra bots se llama «Partida de <nombre>» y la
+// espectadora tiene que dar con ella en el lobby, también en producción.
+const N = Date.now() % 100000, MESA = `Contraste ${N}`, ANA = `Ana ${N}`;
 let berto;
 try {
-  console.log('== A. Sala de espera y lobby con una partida ==');
-  // Berto abre una mesa: su sala de espera es una pantalla y su fila en el lobby de Ana, otra.
+  console.log('== A. Diálogos, sala de espera y lobby con una partida ==');
   berto = await entrar('Berto');
+  await berto.click('.btn-help');
+  await berto.waitForSelector('.help-modal');
+  await medir(berto, 'diálogo de ayuda');
+  await berto.click('.help-close');
+  await berto.click('.btn-sug');
+  await berto.waitForSelector('.sug-modal');
+  await medir(berto, 'diálogo de sugerencias');
+  await berto.click('.help-close');
+  // Berto abre una mesa: su sala de espera es una pantalla y su fila en el lobby de Ana, otra.
   await berto.click('.btn-new-game');
   await berto.fill('.create-form .name-input', MESA);
   await medir(berto, 'formulario de nueva partida');
@@ -73,7 +85,8 @@ try {
   await berto.waitForSelector('.waiting-room');
   await medir(berto, 'sala de espera');
 
-  const page = await entrar('Ana');
+  const page = await entrar(ANA);
+  const carla = await entrar('Carla');
   await page.click('.btn-refresh');
   await page.locator(`.game-card:has-text("${MESA}")`).waitFor({ timeout: 10_000 });
   await medir(page, 'lobby con una partida en la lista');
@@ -88,10 +101,22 @@ try {
   await medir(page, 'confirmación de salida');
   await page.click('.leave-confirm .btn-secondary');
 
-  console.log('== C. Resultados y segunda ronda ==');
+  console.log('== C. Lo que ve un espectador ==');
+  await carla.click('.btn-refresh');
+  await carla.click(`.game-card:has-text("Partida de ${ANA}") .btn-spectate`, { timeout: 10_000 });
+  await carla.waitForSelector('.spectator-badge', { timeout: 15_000 });
+  await carla.waitForSelector('.other-player', { timeout: 10_000 });
+  await medir(carla, 'mesa vista por un espectador');
+
+  console.log('== D. Resultados y segunda ronda ==');
   await page.click('.btn-pass');
   await page.waitForSelector('.results-view .result-entry', { timeout: 40_000 });
   await medir(page, 'resultados');
+  // «Esperando a los jugadores…»: la misma línea gris que ve quien ya decidió y espera al resto.
+  await carla.waitForSelector('.results-view .waiting-others', { timeout: 10_000 });
+  await medir(carla, 'resultados vistos por un espectador');
+  await carla.click('.results-view .btn-secondary:has-text("Dejar de ver")');
+  await carla.waitForSelector('.lobby .game-title', { timeout: 15_000 });
   await page.click('.continue-buttons .btn-primary');
   await page.waitForSelector('.round-badge:has-text("Ronda 2")', { timeout: 20_000 });
   await page.waitForSelector('.info-row', { timeout: 10_000 });
