@@ -2,28 +2,37 @@
 <html lang="es">
 <head>
     <meta charset="utf-8" />
-    <!-- Pagina fija, sin scripts ni recursos de fuera: solo sus estilos. La de
-         la app la pone deploy/csp.mjs al publicar. -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'" />
+    <!-- Pagina fija, sin scripts ni recursos de fuera: solo sus estilos y la
+         fuente de la app, que se sirve desde la propia web. La de la app la pone
+         deploy/csp.mjs al publicar. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Política de privacidad — Triker</title>
     <meta name="robots" content="index, follow" />
     <style>
-        :root { --bg:#1a1a2e; --bg2:#23233f; --accent:#f0c040; --text:#e8e8f0; --muted:#a0a0b8; }
+        /* La letra y los colores de la app (css/app.css): esta pagina no carga
+           esa hoja, asi que se repiten aqui. Si cambian alli, cambian aqui. */
+        @font-face {
+            font-family: 'Nunito Sans';
+            font-style: normal; font-weight: 400 900; font-display: swap;
+            src: url('fonts/nunito-sans-latin.woff2') format('woff2');
+        }
+        :root { --bg:#1a1a2e; --bg2:#26284a; --accent:#f0c040; --text:#f3f2ec; --muted:#a8abc6; }
         * { box-sizing: border-box; }
         body {
             margin: 0; background: var(--bg); color: var(--text);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Nunito Sans', 'Segoe UI', system-ui, sans-serif;
             line-height: 1.65; padding: 1.5rem;
         }
         .wrap { max-width: 760px; margin: 0 auto; }
-        h1 { color: var(--accent); font-size: 1.8rem; margin: 0 0 .25rem; }
-        h2 { color: var(--accent); font-size: 1.2rem; margin: 2rem 0 .5rem; }
+        /* Titulos en el color del texto: el dorado queda para los enlaces, como en la app. */
+        h1 { font-size: 1.8rem; font-weight: 800; line-height: 1.2; margin: 0 0 .25rem; }
+        h2 { font-size: 1.2rem; font-weight: 800; margin: 2rem 0 .5rem; }
         a { color: var(--accent); }
         .updated { color: var(--muted); font-size: .9rem; margin-bottom: 1.5rem; }
         ul { padding-left: 1.2rem; }
         li { margin: .35rem 0; }
-        .card { background: var(--bg2); border-radius: 12px; padding: 1rem 1.25rem; margin-top: 1rem; }
+        .card { background: var(--bg2); border-radius: 16px; padding: 1rem 1.25rem; margin-top: 1rem; }
         code { background: rgba(255,255,255,.08); padding: .1rem .35rem; border-radius: 5px; }
         footer { color: var(--muted); font-size: .85rem; margin-top: 2.5rem; border-top: 1px solid rgba(255,255,255,.1); padding-top: 1rem; }
     </style>
