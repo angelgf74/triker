@@ -171,6 +171,7 @@ node .claude/skills/run-triker/e2e/empates.mjs           # or one directly
 | `mesa` | your turn at 360 px: felt-coloured zone edge to edge, cards at least 62 px wide, the 16-step ladder, one action button that does not move |
 | `asientos` | rivals as seats above your zone up to 8 (one or two rows), as a list below it from 9; history and session panels under the table; the play button stays on the first screen at 360x740 |
 | `resultados-de-un-vistazo` | results headline says how you did, places are numbers, gold ring only on your row and gold number only on the winners |
+| `desplegar-la-jugada` | the play chip that unfolds its groups is a button: 44 px for the finger with the visible pill and its row unchanged, covers no other control, `aria-expanded`, opens and closes with Enter and Space (full table, 15 bots, so some hand has two groups) |
 | `lobby` | lobby at 360 px: the decorative fan of cards, name label above its field, game rows as panels, and «Jugar contra bots» still on the first screen |
 | `imagen-de-compartir` | the shared image of a hand: generated for real and read pixel by pixel (flat background, felt behind the cards, group bars, no emojis) |
 | `nombres-invisibles`, `ritmo-de-los-bots` | API only: invisible characters in names; bot pacing timings |
@@ -182,7 +183,7 @@ leaves the API full: restart it afterwards) and `que-carga-la-web` (not a test:
 the inventory of what the page loads, for updating `deploy/csp.mjs`).
 
 **Against production.** Set both variables; only `humo`, `diseno-movil`,
-`contraste-del-texto`, `resultados-y-cabecera`, `fuente-propia`, `vista-previa-de-enlaces`,
+`contraste-del-texto`, `resultados-y-cabecera`, `desplegar-la-jugada`, `fuente-propia`, `vista-previa-de-enlaces`,
 `nombres-invisibles`, `ritmo-de-los-bots` and `que-carga-la-web` accept it (the
 rest call `soloLocal()` and exit 2). Every one creates public test tables for a
 few seconds and leaves them.

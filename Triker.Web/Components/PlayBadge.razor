@@ -5,19 +5,20 @@
     bool hasBreakdown = realGroups.Count > 1;
 }
 <div class="result-badges">
-    <span class="grp-badge grp-hand-name @(hasBreakdown ? "expandable" : "") @(realGroups.Count == 0 ? "grp-nojugada" : "")"
-          @onclick="@(() => { if (hasBreakdown) _expanded = !_expanded; })">
-        @Result.HandName
-        @* Sin esto, "Doble Pareja Mixta" gana a "Doble Pareja" y nada en
-           pantalla lo explica: la escala solo vivia en el modal de ayuda. *@
-        <span class="grp-ladder" title="@HandLadder.Label(Result.HandRank)">
-            @HandLadder.Position(Result.HandRank)/@HandLadder.Total
-        </span>
-        @if (hasBreakdown)
-        {
+    @* Con grupos que desplegar se toca, asi que es un boton: antes era un span con
+       clic, de 26 px y sin teclado. *@
+    @if (hasBreakdown)
+    {
+        <button type="button" class="grp-badge grp-hand-name expandable" aria-expanded="@(_expanded ? "true" : "false")"
+                @onclick="() => _expanded = !_expanded">
+            @Nombre
             <span class="grp-caret @(_expanded ? "open" : "")" aria-hidden="true">▾</span>
-        }
-    </span>
+        </button>
+    }
+    else
+    {
+        <span class="grp-badge grp-hand-name @(realGroups.Count == 0 ? "grp-nojugada" : "")">@Nombre</span>
+    }
     @if (hasBreakdown && _expanded)
     {
         <div class="grp-breakdown">
@@ -35,4 +36,12 @@
 
     private bool _expanded;
 
+    private RenderFragment Nombre => @<text>
+        @Result.HandName
+        @* Sin esto, "Doble Pareja Mixta" gana a "Doble Pareja" y nada en
+           pantalla lo explica: la escala solo vivia en el modal de ayuda. *@
+        <span class="grp-ladder" title="@HandLadder.Label(Result.HandRank)">
+            @HandLadder.Position(Result.HandRank)/@HandLadder.Total
+        </span>
+    </text>;
 }

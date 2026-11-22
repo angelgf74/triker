@@ -759,11 +759,9 @@ body.colorblind .cb-code { display: inline; }
     background: color-mix(in srgb, var(--gc, #888) 12%, transparent);
     font-size: 0.78rem; font-weight: 700; white-space: nowrap;
 }
-.grp-badge.grp-nojugada {
-    --gc: #888;
-    border-style: dashed;
-    font-style: italic;
-}
+/* Solo la cursiva: el color y el borde son los de .grp-hand-name, que va despues
+   (un --gc gris y un borde a trazos que habia aqui no se pintaban nunca). */
+.grp-badge.grp-nojugada { font-style: italic; }
 /* El nombre de la jugada, en neutro y relleno: antes iba en morado, que competia
    con el dorado y es casi el magenta de las cartas (un atributo que puntua). Las
    pastillas de cada grupo siguen con su borde, asi no se confunden con esta. */
@@ -774,7 +772,21 @@ body.colorblind .cb-code { display: inline; }
     font-size: 0.82rem;
     letter-spacing: 0.02em;
 }
-.grp-badge.grp-hand-name.expandable { cursor: pointer; user-select: none; }
+/* La que despliega sus grupos es un boton de 44 px para el dedo, pero la fila no
+   crece: el margen negativo se come lo que sobra y la pastilla que se ve es el
+   ::before, 9 px mas corto por arriba y por abajo (26 px, como la que no se toca). */
+.grp-badge.grp-hand-name.expandable {
+    position: relative; isolation: isolate;
+    min-height: 44px; margin: -9px 0; padding-block: 0; border: none;
+    background: transparent; font-style: inherit; line-height: inherit;
+    cursor: pointer; user-select: none;
+}
+.grp-badge.grp-hand-name.expandable::before {
+    content: ""; position: absolute; inset: 9px 0; z-index: -1;
+    border-radius: 20px; background: rgba(255,255,255,0.1);
+}
+.grp-badge.grp-hand-name.expandable:focus-visible { outline: none; }
+.grp-badge.grp-hand-name.expandable:focus-visible::before { outline: 2px solid var(--foco); outline-offset: 2px; }
 .grp-caret {
     display: inline-flex; align-items: center; justify-content: center;
     width: 1.15rem; height: 1.15rem; margin-left: 0.4rem;
