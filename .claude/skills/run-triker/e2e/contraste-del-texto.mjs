@@ -4,11 +4,16 @@
 // y eso solo se ve midiendo cada texto donde cae.
 // Recorre los diálogos de ayuda y de sugerencias, lobby con una partida, formulario, sala
 // de espera, mesa, confirmación de salida, resultados y la segunda ronda, y lo que ve un
-// espectador de la mesa y de los resultados. No mide las cartas, tampoco las de ejemplo de
+// espectador de la mesa y de los resultados. También lo que casi nunca se ve: los avisos
+// de la mesa (reconectando, conexión perdida, turno agotado), las dos invitaciones, los
+// avisos del lobby y las pantallas de fallo (partida que no existe, sin asiento, página
+// que no existe, sin conexión con la API). No mide las cartas, tampoco las de ejemplo de
 // la ayuda (su color es un atributo del juego), los emojis ni los controles desactivados,
 // que la norma deja fuera.
-// Vale contra producción: crea dos mesas y sale de ellas.
-import { chromium, WEB, MOVIL, ok, espera, fallar, terminar } from './lib/comun.mjs';
+// Vale contra producción: crea dos mesas y sale de ellas. Lo de «sin conexión» corta la
+// API solo en el navegador de la prueba.
+import { randomUUID } from 'node:crypto';
+import { chromium, WEB, API, MOVIL, ok, espera, fallar, terminar } from './lib/comun.mjs';
 
 const flojos = (page) => page.evaluate(() => {
   const rgba = (s) => { const m = s.match(/[\d.]+/g).map(Number); return { r: m[0], g: m[1], b: m[2], a: m[3] ?? 1 }; };
@@ -25,19 +30,28 @@ const flojos = (page) => page.evaluate(() => {
     const s = getComputedStyle(e);
     // El logo: letras transparentes sobre un degradado propio.
     if (s.visibility === 'hidden' || s.webkitTextFillColor === 'rgba(0, 0, 0, 0)') continue;
-    // El fondo de verdad: las capas de color de los antepasados, de fuera adentro.
+    // El fondo de verdad: las capas de color de los antepasados, de fuera adentro. Un
+    // degradado va encima del color de su caja y cambia de un extremo a otro, así que
+    // cuenta cada uno de sus colores y vale el peor.
     const capas = []; let opacidad = 1;
     for (let p = e; p; p = p.parentElement) {
       const ps = getComputedStyle(p);
-      capas.unshift(rgba(ps.backgroundColor));
+      const paradas = /gradient\(/.test(ps.backgroundImage) ? (ps.backgroundImage.match(/rgba?\([^)]*\)/g) ?? []).map(rgba) : [];
+      capas.unshift({ color: rgba(ps.backgroundColor), paradas });
       opacidad *= parseFloat(ps.opacity);
     }
-    let fondo = { r: 255, g: 255, b: 255, a: 1 };
-    for (const c of capas) fondo = sobre(c, fondo);
+    let fondos = [{ r: 255, g: 255, b: 255, a: 1 }];
+    for (const { color, paradas } of capas) {
+      fondos = fondos.map((f) => sobre(color, f));
+      if (paradas.length) fondos = fondos.flatMap((f) => paradas.map((q) => sobre(q, f)));
+    }
     const tinta = rgba(s.color); tinta.a *= opacidad;
-    const pintado = sobre(tinta, fondo);
-    const [a, b] = [luz(pintado), luz(fondo)].sort((x, y) => y - x);
-    const c = (a + 0.05) / (b + 0.05);
+    const peor = fondos.map((fondo) => {
+      const pintado = sobre(tinta, fondo);
+      const [a, b] = [luz(pintado), luz(fondo)].sort((x, y) => y - x);
+      return { c: (a + 0.05) / (b + 0.05), fondo, pintado };
+    }).sort((x, y) => x.c - y.c)[0];
+    const { c, fondo, pintado } = peor;
     const px = parseFloat(s.fontSize), grande = px >= 24 || (px >= 18.66 && parseInt(s.fontWeight) >= 700);
     if (c >= (grande ? 3 : 4.5)) continue;
     const clave = `${(e.className || e.tagName).toString().trim().slice(0, 36)} ${hex(pintado)} sobre ${hex(fondo)}`;
@@ -65,7 +79,11 @@ const entrar = async (nombre) => {
 // El nombre de Ana lleva número: su partida contra bots se llama «Partida de <nombre>» y la
 // espectadora tiene que dar con ella en el lobby, también en producción.
 const N = Date.now() % 100000, MESA = `Contraste ${N}`, ANA = `Ana ${N}`;
-let berto;
+let berto, sinNombre;
+const lobbyEn = async (ruta) => {
+  await sinNombre.goto(WEB + '/' + ruta, { waitUntil: 'load' });
+  await sinNombre.waitForSelector('.lobby .game-title', { timeout: 90_000 });
+};
 try {
   console.log('== A. Diálogos, sala de espera y lobby con una partida ==');
   berto = await entrar('Berto');
@@ -96,10 +114,33 @@ try {
   await page.waitForSelector('.turn-indicator.my-turn', { timeout: 20_000 });
   await page.waitForFunction(() => document.querySelectorAll('.hand-cards .card.dealing').length === 0, null, { timeout: 10_000 });
   await medir(page, 'mesa en tu turno');
+  // Los avisos de arriba, con el marcado de GameRoom.razor: perder la conexión o agotar el
+  // turno de verdad cuesta minutos (eso lo prueban reconexion y cuenta-atras-y-turno-agotado).
+  for (const [aviso, html] of [
+    ['«Reconectando…»', '<div class="reconnect-banner reconnect-warn" role="status">⟳ Reconectando...</div>'],
+    ['«Conexión perdida»', '<div class="reconnect-banner reconnect-error" role="alert">Conexión perdida. <button class="btn-reload">Recargar</button></div>'],
+    ['«Se acabó tu tiempo»', '<div class="reconnect-banner timeout-banner" role="alert">Se acabó tu tiempo: pasaste sin descartar. <button class="btn-dismiss" aria-label="Cerrar aviso">✕</button></div>'],
+  ]) {
+    await page.evaluate((h) => { const d = document.createElement('div'); d.innerHTML = h; d.firstElementChild.id = 'aviso-de-prueba'; document.querySelector('.game-room').prepend(d.firstElementChild); }, html);
+    await medir(page, `aviso ${aviso} sobre la mesa`);
+    await page.evaluate(() => document.getElementById('aviso-de-prueba').remove());
+  }
   await page.click('.btn-leave');
   await page.waitForSelector('.leave-confirm');
   await medir(page, 'confirmación de salida');
   await page.click('.leave-confirm .btn-secondary');
+
+  // Las invitaciones, desde un navegador sin nombre guardado (con nombre, a una mesa en
+  // espera se entra directo): a la de Berto, que espera, y a la de Ana, que ya ha empezado.
+  sinNombre = await (await browser.newContext({ ...MOVIL })).newPage();
+  sinNombre.on('pageerror', (e) => { if (!/ServiceWorker/.test(e.message)) console.log(`  [pageerror] ${e.message.slice(0, 160)}`); });
+  const idDe = (p) => p.url().match(/game\/([0-9a-f-]{36})/)[1];
+  await lobbyEn(`?join=${idDe(berto)}`);
+  await sinNombre.waitForSelector('.invite-banner .btn-primary', { timeout: 10_000 });
+  await medir(sinNombre, 'invitación a una mesa que espera');
+  await lobbyEn(`?join=${idDe(page)}`);
+  await sinNombre.waitForSelector('.invite-banner-hint', { timeout: 10_000 });
+  await medir(sinNombre, 'invitación a una mesa ya empezada');
 
   console.log('== C. Lo que ve un espectador ==');
   await carla.click('.btn-refresh');
@@ -131,6 +172,38 @@ try {
   await medir(page, 'resultados de la segunda ronda, con la tabla de la sesión');
   await page.click('.continue-buttons .btn-secondary');
   await page.waitForSelector('.lobby .game-title', { timeout: 15_000 });
+
+  console.log('== E. Avisos del lobby y pantallas de fallo ==');
+  await lobbyEn(`?join=${randomUUID()}`);
+  await sinNombre.waitForSelector('.error-msg', { timeout: 10_000 });
+  await medir(sinNombre, 'invitación a una mesa que ya no está');
+  await lobbyEn('?aviso=fuera');
+  await sinNombre.waitForSelector('.info-msg', { timeout: 10_000 });
+  await medir(sinNombre, 'aviso de que te sacamos de la mesa');
+  await sinNombre.click('.btn-play-now');
+  await sinNombre.waitForSelector('#nombre-aviso', { timeout: 5_000 });
+  await medir(sinNombre, 'aviso de que falta el nombre');
+  const fallo = async (ruta, que) => {
+    await sinNombre.goto(WEB + '/' + ruta, { waitUntil: 'load' });
+    await sinNombre.waitForSelector('.room-problem', { timeout: 30_000 });
+    await medir(sinNombre, `${que} («${(await sinNombre.locator('.room-problem-title').textContent()).trim()}»)`);
+  };
+  // Un asiento guardado de una partida que no existe: la API dice 404.
+  const FALSA = randomUUID();
+  const asientoFalso = () => sinNombre.evaluate((g) => localStorage.setItem('triker_asientos',
+    JSON.stringify([{ GameId: g, Id: crypto.randomUUID(), Token: 'x', Espectador: false }])), FALSA);
+  await asientoFalso();
+  await fallo(`game/${FALSA}`, 'partida que ya no existe');
+  await fallo(`game/${randomUUID()}`, 'partida sin asiento');
+  await fallo('no-hay-nada-aqui', 'página que no existe');
+  // Sin API: solo en este navegador.
+  const apiHost = new URL(API).host;
+  await sinNombre.route((u) => u.host === apiHost, (r) => r.abort());
+  await asientoFalso();
+  await fallo(`game/${FALSA}`, 'partida sin conexión');
+  await lobbyEn('');
+  await sinNombre.waitForSelector('.empty-list[role="alert"]', { timeout: 30_000 });
+  await medir(sinNombre, 'lobby sin conexión');
 } catch (e) {
   fallar(e);
 } finally {
