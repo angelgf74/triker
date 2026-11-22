@@ -158,15 +158,15 @@ node .claude/skills/run-triker/e2e/empates.mjs           # or one directly
 | `jugar-contra-bots` | «Jugar contra bots»: one tap, one create request, no waiting room |
 | `salir-de-la-mesa`, `volver-a-tu-partida` | leaving in every phase; the lobby taking you back to your seat |
 | `salas-sin-nadie` (4 min) | waiting rooms nobody is connected to stop being listed |
-| `cuenta-atras-y-turno-agotado` (3 min) | countdown bar in es-ES, timeout banner surviving the reveal |
+| `cuenta-atras-y-turno-agotado` (3 min) | countdown bar in es-ES, timeout banner surviving the reveal, its close button at 44 px |
 | `plazo-entre-rondas` (3 min) | the 60 s to decide once someone wants to go on; an ad must not get you removed |
 | `reconexion` (3 min) | table and lobby come back alone after a 50 s network cut, and after a failed first connect |
 | `anuncio-entre-rondas`, `privacidad-de-anuncios` | interstitial timing and the privacy link, with a fake `window.AndroidAds` |
 | `empates` | shared first place in the results summary |
 | `sonido-descarte-y-ayuda` | champion sound, rejected discard message, help wording |
-| `diseno-movil`, `resultados-y-cabecera` | layout measurements at 360 px; results folded on big tables |
+| `diseno-movil`, `resultados-y-cabecera` | layout measurements at 360 px, every control at 44 px or more (`controlesCortos` in `lib/comun.mjs`: buttons, fields, checkbox labels) in the lobby, both dialogs, the create form, the waiting room, the results and round 2; results folded on big tables |
 | `un-solo-acento` | colour base: gold is the only accent, nothing purple outside the cards, soft text contrast |
-| `contraste-del-texto` | every painted text reaches WCAG contrast (4.5:1, 3:1 if large) against the background actually behind it, screen by screen; cards, emojis and disabled controls excluded |
+| `contraste-del-texto` | every painted text reaches WCAG contrast (4.5:1, 3:1 if large) against the background actually behind it, screen by screen (help and suggestion dialogs and a spectator's table and results included); cards, the help's example cards, emojis and disabled controls excluded |
 | `iconos` | interface icons are line drawings (`Icono`), not emojis: source scan plus what is painted on each screen |
 | `mesa` | your turn at 360 px: felt-coloured zone edge to edge, cards at least 62 px wide, the 16-step ladder, one action button that does not move |
 | `asientos` | rivals as seats above your zone up to 8 (one or two rows), as a list below it from 9; history and session panels under the table; the play button stays on the first screen at 360x740 |

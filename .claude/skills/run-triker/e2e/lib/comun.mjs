@@ -58,6 +58,30 @@ export function terminar() {
   setTimeout(() => process.exit(process.exitCode), 5000).unref();
 }
 
+// Los controles pintados que no llegan a 44 px, lo que ocupa un dedo: botones, enlaces,
+// campos y casillas. Un campo de texto o un desplegable solo se mide de alto (el ancho lo
+// da el formulario); una casilla se toca por su etiqueta, así que se mide la etiqueta.
+// Fuera queda lo que no se toca: lo oculto a los lectores de pantalla (el abanico del
+// lobby) y las etiquetas que solo nombran un campo.
+export const controlesCortos = (page) => page.evaluate(() => {
+  const vistos = new Map();
+  for (const e of document.querySelectorAll('button, a[href], input, select, textarea, label, summary, [role="button"]')) {
+    if (e.closest('[aria-hidden="true"]') || e.classList.contains('sr-only')) continue;
+    if (e.tagName === 'LABEL' && !e.querySelector('input')) continue;
+    if (e.tagName === 'INPUT' && e.closest('label')) continue;
+    const r = e.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0) continue;
+    const campo = /^(INPUT|SELECT|TEXTAREA)$/.test(e.tagName);
+    const ancho = Math.round(r.width * 10) / 10, alto = Math.round(r.height * 10) / 10;
+    if (alto >= 44 && (campo || ancho >= 44)) continue;
+    const clase = (e.className || '').toString().trim().split(/\s+/).filter(Boolean).join('.');
+    const nombre = (e.textContent || e.placeholder || e.getAttribute('aria-label') || '').trim().replace(/\s+/g, ' ').slice(0, 24);
+    const clave = `${e.tagName.toLowerCase()}${clase ? '.' + clase : ''}`;
+    if (!vistos.has(clave)) vistos.set(clave, `${clave} «${nombre}» ${ancho}×${alto} px`);
+  }
+  return [...vistos.values()].sort();
+});
+
 // Para las pruebas que no deben correr contra producción: llenan el lobby de mesas
 // de prueba, tardan minutos con mesas abiertas o cortan la red del navegador.
 export function soloLocal() {

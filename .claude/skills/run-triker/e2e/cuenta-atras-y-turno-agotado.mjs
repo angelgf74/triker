@@ -1,7 +1,7 @@
 // Comprobación en la app real de la barra de cuenta atrás y del aviso de
 // turno agotado. Solo contra localhost. Tarda unos 2,5 min: deja agotar dos turnos.
 import { join } from 'node:path';
-import { chromium, WEB, MOVIL, SHOTS, ok, espera, sleep, fallar, terminar, soloLocal } from './lib/comun.mjs';
+import { chromium, WEB, MOVIL, SHOTS, ok, espera, sleep, fallar, terminar, soloLocal, controlesCortos } from './lib/comun.mjs';
 
 soloLocal();
 
@@ -52,6 +52,8 @@ try {
   await page.waitForSelector('.results-view .result-entry', { timeout: 30_000 });
   await sleep(1500);
   ok(await page.locator('.timeout-banner').count() === 1, 'y sigue en la pantalla de resultados');
+  const cortos = await controlesCortos(page);
+  ok(cortos.length === 0, `con el aviso a la vista, todo lo que se toca mide al menos 44 px${cortos.length ? ' (no llegan: ' + cortos.join(', ') + ')' : ''}`);
 
   console.log('== C. Turno agotado siendo la última de la ronda (ronda 2: el bot juega antes) ==');
   await page.click('.continue-buttons .btn-primary');

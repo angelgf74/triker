@@ -4,19 +4,17 @@
 // de historial y sesión dentro de su tarjeta. Vale contra producción: crea una mesa
 // privada y sale de ella. SHOT_PRE cambia el prefijo de las capturas.
 import { join } from 'node:path';
-import { chromium, WEB, MOVIL, SHOTS, ok, fallar, terminar } from './lib/comun.mjs';
+import { chromium, WEB, MOVIL, SHOTS, ok, fallar, terminar, controlesCortos } from './lib/comun.mjs';
 
 const PRE = process.env.SHOT_PRE ?? 'diseno-';
 const caja = (page, sel) => page.locator(sel).first().evaluate((e) => { const r = e.getBoundingClientRect(); const s = getComputedStyle(e); return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height), color: s.color, borde: s.borderColor, letra: parseFloat(s.fontSize) }; });
 const desborde = (page) => page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
-// Los botones con los que se decide (principal, secundario y compartir) miden al menos
-// 44 px de alto, que es lo que ocupa un dedo: sin alto mínimo se quedaban en 41, y
-// «Compartir» en 29.
+// Todo lo que se toca mide al menos 44 px, que es lo que ocupa un dedo: sin alto mínimo
+// los botones se quedaban en 41, «Compartir» en 29, el de actualizar en 39×29 y la casilla
+// de partida privada en 28.
 const dedo = async (page, donde) => {
-  const cortos = await page.locator('.btn-primary, .btn-secondary, .btn-share').evaluateAll((els) => els
-    .map((e) => ({ texto: e.textContent.trim(), alto: Math.round(e.getBoundingClientRect().height * 10) / 10 }))
-    .filter((b) => b.alto > 0 && b.alto < 44).map((b) => `«${b.texto}» ${b.alto} px`));
-  ok(cortos.length === 0, `${donde}: los botones de decidir miden al menos 44 px de alto${cortos.length ? ' (no llegan: ' + cortos.join(', ') + ')' : ''}`);
+  const cortos = await controlesCortos(page);
+  ok(cortos.length === 0, `${donde}: todo lo que se toca mide al menos 44 px${cortos.length ? ' (no llegan: ' + cortos.join(', ') + ')' : ''}`);
 };
 
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
@@ -52,6 +50,15 @@ try {
   const distintas = Object.entries(fuentes).filter(([, f]) => f !== fuentes.pagina).map(([k, f]) => `${k}: ${f}`);
   ok(distintas.length === 0, `botones y campos usan la fuente de la página (${distintas.join('; ') || fuentes.pagina})`);
   await page.screenshot({ path: join(SHOTS, `${PRE}01-lobby.png`) });
+  await page.click('.btn-help');
+  await page.waitForSelector('.help-modal');
+  await dedo(page, 'diálogo de ayuda');
+  await page.click('.help-close');
+  await page.click('.btn-sug');
+  await page.waitForSelector('.sug-modal');
+  await dedo(page, 'diálogo de sugerencias');
+  await page.click('.help-close');
+  await page.waitForSelector('.help-overlay', { state: 'detached' });
 
   console.log('== C. Sala de espera privada ==');
   await page.fill('#nombre-jugador', 'Ana');
@@ -88,7 +95,14 @@ try {
   ok(await desborde(page) <= 0, `sin scroll horizontal con el historial y la sesión a la vista (${await desborde(page)} px)`);
   const cols = await page.locator('.info-row .info-col').evaluateAll((els) => els.map((e) => { const r = e.getBoundingClientRect(); return { x: Math.round(r.x), w: Math.round(r.width), dentro: e.scrollWidth <= e.clientWidth + 1 }; }));
   ok(cols.every((c) => c.dentro), `ninguna tabla se sale de su tarjeta (${JSON.stringify(cols)})`);
+  await dedo(page, 'mesa en la segunda ronda');
   await page.screenshot({ path: join(SHOTS, `${PRE}04-mesa-ronda2.png`), fullPage: true });
+  // «Conexión perdida. Recargar» solo sale cuando la conexión se da por cerrada, que no se
+  // puede provocar desde aquí: se pinta el mismo aviso de GameRoom.razor y se mide el botón.
+  await page.evaluate(() => document.body.insertAdjacentHTML('beforeend',
+    '<div id="aviso-de-prueba" class="reconnect-banner reconnect-error">Conexión perdida. <button class="btn-reload">Recargar</button></div>'));
+  await dedo(page, 'aviso de conexión perdida');
+  await page.evaluate(() => document.getElementById('aviso-de-prueba').remove());
   await page.click('.btn-leave');
   await page.click('.leave-confirm .btn-danger');
   // Sin esperar al lobby, cerrar el navegador corta la peticion de salida y la mesa se queda abierta.
