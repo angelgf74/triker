@@ -1,5 +1,5 @@
 // Medidas de diseño a 360 px: el logo igual en la carga y en el lobby, los botones
-// de la cabecera a 44 px, los del lobby al mismo ancho, el icono de copiar el código
+// de la cabecera y los de decidir a 44 px, los del lobby al mismo ancho, el icono de copiar el código
 // privado en su línea, una sola acción principal en la sala de espera y las tablas
 // de historial y sesión dentro de su tarjeta. Vale contra producción: crea una mesa
 // privada y sale de ella. SHOT_PRE cambia el prefijo de las capturas.
@@ -9,6 +9,15 @@ import { chromium, WEB, MOVIL, SHOTS, ok, fallar, terminar } from './lib/comun.m
 const PRE = process.env.SHOT_PRE ?? 'diseno-';
 const caja = (page, sel) => page.locator(sel).first().evaluate((e) => { const r = e.getBoundingClientRect(); const s = getComputedStyle(e); return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height), color: s.color, borde: s.borderColor, letra: parseFloat(s.fontSize) }; });
 const desborde = (page) => page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+// Los botones con los que se decide (principal, secundario y compartir) miden al menos
+// 44 px de alto, que es lo que ocupa un dedo: sin alto mínimo se quedaban en 41, y
+// «Compartir» en 29.
+const dedo = async (page, donde) => {
+  const cortos = await page.locator('.btn-primary, .btn-secondary, .btn-share').evaluateAll((els) => els
+    .map((e) => ({ texto: e.textContent.trim(), alto: Math.round(e.getBoundingClientRect().height * 10) / 10 }))
+    .filter((b) => b.alto > 0 && b.alto < 44).map((b) => `«${b.texto}» ${b.alto} px`));
+  ok(cortos.length === 0, `${donde}: los botones de decidir miden al menos 44 px de alto${cortos.length ? ' (no llegan: ' + cortos.join(', ') + ')' : ''}`);
+};
 
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 try {
@@ -32,6 +41,7 @@ try {
   ok(sug.borde === ayuda.borde && sug.color === ayuda.color, `con el mismo estilo (${sug.borde} / ${ayuda.borde})`);
   const jugar = await caja(page, '.btn-play-now'), nueva = await caja(page, '.btn-new-game');
   ok(jugar.w === nueva.w && jugar.x === nueva.x, `los dos botones de acción van alineados y con el mismo ancho (${jugar.w} y ${nueva.w} px)`);
+  await dedo(page, 'lobby');
   ok(await desborde(page) <= 0, `sin scroll horizontal (${await desborde(page)} px)`);
   // Botones y campos no heredan la fuente por defecto: sin `font-family: inherit` salen en
   // la del navegador (Arial en Windows) y la página mezcla dos tipografías.
@@ -48,8 +58,10 @@ try {
   await page.click('.btn-new-game');
   await page.fill('.create-form .name-input', `Diseño ${Date.now() % 100000}`);
   await page.check('.private-toggle input');
+  await dedo(page, 'formulario de nueva partida');
   await page.click('.create-form .btn-primary');
   await page.waitForSelector('.waiting-room');
+  await dedo(page, 'sala de espera');
   const codigo = await caja(page, '.btn-copy-code');
   const icono = await page.locator('.btn-copy-code .copy-icon').first().evaluate((e) => parseFloat(getComputedStyle(e).fontSize)).catch(() => null);
   ok(icono !== null && icono <= 20, `el icono de copiar va a tamaño de texto normal (${icono ?? 'sin elemento propio: hereda ' + codigo.letra} px)`);
@@ -67,6 +79,8 @@ try {
   await page.waitForSelector('.turn-indicator.my-turn', { timeout: 30_000 });
   await page.click('.btn-pass');
   await page.waitForSelector('.results-view .result-entry', { timeout: 40_000 });
+  await dedo(page, 'resultados');
+  await page.screenshot({ path: join(SHOTS, `${PRE}05-resultados.png`), fullPage: true });
   await page.click('.continue-buttons .btn-primary');
   await page.waitForSelector('.round-badge:has-text("Ronda 2")', { timeout: 20_000 });
   await page.waitForSelector('.info-row', { timeout: 10_000 });

@@ -22,7 +22,7 @@ ok(r.status === 200 && nombre === 'Ana', `con invisibles por medio entra limpio:
 if (r.status === 200) await salir(r.cuerpo);
 
 r = await crear('Ángel 🎴');
-ok(r.status === 200 && r.cuerpo.gameState.players[0].name === 'Ángel 🎴', `un nombre normal con tilde y emoji no cambia: «${r.cuerpo?.gameState?.players?.[0]?.name}»`);
+ok(r.status === 200 && r.cuerpo.gameState.players[0].name === 'Ángel 🎴', `un nombre normal con tilde y emoji no cambia: «${r.cuerpo?.gameState?.players?.[0]?.name}» (${r.status})`);
 if (r.status === 200) await salir(r.cuerpo);
 
 const abiertas = (await (await fetch(`${API}/api/games`)).json()).filter((g) => g.name === 'Prueba nombres');

@@ -166,6 +166,7 @@ node .claude/skills/run-triker/e2e/empates.mjs           # or one directly
 | `sonido-descarte-y-ayuda` | champion sound, rejected discard message, help wording |
 | `diseno-movil`, `resultados-y-cabecera` | layout measurements at 360 px; results folded on big tables |
 | `un-solo-acento` | colour base: gold is the only accent, nothing purple outside the cards, soft text contrast |
+| `contraste-del-texto` | every painted text reaches WCAG contrast (4.5:1, 3:1 if large) against the background actually behind it, screen by screen; cards, emojis and disabled controls excluded |
 | `iconos` | interface icons are line drawings (`Icono`), not emojis: source scan plus what is painted on each screen |
 | `mesa` | your turn at 360 px: felt-coloured zone edge to edge, cards at least 62 px wide, the 16-step ladder, one action button that does not move |
 | `asientos` | rivals as seats above your zone up to 8 (one or two rows), as a list below it from 9; history and session panels under the table; the play button stays on the first screen at 360x740 |
@@ -181,7 +182,7 @@ leaves the API full: restart it afterwards) and `que-carga-la-web` (not a test:
 the inventory of what the page loads, for updating `deploy/csp.mjs`).
 
 **Against production.** Set both variables; only `humo`, `diseno-movil`,
-`resultados-y-cabecera`, `fuente-propia`, `vista-previa-de-enlaces`,
+`contraste-del-texto`, `resultados-y-cabecera`, `fuente-propia`, `vista-previa-de-enlaces`,
 `nombres-invisibles`, `ritmo-de-los-bots` and `que-carga-la-web` accept it (the
 rest call `soloLocal()` and exit 2). Every one creates public test tables for a
 few seconds and leaves them.

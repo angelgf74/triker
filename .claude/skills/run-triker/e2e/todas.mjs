@@ -28,6 +28,7 @@ const PRUEBAS = [
   ['jugar-contra-bots', 2, 0],
   ['diseno-movil', 1, 0],
   ['un-solo-acento', 1, 0],
+  ['contraste-del-texto', 2, 0],
   ['iconos', 1, 0],
   ['mesa', 2, 0],
   ['asientos', 3, 0],
@@ -89,10 +90,15 @@ for (const [nombre, crea] of lista) {
     process.stdout.write(`   (espero ${Math.ceil((hasta - ahora) / 1000)} s: límite de partidas por minuto)\n`);
     await sleep(hasta - ahora);
   }
-  creadas.push([Date.now(), crea]);
+  const apunte = [Date.now(), crea];
+  creadas.push(apunte);
   process.stdout.write(`${nombre} ... `);
   const t = Date.now();
   const { codigo, salida } = await lanzar(nombre);
+  // Las crea a lo largo de la prueba, no al empezar: se cuentan desde que acaba. Con la
+  // hora de inicio, las de una prueba de 16 s seguían dentro del minuto cuando el
+  // lanzador ya las daba por caducadas, y la siguiente que creaba varias se llevaba un 429.
+  apunte[0] = Date.now();
   const bien = codigo === 0 && /== TODO OK ==/.test(salida);
   const cuentas = `${(salida.match(/^\s+OK /gm) ?? []).length} ok, ${(salida.match(/^\s*FALLO/gm) ?? []).length} fallos`;
   console.log(`${bien ? 'OK   ' : 'FALLO'} (${cuentas}, ${Math.round((Date.now() - t) / 1000)} s)`);
