@@ -56,6 +56,34 @@ try {
   await page.locator('.lobby-header').screenshot({ path: join(SHOTS, `${PRE}logo.png`) });
   const privacidad = await (await ctx.request.get(WEB + '/privacidad.html')).text();
   ok(!/fonts\.(googleapis|gstatic)\.com/.test(privacidad), 'la página de privacidad tampoco carga fuentes de Google');
+
+  // La página de privacidad es HTML fijo, con sus estilos y su política de seguridad
+  // propios: tiene que verse como la app (misma letra, mismos colores) y su política
+  // tiene que dejarle cargar la fuente.
+  const app = await page.evaluate(() => {
+    const s = getComputedStyle(document.documentElement);
+    const rgb = (v) => { const h = s.getPropertyValue(v).trim(); return `rgb(${[1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)).join(', ')})`; };
+    return { fondo: rgb('--fondo'), panel: rgb('--panel'), texto: rgb('--texto'), acento: rgb('--acento') };
+  });
+  const cortes = [];
+  page.on('console', (m) => { if (/Content Security Policy|Refused to/i.test(m.text())) cortes.push(m.text().slice(0, 140)); });
+  await page.goto(WEB + '/privacidad.html', { waitUntil: 'load' });
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(500);
+  const pagina = await page.evaluate(() => {
+    const de = (sel, p) => getComputedStyle(document.querySelector(sel))[p];
+    return {
+      familia: de('body', 'fontFamily').split(',')[0].replace(/["']/g, '').trim(),
+      cargada: [...document.fonts].some((f) => /Nunito Sans/.test(f.family) && f.status === 'loaded'),
+      fondo: de('body', 'backgroundColor'), texto: de('body', 'color'), panel: de('.card', 'backgroundColor'),
+      titulo: de('h1', 'color'), apartado: de('h2', 'color'), enlace: de('a', 'color'),
+    };
+  });
+  ok(pagina.familia === 'Nunito Sans' && pagina.cargada, `la página de privacidad usa la misma letra, y carga (${pagina.familia}, ${pagina.cargada ? 'cargada' : 'sin cargar'})`);
+  ok(cortes.length === 0, `sin que su política de seguridad corte nada${cortes.length ? ': ' + cortes.join(' | ') : ''}`);
+  ok(pagina.fondo === app.fondo && pagina.texto === app.texto && pagina.panel === app.panel, `con los colores de la app (fondo ${pagina.fondo}, texto ${pagina.texto}, panel ${pagina.panel})`);
+  ok(pagina.enlace === app.acento && pagina.titulo === app.texto && pagina.apartado === app.texto, `y el dorado solo en los enlaces, no en los títulos (título ${pagina.titulo}, enlace ${pagina.enlace})`);
+  await page.screenshot({ path: join(SHOTS, `${PRE}privacidad.png`) });
 } catch (e) {
   fallar(e);
 } finally {
