@@ -1210,7 +1210,7 @@ body.colorblind .hmc-cb { display: block; }
 }
 .champion-icon { font-size: 2.2rem; line-height: 1; color: var(--acento); }
 .champion-name { font-size: 1.5rem; font-weight: 800; color: #fcd34d; }
-.champion-sub  { font-size: 0.9rem; color: #a0a0a0; width: 100%; margin-top: -0.2rem; }
+.champion-sub  { font-size: 0.9rem; color: var(--texto-suave); width: 100%; margin-top: -0.2rem; }
 
 .target-badge {
     background: rgba(255,200,0,0.12); border: 1px solid rgba(255,200,0,0.3);
