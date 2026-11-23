@@ -161,7 +161,7 @@ node .claude/skills/run-triker/e2e/empates.mjs           # or one directly
 | `cuenta-atras-y-turno-agotado` (3 min) | countdown bar in es-ES, timeout banner surviving the reveal, its close button at 44 px |
 | `plazo-entre-rondas` (3 min) | the 60 s to decide once someone wants to go on; an ad must not get you removed |
 | `reconexion` (3 min) | table and lobby come back alone after a 50 s network cut, and after a failed first connect |
-| `anuncio-entre-rondas`, `privacidad-de-anuncios` | interstitial timing and the privacy link, with a fake `window.AndroidAds` |
+| `anuncio-entre-rondas`, `privacidad-de-anuncios` | interstitial timing and the privacy link (when it shows, its 44 px, what it opens), with a fake `window.AndroidAds` |
 | `empates` | shared first place in the results summary |
 | `sonido-descarte-y-ayuda` | champion sound, rejected discard message, help wording |
 | `diseno-movil`, `resultados-y-cabecera` | layout measurements at 360 px, every control at 44 px or more (`controlesCortos` in `lib/comun.mjs`: buttons, fields, checkbox labels) in the lobby, both dialogs, the create form, the waiting room, the results and round 2; results folded on big tables |
