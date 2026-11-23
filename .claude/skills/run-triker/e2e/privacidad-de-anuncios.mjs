@@ -1,5 +1,6 @@
 // Comprobación en local del enlace «Privacidad de los anuncios» del lobby, con
-// el puente de la app Android simulado. Solo contra localhost.
+// el puente de la app Android simulado: cuándo se ve, que mide 44 px y que abre
+// el formulario. Solo contra localhost.
 import { join } from 'node:path';
 import { chromium, WEB, MOVIL, SHOTS, ok, fallar, terminar, soloLocal } from './lib/comun.mjs';
 
@@ -43,6 +44,9 @@ try {
   // Lo que hace la app cuando la UMP responde: avisa a la web.
   await c.page.evaluate(() => { window.__obligatorias = true; window.TrikerAds.refreshPrivacyLink(); });
   ok(await visible(c.page), 'cuando la app avisa de que es obligatorio, aparece');
+  // Fuera de la app está oculto y diseno-movil no llega a medirlo: se mide aquí.
+  const caja = await c.page.locator('.lobby-footer .link-button').boundingBox();
+  ok(caja.width >= 44 && caja.height >= 44, `se toca con el dedo: al menos 44×44 px (${caja.width.toFixed(1)}×${caja.height.toFixed(1)})`);
   await c.page.fill('#nombre-jugador', 'Ana');   // fuerza a Blazor a repintar el lobby
   await c.page.click('.btn-refresh');
   await c.page.waitForTimeout(800);
