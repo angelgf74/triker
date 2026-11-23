@@ -7,13 +7,14 @@
 // espectador de la mesa y de los resultados. También lo que casi nunca se ve: los avisos
 // de la mesa (reconectando, conexión perdida, turno agotado), las dos invitaciones, los
 // avisos del lobby y las pantallas de fallo (partida que no existe, sin asiento, página
-// que no existe, sin conexión con la API). No mide las cartas, tampoco las de ejemplo de
-// la ayuda (su color es un atributo del juego), los emojis ni los controles desactivados,
-// que la norma deja fuera.
-// Vale contra producción: crea dos mesas y sale de ellas. Lo de «sin conexión» corta la
-// API solo en el navegador de la prueba.
+// que no existe, sin conexión con la API), el código de una sala privada, «Volver a tu
+// partida» y el aviso de campeón. No mide las cartas, tampoco las de ejemplo de la ayuda
+// (su color es un atributo del juego), los emojis ni los controles desactivados, que la
+// norma deja fuera.
+// Vale contra producción: crea cuatro mesas y sale de ellas. Lo de «sin conexión» corta la
+// API solo en el navegador de la prueba, y la meta de una victoria solo la pide ese navegador.
 import { randomUUID } from 'node:crypto';
-import { chromium, WEB, API, MOVIL, ok, espera, fallar, terminar } from './lib/comun.mjs';
+import { chromium, WEB, API, MOVIL, RUTA_CREAR, ok, espera, fallar, terminar } from './lib/comun.mjs';
 
 const flojos = (page) => page.evaluate(() => {
   const rgba = (s) => { const m = s.match(/[\d.]+/g).map(Number); return { r: m[0], g: m[1], b: m[2], a: m[3] ?? 1 }; };
@@ -79,7 +80,7 @@ const entrar = async (nombre) => {
 // El nombre de Ana lleva número: su partida contra bots se llama «Partida de <nombre>» y la
 // espectadora tiene que dar con ella en el lobby, también en producción.
 const N = Date.now() % 100000, MESA = `Contraste ${N}`, ANA = `Ana ${N}`;
-let berto, sinNombre;
+let berto, sinNombre, eva;
 const lobbyEn = async (ruta) => {
   await sinNombre.goto(WEB + '/' + ruta, { waitUntil: 'load' });
   await sinNombre.waitForSelector('.lobby .game-title', { timeout: 90_000 });
@@ -204,11 +205,45 @@ try {
   await lobbyEn('');
   await sinNombre.waitForSelector('.empty-list[role="alert"]', { timeout: 30_000 });
   await medir(sinNombre, 'lobby sin conexión');
+
+  console.log('== F. Sala privada, «Volver a tu partida» y campeón ==');
+  // Los tres van sobre un degradado. La sala privada no sale en la lista del lobby, así que
+  // no se cruza con la de Berto.
+  eva = await entrar('Eva');
+  await eva.click('.btn-new-game');
+  await eva.fill('.create-form .name-input', `Privada ${N}`);
+  await eva.check('.private-toggle input');
+  await eva.click('.create-form .btn-primary');
+  await eva.waitForSelector('.private-code-banner', { timeout: 15_000 });
+  await medir(eva, 'sala privada con su código');
+  // Con un asiento guardado, el lobby ofrece volver a la mesa.
+  await eva.goto(WEB + '/', { waitUntil: 'load' });
+  await eva.waitForSelector('.resume-banner', { timeout: 30_000 });
+  await medir(eva, 'lobby con «Volver a tu partida»');
+  await eva.click('.resume-banner .btn-primary');
+  await eva.waitForSelector('.waiting-room', { timeout: 15_000 });
+  // La web solo ofrece metas de 3 o más: para acabar la partida en una ronda se retoca la
+  // petición de «Jugar contra bots». Gane quien gane, sale el aviso de campeón.
+  const dora = await entrar('Dora');
+  await dora.route(RUTA_CREAR, async (r) => {
+    if (r.request().method() !== 'POST') return r.continue();
+    await r.continue({ postData: JSON.stringify({ ...r.request().postDataJSON(), targetWins: 1, bots: 1 }) });
+  });
+  await dora.click('.btn-play-now');
+  await dora.waitForSelector('.turn-indicator.my-turn', { timeout: 20_000 });
+  await dora.click('.btn-pass');
+  await dora.waitForSelector('.results-view .result-entry', { timeout: 40_000 });
+  await dora.waitForSelector('.champion-banner', { timeout: 5_000 });
+  await medir(dora, 'resultados con el aviso de campeón');
+  await dora.click('.results-view .btn-primary:has-text("Volver al inicio")');
+  await dora.waitForSelector('.lobby .game-title', { timeout: 15_000 });
 } catch (e) {
   fallar(e);
 } finally {
   // Sin esperar al lobby, cerrar el navegador corta la petición de salida y la mesa se queda abierta.
-  if (berto) await espera(berto.click('.btn-leave').then(() => berto.waitForSelector('.lobby .game-title', { timeout: 15_000 })));
+  for (const p of [berto, eva]) {
+    if (p) await espera(p.click('.btn-leave', { timeout: 5_000 }).then(() => p.waitForSelector('.lobby .game-title', { timeout: 15_000 })));
+  }
   await browser.close();
 }
 terminar();
